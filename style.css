@@ -54,12 +54,12 @@ canvas, img { image-rendering:pixelated; }
 .word:empty { display:none; }
 .banner { position:absolute; left:50%; top:42%; transform:translate(-50%, -50%) scale(.6); opacity:0; transition:all .25s cubic-bezier(.2, 1.6, .4, 1); font-size:clamp(20px, 5vw, 44px); font-weight:900; text-shadow:0 3px 0 #000, 0 0 14px #000; white-space:nowrap; pointer-events:none; }
 .banner.on { opacity:1; transform:translate(-50%, -50%) scale(1); } .banner.boss { color:#ff5a5a; }
-.quiz { flex:none; height:clamp(140px, 40dvh, 290px); display:flex; gap:10px; padding:10px max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); align-items:stretch; justify-content:center; }
+.quiz { flex:none; height:clamp(140px, 40vh, 290px); height:clamp(140px, 40dvh, 290px); display:flex; gap:10px; padding:10px max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); align-items:stretch; justify-content:center; }
 .speak { display:flex; flex-direction:column; gap:8px; }
 .speak button { flex:1; width:72px; border-radius:16px; font-size:30px; background:linear-gradient(#7c6cff, #4b3bd6); box-shadow:0 4px 0 #2c2190; }
 .speak .slow { background:linear-gradient(#3b4263, #2a3050); box-shadow:0 4px 0 #171b30; font-size:24px; }
 .cards { flex:1; max-width:760px; display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; }
-.card { border-radius:16px; border:3px solid #fff3; background:linear-gradient(#f7f1e3, #e3d8bf); font-size:clamp(34px, 9vw, 72px); box-shadow:0 5px 0 #8f8266; }
+.card { display:grid; place-items:center; min-height:64px; overflow:hidden; border-radius:16px; border:3px solid #fff3; background:linear-gradient(#f7f1e3, #e3d8bf); font-size:clamp(34px, 9vw, 72px); box-shadow:0 5px 0 #8f8266; }
 .card:active { transform:translateY(3px); } .card.right { border-color:#49d17d; background:linear-gradient(#d9ffe6, #9fe8b9); } .card.wrong { animation:shake .35s; opacity:.4; }
 @keyframes shake { 25% { transform:translateX(-7px); } 75% { transform:translateX(7px); } }
 
@@ -139,7 +139,7 @@ header h2 { flex:1; margin:0; font-size:18px; } header .back { background:var(--
 @keyframes spin { 50% { transform:rotate(90deg); } }
 /* Bilder till orden */
 .pimg { width:1.15em; height:1.15em; vertical-align:middle; pointer-events:none; }
-.card .pimg { width:min(78%, 1.5em); height:auto; aspect-ratio:1; } .wtile .pimg { width:34px; height:34px; } #book-sheet .pimg, .teach .pimg { width:60px; height:60px; }
+.card .pimg { width:clamp(46px, 17vmin, 124px); height:clamp(46px, 17vmin, 124px); object-fit:contain; } .wtile .pimg { width:34px; height:34px; } #book-sheet .pimg, .teach .pimg { width:60px; height:60px; }
 }
 
 /* Övningar i frågepanelen */

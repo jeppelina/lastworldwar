@@ -72,7 +72,7 @@ export class Battle {
     this.timer = setInterval(() => this.frame(), 45);
     this.nextFight();
   }
-  destroy() { clearInterval(this.timer); this.el.innerHTML = ''; }
+  destroy() { this.over = true; clearInterval(this.timer); clearTimeout(this.bt); this.el.innerHTML = ''; }
   now() { return performance.now() / 1000; }
 
   // ----- scenens geometri -----

@@ -1,7 +1,7 @@
 // Service worker: ser till att en installerad app (hemskärmen) alltid får senaste versionen, och att spelet går att
 // starta utan nät. Kod hämtas alltid färskt från nätet (med kopian som reserv utan nät). Ljud och bilder sparas och
 // återanvänds tills nästa version publiceras, då börjar ett nytt förråd och det gamla tas bort.
-const BUILD = '20261111182839', CACHE = 'lww-' + BUILD;
+const BUILD = '20261111183625', CACHE = 'lww-' + BUILD;
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil((async () => {
   for (const k of await caches.keys()) if (k.startsWith('lww-') && k !== CACHE) await caches.delete(k);

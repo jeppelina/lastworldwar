@@ -5,7 +5,7 @@ import { ITEMS, BY_ID, SLOTS, RARITY, dailyShop, heroStats, xpToLevel } from './
 import { Battle, loadArt } from './battle.js';
 import { Quiz } from './quiz.js';
 import { showTitle, playIntro } from './intro.js';
-import { pic } from './pics.js';
+import { pic, preloadPics } from './pics.js';
 import { TIERS, tierOf, isDue, nextNeed, record as wordRecord, meet as wordMeet } from './words.js';
 import * as sync from './sync.js';
 import { SYNC_CONFIG } from './sync-config.js';
@@ -149,6 +149,8 @@ document.querySelectorAll('.back').forEach((b) => (b.onclick = () => enterMap(fa
 // ---------- Strid ----------
 function wordsFor(k, i) { const n = words.length, off = (k * 6 + Math.floor(i / 3) * 3) % n; return Array.from({ length: 12 }, (_, j) => words[(off + j) % n]); }
 function startBattle(k, i, node, w) {
+  if (battle) { battle.destroy(); battle = null; }          // aldrig två strider samtidigt
+  $('result').hidden = true;
   show('battle');
   P.words = P.words || {};
   const quiz = CONTENT[k] ? new Quiz({ content: CONTENT[k], nodeIdx: i, book: P.words, day: dayNum(), reading: P.reading !== false, play, save, onAnswer: (t, right) => sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.type, correct: right, stage: w.id + ':' + i }) }) : null;   // värld 1 har byggd pedagogik, övriga kör enkla frågor tills vidare
@@ -406,7 +408,7 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
   const art = await loadArt();
   words = (await (await fetch('audio/words.json')).json()).words;
   try { CONTENT[0] = await (await fetch('content/world1.json')).json(); } catch (e) { console.error('world1.json', e); }
-  checkUpdate();
+  checkUpdate(); preloadPics();
   await sync.init({ ...SYNC_CONFIG, xpToLevel });
   S.profiles.forEach(adopt);
   sync.subscribe(onSync);
