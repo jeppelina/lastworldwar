@@ -438,7 +438,7 @@
     if (unlockAnim && t - unlockAnim.t0 > 2.4) unlockAnim = null;
     const bob = ((t * 3) | 0) % 2;
     ring(hp.x, hp.y + 1, 6 + ((t * 5) % 4), 3 + ((t * 5) % 4) * 0.5, '#fff6e0');
-    img(C.hero[owalk ? ((t * 8) | 0) % 2 : 0], hp.x, hp.y - bob);
+    img(heroSprite || C.hero[owalk ? ((t * 8) | 0) % 2 : 0], hp.x, hp.y - bob);
     img(C.arrow, hp.x + 2, hp.y - 17 - bob * 2);
   }
   function drawWorld(t, dt) {
@@ -467,8 +467,8 @@
       else { img(st === 'done' ? C.nodeDone : st === 'cur' ? C.nodeCur : C.nodeLock, p.x, p.y); if (st === 'done') stars3(p.x, p.y - 20, done[i]); }
     }
     const step = walking ? ((t * 9) | 0) % 2 : 0, bob = walking ? step : ((t * 2.5) | 0) % 2;
-    img(C.hero[step], hp.x, hp.y - 3 - bob);
-    if (!walking && ci >= 0) img(C.arrow, hp.x + 2, hp.y - 21 - ((t * 3) | 0) % 2 * 2);
+    img(heroSprite || C.hero[step], hp.x, hp.y - 3 - bob);
+    if (!walking && ci >= 0) img(C.arrow, hp.x + 2, hp.y - (heroSprite ? 30 : 21) - ((t * 3) | 0) % 2 * 2);
     drawParts(m, t, dt);
     drawClouds(m, t, dt, w.biome === 'volcano');
   }
@@ -489,6 +489,9 @@
     if (inW) { demo.hidden = true; }
     else { demo.hidden = false; demo.disabled = cw < 0; demo.textContent = cw < 0 ? 'All done!' : 'Go to my level'; }
   }
+  // Spelets skal skickar in barnets egen gubbe (en liten canvas) som ersätter standardfiguren på kartan.
+  let heroSprite = null;
+  function setHero(cvs, ax, ay) { heroSprite = cvs ? { cv: cvs, ax, ay } : null; }
   let toastT = 0;
   function toast(msg) { const el = $('#toast'); el.textContent = msg; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2200); }
   const KIND = { level: 'Level', boss: 'Boss', chest: 'Treasure chest', shop: 'Shop' };
@@ -536,11 +539,17 @@
   cv.addEventListener('pointermove', (e) => {
     if (!ptr) return;
     const dx = e.clientX - ptr.x, dy = e.clientY - ptr.y;
-    if (Math.hypot(dx, dy) > 8) { ptr.moved = true; view.follow = false; }
+    if (Math.hypot(dx, dy) > 5) { ptr.moved = true; view.follow = false; }
     if (ptr.moved) { view.cam.x = ptr.cx - dx / S; view.cam.y = ptr.cy - dy / S; clampCam(); }
   });
   cv.addEventListener('pointerup', (e) => { if (ptr && !ptr.moved) tap(e.clientX / S + view.cam.x, e.clientY / S + view.cam.y); ptr = null; });
   cv.addEventListener('pointercancel', () => { ptr = null; });
+  // Reserv för pekskärmar där pekhändelserna avbryts (t.ex. av systemgester): samma panorering med touch-händelser.
+  let tch = null;
+  cv.addEventListener('touchstart', (e) => { const t = e.touches[0]; tch = { x: t.clientX, y: t.clientY, cx: view.cam.x, cy: view.cam.y }; }, { passive: true });
+  cv.addEventListener('touchmove', (e) => { if (!tch) return; const t = e.touches[0], dx = t.clientX - tch.x, dy = t.clientY - tch.y; if (Math.hypot(dx, dy) > 5) { view.follow = false; if (ptr) ptr.moved = true; view.cam.x = tch.cx - dx / S; view.cam.y = tch.cy - dy / S; clampCam(); } e.preventDefault(); }, { passive: false });
+  cv.addEventListener('touchend', () => { tch = null; }, { passive: true });
+  cv.addEventListener('wheel', (e) => { view.follow = false; view.cam.x += e.deltaX / S; view.cam.y += e.deltaY / S; clampCam(); e.preventDefault(); }, { passive: false });
   function tap(x, y) {
     if (fade) return;
     if (view.mode === 'overview') {
@@ -598,6 +607,6 @@
   // setInterval i stället för requestAnimationFrame: tickar även när rutan är dold.
   setInterval(frame, 50);
   frame();
-  window.__map = { state, view, setView, completeCurrent, worlds, unlocked, load, finish, curWorld, curNode, updateHud };
+  window.__map = { state, view, setView, completeCurrent, worlds, unlocked, load, finish, curWorld, curNode, updateHud, setHero };
   if (window.parent && window.parent.GAME && window.parent.GAME.mapReady) window.parent.GAME.mapReady(window.__map);
 })();

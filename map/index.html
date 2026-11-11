@@ -19,11 +19,15 @@
 
   #top { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 8px; padding: calc(8px + env(safe-area-inset-top)) 10px 0; pointer-events: none; }
   #top > * { pointer-events: auto; }
-  #back { padding: 6px 10px 8px; font-size: 14px; }
-  #title { flex: 1; min-width: 0; padding: 5px 10px 6px; line-height: 1.15; }
-  #title b { display: block; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #back { padding: 9px 16px 11px; font-size: 16px; margin-left: 52px; }
+  #top { justify-content: space-between; }
+  #title, #stats { pointer-events: none !important; border-width: 2px; box-shadow: 0 0 0 2px #1b1630; background: #2a2046d9; }
+  #title { flex: 0 1 auto; min-width: 0; padding: 3px 9px 4px; line-height: 1.15; }
+  #title span { display: none !important; }
+  #bottom { display: none !important; }
+  #title b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #title span { display: block; font-size: 11px; color: #cdbfe6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #stats { padding: 5px 9px 6px; font-size: 14px; line-height: 1.3; text-align: right; white-space: nowrap; }
+  #stats { padding: 3px 8px 4px; font-size: 13px; line-height: 1.25; text-align: right; white-space: nowrap; }
   #stats img { width: 14px; height: 14px; margin-right: 4px; position: relative; top: -1px; }
 
   #bottom { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 10px; padding: 0 10px calc(10px + env(safe-area-inset-bottom)); pointer-events: none; }

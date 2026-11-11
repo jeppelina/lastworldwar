@@ -193,3 +193,20 @@ header h2 { flex:1; margin:0; font-size:18px; } header .back { background:var(--
 #parent-box h3 { margin:22px 0 2px; font-size:16px; } #names { display:flex; gap:8px; margin-top:8px; } #names input { flex:1; min-width:0; }
 #fs-tip { position:absolute; left:50%; bottom:max(10px, env(safe-area-inset-bottom)); transform:translateX(-50%); background:#15172ae6; border:1px solid #555c80; border-radius:12px; padding:6px 12px; font-size:12px; font-weight:500; color:var(--dim); white-space:nowrap; }
 #fs-tip[hidden] { display:none; }
+
+/* Gear: flikar och Outfit */
+#bag-tabs { display:flex; gap:6px; padding:8px 12px 0; } #bag-tabs button { padding:7px 16px; border-radius:999px; background:#1a1d31; color:var(--dim); font-size:14px; } #bag-tabs button.on { background:var(--gold); color:#3a2600; }
+.outfit { grid-column:1 / -1; } .outfit h4 { margin:6px 0 6px; font-size:14px; color:var(--dim); } .sw { display:flex; flex-wrap:wrap; gap:8px; }
+.chip { padding:9px 16px; border-radius:12px; background:#1a1d31; border:2px solid var(--line); font-size:15px; } .chip.on { border-color:var(--gold); background:#2f2a14; }
+.dot { width:42px; height:42px; border-radius:50%; border:3px solid #0f1120; box-shadow:0 0 0 2px #3a3f60; } .dot.on { box-shadow:0 0 0 3px var(--gold); }
+#names { flex-wrap:wrap; } #names label { flex:1; min-width:120px; display:flex; flex-direction:column; gap:4px; } #names span { font-size:13px; color:var(--dim); display:flex; align-items:center; gap:6px; } #names input[type=checkbox] { width:20px; height:20px; flex:none; padding:0; }
+
+/* Level up */
+#result.level .box { border-color:#8dffb0; box-shadow:0 0 60px #49d17d88; animation:pop .35s cubic-bezier(.2, 1.7, .4, 1); }
+#result.level h2 { color:#8dffb0; font-size:38px; } .lvnum { display:inline-grid; place-items:center; width:92px; height:92px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff8c0, #ffc83d 55%, #b97a10); color:#3a2600; font-size:46px; font-weight:900; letter-spacing:0; box-shadow:0 0 0 5px #7a4c05, 0 0 30px #ffc83d99; animation:spinin .6s ease-out; }
+@keyframes spinin { from { transform:scale(.2) rotate(-180deg); opacity:0; } }
+#result .gain { font-size:19px; color:var(--text); } #result .gain b.up { color:#8dffb0; font-size:23px; }
+/* Tillbaka-knappen: stor, och undan från hörnet där iPad lägger sitt helskärmskryss */
+header { padding-left:max(64px, env(safe-area-inset-left)); }
+header .back, #parent-back { min-height:46px; min-width:96px; padding:10px 18px; font-size:17px; border-radius:14px; background:linear-gradient(#ffd66b, #f0a020); color:#3a2500; box-shadow:0 3px 0 #9a6200; }
+@media (max-height: 500px) { header .back, #parent-back { min-height:38px; padding:6px 16px; font-size:15px; } }

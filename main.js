@@ -33,7 +33,14 @@ function bookFor(id) {
   for (const e of sync.exportLocal().events) if (e.profile === id && e.type === 'words') for (const [w, type, r] of e.payload.a || []) { if (r < 0) wordMeet(book, w, e.payload.day); else wordRecord(book, w, r > 0, type, e.payload.day); }
   return book;
 }
-const adopt = (p) => { Object.assign(p, sync.stateFor(pid(p), today())); p.words = bookFor(pid(p)); save(); };
+// Utseende och inställningar per barn följer också med mellan enheter: senaste händelsen av typen gäller.
+function latest(id, type) { let out = null; for (const e of sync.exportLocal().events) if (e.profile === id && e.type === type) out = e.payload; return out; }
+const adopt = (p) => {
+  Object.assign(p, sync.stateFor(pid(p), today())); p.words = bookFor(pid(p));
+  const look = latest(pid(p), 'look'), prefs = latest(pid(p), 'prefs');
+  if (look && look.skin) p.look = look; p.reading = prefs ? prefs.reading !== false : true;
+  save();
+};
 const rec = (type, payload) => { sync.record(pid(P), type, payload); adopt(P); };
 const gearOf = (p, preview) => { const eq = { ...p.eq }; if (preview) eq[preview.slot] = preview.id; return Object.fromEntries(Object.entries(eq).filter(([, id]) => id).map(([k, id]) => [k, BY_ID[id]])); };
 
@@ -60,6 +67,7 @@ function sfx(kind) {
     unlock(); const t = actx.currentTime, tone = (f0, f1, at, dur, type, vol) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t + at); o.frequency.exponentialRampToValueAtTime(f1, t + at + dur);
       g.gain.setValueAtTime(0.0001, t + at); g.gain.exponentialRampToValueAtTime(vol, t + at + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + at + dur); o.connect(g); g.connect(actx.destination); o.start(t + at); o.stop(t + at + dur + 0.02); };
     if (kind === 'right') { tone(784, 784, 0, 0.11, 'triangle', 0.22); tone(1175, 1175, 0.1, 0.2, 'triangle', 0.22); }
+    else if (kind === 'level') { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, f, i * 0.11, i === 4 ? 0.5 : 0.14, 'triangle', 0.24)); tone(262, 262, 0.44, 0.5, 'sine', 0.2); }
     else if (kind === 'wrong') { tone(220, 150, 0, 0.28, 'sawtooth', 0.12); tone(110, 80, 0, 0.3, 'sine', 0.2); }
   } catch (e) {}
 }
@@ -103,10 +111,16 @@ window.GAME = {
   },
 };
 function afterMapChange() { P.done = JSON.parse(JSON.stringify(MAP.state.done)); MAP.state.gold = P.gold; MAP.updateHud(); save(); renderBar(); }
-function syncMap(jump) { MAP.load(P.done, P.gold); if (jump) { const cw = MAP.curWorld(); MAP.setView('world', cw < 0 ? MAP.worlds.length - 1 : cw, true); } }
+// Barnets egen gubbe i sin utrustning som markör på kartan (halv storlek).
+function mapHero() {
+  if (!MAP || !MAP.setHero || !P) return;
+  const g = new G(40, 38); g.push(0, 0, 0, 0.5); drawHero(g, P.look, gearOf(P), { t: 0, noShadow: true, noPet: true, noFx: true }); g.pop();
+  const c = document.createElement('canvas'); c.width = 40; c.height = 38; g.paint(c.getContext('2d')); MAP.setHero(c, 19, 31);
+}
+function syncMap(jump) { mapHero(); MAP.load(P.done, P.gold); if (jump) { const cw = MAP.curWorld(); MAP.setView('world', cw < 0 ? MAP.worlds.length - 1 : cw, true); } }
 function enterMap(jump) {
   show('map'); renderBar();
-  if (!$('map-frame').src) $('map-frame').src = 'map/index.html'; else if (MAP) syncMap(jump);
+  if (!$('map-frame').src) $('map-frame').src = 'map/index.html?v=4'; else if (MAP) syncMap(jump);
 }
 function renderBar() {
   $('me-name').textContent = P.name; $('me-level').textContent = P.level; $('me-xp').style.width = (100 * P.xp / xpToLevel(P.level)) + '%';
@@ -137,13 +151,13 @@ function wordsFor(k, i) { const n = words.length, off = (k * 6 + Math.floor(i / 
 function startBattle(k, i, node, w) {
   show('battle');
   P.words = P.words || {};
-  const quiz = CONTENT[k] ? new Quiz({ content: CONTENT[k], nodeIdx: i, book: P.words, day: dayNum(), play, save, onAnswer: (t, right) => sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.type, correct: right, stage: w.id + ':' + i }) }) : null;   // värld 1 har byggd pedagogik, övriga kör enkla frågor tills vidare
+  const quiz = CONTENT[k] ? new Quiz({ content: CONTENT[k], nodeIdx: i, book: P.words, day: dayNum(), reading: P.reading !== false, play, save, onAnswer: (t, right) => sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.type, correct: right, stage: w.id + ':' + i }) }) : null;   // värld 1 har byggd pedagogik, övriga kör enkla frågor tills vidare
   battle = new Battle($('battle-root'), { profile: P, worldIdx: k, nodeIdx: i, node, words: wordsFor(k, i), quiz, play, sfx, voiceIdle, onEnd: (r) => endBattle(r, k, i, node, w) });
   if ((P.runs || 0) < 3) { play('audio/en-listen.mp3'); toast('Listen, and choose the picture.' + sv('listen', 'Lyssna och välj bilden.')); }
 }
 function endBattle(r, k, i, node, w) {
   const first = !(P.done[w.id] && P.done[w.id][i]), bonus = r.win ? Math.round(node.gold * (first ? 1 : 0.4) * 0.7) : 0;
-  const lv = P.level, log = battle && battle.quiz ? battle.quiz.log : [];
+  const lv = P.level, before = heroStats(P), log = battle && battle.quiz ? battle.quiz.log : [];
   for (let c = 0; c < log.length; c += 30) sync.record(pid(P), 'words', { day: dayNum(), a: log.slice(c, c + 30).map((l) => [l.id, l.type, l.free && !l.right ? -1 : l.right ? 1 : 0]) });
   rec('stage', { world: w.id, node: i, kind: 'battle', win: r.win, stars: r.stars, gold: r.gold + bonus, xp: r.xp });
   const ups = P.level - lv;
@@ -155,14 +169,28 @@ function endBattle(r, k, i, node, w) {
     `<b>+${fmt(r.gold + bonus)} gold</b>` + (ups ? `\n<b>Level ${P.level}!</b> You are stronger now.` : '') +
     (r.win ? '' : '\nYou keep your gold. Play an easier level again to get stronger.');
   const acts = el.querySelector('.acts'); acts.innerHTML = '';
-  const btn = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = label; b.onclick = () => { el.hidden = true; if (battle) battle.destroy(); battle = null; fn(); }; acts.appendChild(b); };
+  const btn = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = label; b.onclick = () => { el.hidden = true; if (battle) battle.destroy(); battle = null; if (ups) levelUp(before, fn); else fn(); }; acts.appendChild(b); };
   if (!r.win) btn('Try again', '', () => startBattle(k, i, node, w));
   btn('Map', r.win ? '' : 'alt', () => { enterMap(false); if (r.win) { MAP.state.gold = P.gold; MAP.finish(k, i, r.stars); } afterMapChange(); });
   play(r.win ? 'audio/en-good-job.mp3' : 'audio/en-try-again.mp3');
 }
 
+// ---------- Level up: en egen skärm med fanfar som visar vad som blev bättre ----------
+function levelUp(before, then) {
+  const el = $('result'), now = heroStats(P); el.hidden = false; el.className = 'level';
+  el.querySelector('h2').textContent = 'Level up!'; el.querySelector('.sv').textContent = sv('level-up', 'Ny nivå!').trim();
+  el.querySelector('.stars').innerHTML = `<span class="lvnum">${P.level}</span>`;
+  el.querySelector('.lines').innerHTML = `<span class="gain">⚔ Attack <b>${before.atk}</b> → <b class="up">${now.atk}</b></span>\n<span class="gain">♥ Health <b>${before.maxHp}</b> → <b class="up">${now.maxHp}</b></span>\nYou are stronger now!`;
+  const acts = el.querySelector('.acts'); acts.innerHTML = '';
+  const b = document.createElement('button'); b.className = 'btn'; b.textContent = 'Yes!'; b.onclick = () => { el.hidden = true; then(); }; acts.appendChild(b);
+  sfx('level'); setTimeout(() => play('audio/en-level-up.mp3'), 500);
+}
+
 // ---------- Utrustning: hjälten i mitten med platserna runt om, och det man äger för vald plats ----------
-let gFilter = 'weapon', gSel = null;
+let gFilter = 'weapon', gSel = null, gTab = 'items';
+const HAIRS = [['short', 'Short'], ['spiky', 'Spiky'], ['bowl', 'Bowl'], ['long', 'Long']];
+const HAIR_COL = ['#2a2a33', '#5a3a22', '#6b4426', '#8a5a34', '#b5532a', '#d98a3a', '#e9c463', '#f4e6b0', '#c8ccd8', '#e56aa8', '#4a8ad8', '#3fae6a'];
+const SKIN_COL = ['#fbe0c8', '#f3c7a2', '#e9b48c', '#d49a6a', '#b97a50', '#8a5a3a', '#6a4028'];
 const SLOT_SIDE = { L: ['helmet', 'armor', 'back'], R: ['weapon', 'shield', 'pet'] };
 function openGear() { gSel = null; show('gear'); paintGearBg(); renderGear(); }
 async function paintGearBg() {
@@ -189,8 +217,19 @@ function renderGear() {
       b.className = 'slot' + (gFilter === sid ? ' on' : '') + (it ? '' : ' empty');
       if (it) b.style.setProperty('--rc', RARITY[it.rarity].color);
       b.innerHTML = (it ? `<img src="${ICON[id]}" alt="">` : `<span class="ghost">${s.stat === 'atk' ? '⚔' : '♥'}</span>`) + `<small>${s.name}</small>`;
-      b.onclick = () => { gFilter = sid; gSel = null; renderGear(); }; col.appendChild(b);
+      b.onclick = () => { gFilter = sid; gSel = null; gTab = 'items'; renderGear(); }; col.appendChild(b);
     }
+  }
+  $('bag-tabs').innerHTML = ''; for (const [id, label] of [['items', 'Items'], ['outfit', 'Outfit']]) { const b = document.createElement('button'); b.textContent = label; b.className = gTab === id ? 'on' : ''; b.onclick = () => { gTab = id; gSel = null; renderGear(); }; $('bag-tabs').appendChild(b); }
+  if (gTab === 'outfit') {            // hår, hårfärg och hudfärg. Ändringen syns direkt på gubben och sparas.
+    $('bag-title').textContent = ''; $('gear-sheet').hidden = true;
+    const grid = $('gear-grid'); grid.innerHTML = '';
+    const sec = (title, kids) => { const d = document.createElement('div'); d.className = 'outfit'; d.innerHTML = `<h4>${title}</h4>`; const r = document.createElement('div'); r.className = 'sw'; kids.forEach((k) => r.appendChild(k)); d.appendChild(r); grid.appendChild(d); };
+    const set = (patch) => { rec('look', { ...P.look, ...patch }); renderGear(); renderBar(); };
+    sec('Hair', HAIRS.map(([id, label]) => { const b = document.createElement('button'); b.className = 'chip' + (P.look.style === id ? ' on' : ''); b.textContent = label; b.onclick = () => set({ style: id }); return b; }));
+    sec('Hair colour', HAIR_COL.map((c) => { const b = document.createElement('button'); b.className = 'dot' + (P.look.hair === c ? ' on' : ''); b.style.background = c; b.onclick = () => set({ hair: c }); return b; }));
+    sec('Skin', SKIN_COL.map((c) => { const b = document.createElement('button'); b.className = 'dot' + (P.look.skin === c ? ' on' : ''); b.style.background = c; b.onclick = () => set({ skin: c }); return b; }));
+    return;
   }
   const slot = SLOTS.find((x) => x.id === gFilter), list = P.owned.map((id) => BY_ID[id]).filter((i) => i && i.slot === gFilter).sort((a, b) => b.power - a.power);
   $('bag-title').innerHTML = `${slot.name} <span>${slot.stat === 'atk' ? 'gives ⚔ Attack' : 'gives ♥ Health'}</span>`;
@@ -310,9 +349,12 @@ async function signUp(email, password) {
 }
 function namesForm() {
   return '<h3>Spelarnas namn</h3><p class="dim">Namnen sparas bara på den här enheten, inte i molnet.</p><div id="names">' +
-    S.profiles.map((p, i) => `<input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}">`).join('') + '</div>';
+    S.profiles.map((p, i) => `<label><input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}"><span><input type="checkbox" data-r="${i}" ${p.reading !== false ? 'checked' : ''}> Läser</span></label>`).join('') + '</div><p class="dim">Utan "Läser" får barnet nästan bara bilduppgifter, och högst två val när något ska läsas.</p>';
 }
-function bindNames() { document.querySelectorAll('#names input').forEach((el) => (el.oninput = () => { S.profiles[+el.dataset.i].name = el.value.trim() || `Player ${+el.dataset.i + 1}`; save(); })); }
+function bindNames() {
+  document.querySelectorAll('#names input[data-r]').forEach((el) => (el.onchange = () => { const p = S.profiles[+el.dataset.r]; sync.record(pid(p), 'prefs', { reading: el.checked }); adopt(p); }));
+  document.querySelectorAll('#names input[data-i]').forEach((el) => (el.oninput = () => { S.profiles[+el.dataset.i].name = el.value.trim() || `Player ${+el.dataset.i + 1}`; save(); }));
+}
 function renderParent(msg = '') {
   const s = sync.status(), box = $('parent-box');
   const when = s.lastSyncAt ? new Date(s.lastSyncAt).toLocaleString('sv-SE') : 'aldrig';
@@ -361,5 +403,5 @@ function goFullscreen() {
     const go = () => { S.seenIntro = true; save(); renderWho(); show('who'); };
     if (S.seenIntro) go(); else playIntro(root, { play, look: looks[0], onDone: go });
   } });
-  window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, pick: (n) => { P = S.profiles[n]; enterMap(true); } };
+  window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, levelUp, pick: (n) => { P = S.profiles[n]; enterMap(true); } };
 })();

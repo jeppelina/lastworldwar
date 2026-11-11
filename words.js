@@ -39,7 +39,12 @@ export function record(book, id, right, type, day) {
 
 // Vilka övningar som passar ordet just nu. Ord med bild börjar med att lyssna och peka; ord utan bild börjar
 // med svensk översättning. Högre nivå ger övningar som kräver mer: läsa, översätta åt andra hållet, stava.
-export function tasksFor(item, rec) {
+export function tasksFor(item, rec, reading = true) {
+  if (!reading) {      // barn som inte läser än: nästan bara bilder. Skrivna ord bara med två val.
+    const t0 = Math.max(0, tierOf(rec));
+    if (!item.pic) return ['en_to_sv'];
+    return t0 === 0 ? ['listen_pick_picture'] : t0 < 3 ? ['listen_pick_picture', 'listen_pick_picture', 'true_false'] : ['listen_pick_picture', 'listen_pick_picture', 'true_false', 'picture_pick_word'];
+  }
   const t = Math.max(0, tierOf(rec)), pic = !!item.pic, phrase = item.pos === 'phrase', short = item.en.length < 3 || /\s/.test(item.en) || phrase;
   if (phrase) return t < 2 ? ['en_to_sv'] : ['en_to_sv', 'sv_to_en', 'listen_pick_word'];
   if (pic) {

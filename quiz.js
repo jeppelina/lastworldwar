@@ -18,6 +18,11 @@ export class Quiz {
     this.own = boss ? this.reach : [...(this.node.introduce || []), ...(this.node.phrases || [])].map((id) => this.byId[id]).filter(Boolean);
     this.earlier = this.reach.filter((i) => !this.own.includes(i));
     this.sentences = (this.node.sentences || []).map((id) => o.content.sentences.find((s) => s.id === id)).filter(Boolean);
+    if (this.reading === undefined) this.reading = true;
+    if (!this.reading) {          // utan läsning: ord utan bild tas nästan inte med (ungefär vart sjunde), och inga meningar
+      const keep = (i) => !!i.pic || Math.random() < 0.15, hasPic = this.own.some((i) => i.pic);
+      if (hasPic) this.own = this.own.filter(keep); this.earlier = this.earlier.filter((i) => !!i.pic); this.sentences = [];
+    }
     this.asked = 0; this.lastNew = -9; this.requeue = []; this.last = null; this.log = [];
   }
 
@@ -35,7 +40,7 @@ export class Quiz {
     const any = this.reach.filter((i) => met(i) && i !== this.last);
     return this.task(any.length ? pick(any) : fresh[0] || this.own[0]);
   }
-  task(item) { const rec = this.book[item.id]; this.last = item; return { item, type: pick(tasksFor(item, rec)), free: !rec }; }   // första mötet är riskfritt
+  task(item) { const rec = this.book[item.id]; this.last = item; return { item, type: pick(tasksFor(item, rec, this.reading)), free: !rec }; }   // första mötet är riskfritt
 
   foils(item, n, needPic) {
     const ok = (i) => i && i !== item && i.pos !== 'phrase' === (item.pos !== 'phrase') && (!needPic || i.pic) && i.sv !== item.sv;
@@ -84,12 +89,13 @@ export class Quiz {
     };
     const withFoils = (n, needPic, html) => shuffle([it, ...this.foils(it, n, needPic)]).map((o) => ({ html: html(o), ok: o === it }));
     const nOpt = task.free ? 1 : 3;                                       // första mötet: bara två val
+    const nTxt = task.free || !this.reading ? 1 : 3;                      // skrivna alternativ: två val för den som inte läser än
 
     if (T === 'listen_pick_picture') { word(esc(it.en) + newTag); return choice(withFoils(nOpt, true, (o) => pic(o))); }
     if (T === 'read_pick_picture') { promptAudio = null; word(esc(it.en)); return choice(withFoils(3, true, (o) => pic(o))); }
-    if (T === 'picture_pick_word') { promptAudio = null; word(`<span class="pic">${pic(it)}</span>`); return choice(withFoils(3, false, (o) => esc(o.en)), true); }
+    if (T === 'picture_pick_word') { promptAudio = null; word(`<span class="pic">${pic(it)}</span>`); return choice(withFoils(nTxt, false, (o) => esc(o.en)), true); }
     if (T === 'listen_pick_word') { word('🔊 ?'); return choice(withFoils(3, false, (o) => esc(o.en)), true); }
-    if (T === 'en_to_sv') { word(esc(it.en) + newTag); return choice(withFoils(nOpt, false, (o) => esc(o.sv)), true); }
+    if (T === 'en_to_sv') { word(esc(it.en) + newTag); return choice(withFoils(nTxt, false, (o) => esc(o.sv)), true); }
     if (T === 'sv_to_en') { promptAudio = svA; word(`<small>SV</small> ${esc(it.sv)}`, 'sv'); return choice(withFoils(3, false, (o) => esc(o.en)), true); }
     if (T === 'true_false') {
       const truth = Math.random() < 0.5, shown = truth ? it : this.foils(it, 1, true)[0] || it;
