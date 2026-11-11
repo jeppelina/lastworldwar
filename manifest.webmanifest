@@ -3,7 +3,8 @@
   "short_name": "Last World War",
   "start_url": "./",
   "display": "fullscreen",
-  "orientation": "landscape",
+  "orientation": "any",
+  "icons": [{ "src": "icon-180.png", "sizes": "180x180", "type": "image/png" }, { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }],
   "background_color": "#141622",
   "theme_color": "#141622"
 }

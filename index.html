@@ -6,6 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>The Last World War</title>
 <link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" href="./icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Last World War">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#141622">
 <link rel="stylesheet" href="./style.css">
@@ -16,6 +20,7 @@
 <section id="who" class="screen">
   <h1>Who is playing?</h1>
   <button id="cloud" class="grey" aria-label="Parents">☁</button>
+  <div id="fs-tip" hidden>Full screen: tap Share, then “Add to Home Screen”</div>
   <div id="who-list"></div>
 </section>
 
@@ -70,7 +75,7 @@
 
 <div id="result" hidden><div class="box"><h2></h2><div class="sv"></div><div class="stars"></div><p class="lines"></p><div class="acts"></div></div></div>
 <div id="toast"></div>
-<div id="rotate"><div><span>↻</span><b>Turn your screen sideways</b><small>Vrid skärmen till liggande läge</small></div></div>
+
 <script type="module" src="./main.js"></script>
 </body>
 </html>

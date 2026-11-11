@@ -814,9 +814,12 @@ function makeStage(root, fixedT) {
     if (!w || !h) return false;
     if (w === lw && h === lh && st) return true;
     lw = w; lh = h; s = max(1, round(h / 128)); if (h / s < 114 && s > 1) s--;
-    W = ceil(w / s) + 2; H = ceil(h / s) + 2;
+    // Stående skärm: bilden är komponerad för liggande format, så den ritas som ett liggande band mitt på skärmen
+    // (minst 190 pixlar brett i bildens egna pixlar) i stället för att pressas ihop.
+    const sMax = max(1, floor(w / 190)); if (s > sMax) s = sMax;
+    W = ceil(w / s) + 2; H = min(ceil(h / s) + 2, max(114, round(W * 0.8)));
     cv.width = W; cv.height = H; cv.style.width = W * s + 'px'; cv.style.height = H * s + 'px';
-    root.style.setProperty('--u', h / 100 + 'px');
+    root.style.setProperty('--u', min(h, H * s) / 100 + 'px');
     g = new G(W, H); st = scene ? scene.build(W, H) : null;
     return true;
   }

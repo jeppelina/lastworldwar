@@ -137,7 +137,6 @@ header h2 { flex:1; margin:0; font-size:18px; } header .back { background:var(--
 #rotate { display:none; position:fixed; inset:0; z-index:99; background:#141622; place-items:center; text-align:center; }
 #rotate span { font-size:70px; display:block; animation:spin 2.4s ease-in-out infinite; } #rotate b { font-size:22px; display:block; } #rotate small { color:var(--dim); }
 @keyframes spin { 50% { transform:rotate(90deg); } }
-@media (orientation: portrait) and (pointer: coarse) { #rotate { display:grid; } }
 /* Bilder till orden */
 .pimg { width:1.15em; height:1.15em; vertical-align:middle; pointer-events:none; }
 .card .pimg { width:min(78%, 1.5em); height:auto; aspect-ratio:1; } .wtile .pimg { width:34px; height:34px; } #book-sheet .pimg, .teach .pimg { width:60px; height:60px; }
@@ -192,3 +191,5 @@ header h2 { flex:1; margin:0; font-size:18px; } header .back { background:var(--
 #parent-box form { display:flex; flex-direction:column; gap:10px; margin:12px 0; } #parent-box input { font:inherit; padding:12px; border-radius:12px; border:2px solid var(--line); background:#0f1120; color:var(--text); }
 #parent-box .msg { color:#ffc83d; min-height:1.5em; } #parent-box .dim { color:var(--dim); font-size:13px; } #parent-box .acts { display:flex; gap:10px; }
 #parent-box h3 { margin:22px 0 2px; font-size:16px; } #names { display:flex; gap:8px; margin-top:8px; } #names input { flex:1; min-width:0; }
+#fs-tip { position:absolute; left:50%; bottom:max(10px, env(safe-area-inset-bottom)); transform:translateX(-50%); background:#15172ae6; border:1px solid #555c80; border-radius:12px; padding:6px 12px; font-size:12px; font-weight:500; color:var(--dim); white-space:nowrap; }
+#fs-tip[hidden] { display:none; }

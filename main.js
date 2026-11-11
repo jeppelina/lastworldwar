@@ -334,6 +334,17 @@ function renderParent(msg = '') {
 }
 $('parent-back').onclick = () => { renderWho(); show('who'); };
 
+// ---------- Helskärm ----------
+// På iPad och Android kan webbläsarens flikar och fält gömmas med helskärmsläget (kräver ett tryck, därför vid Play).
+// iPhone saknar den funktionen i Safari: där är enda vägen att lägga spelet på hemskärmen, så då visas ett tips.
+const standalone = () => navigator.standalone === true || matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
+function goFullscreen() {
+  if (standalone() || !matchMedia('(pointer: coarse)').matches) return;
+  const el = document.documentElement, fn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (fn) { try { const r = fn.call(el); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
+  else $('fs-tip').hidden = false;
+}
+
 // ---------- Start ----------
 (async function () {
   const art = await loadArt();
@@ -346,7 +357,7 @@ $('parent-back').onclick = () => { renderWho(); show('who'); };
   // Titelskärm, och introfilmen första gången på den här enheten (går att trycka förbi).
   const root = $('title-root'), looks = S.profiles.map((p) => p.look);
   const off = showTitle(root, { looks, onPlay: () => {
-    unlock(); off();
+    unlock(); off(); goFullscreen();
     const go = () => { S.seenIntro = true; save(); renderWho(); show('who'); };
     if (S.seenIntro) go(); else playIntro(root, { play, look: looks[0], onDone: go });
   } });
