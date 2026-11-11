@@ -1,6 +1,6 @@
 // Spelets skal: vem spelar, karta, strid, resultat, utrustning och dagens butik.
 import { G, ramp } from './pixel.js';
-import { W, H, drawHero, drawIcon } from './hero.js';
+import { W, H, drawHero, drawIcon, HAIR_STYLES } from './hero.js';
 import { ITEMS, BY_ID, SLOTS, RARITY, dailyShop, heroStats, xpToLevel } from './catalog.js';
 import { Battle, loadArt } from './battle.js';
 import { Quiz } from './quiz.js';
@@ -76,7 +76,7 @@ function sfx(kind) {
 const ICON = {};
 { const c = document.createElement('canvas'); c.width = c.height = 32; const ctx = c.getContext('2d'), g = new G(32, 32); for (const it of ITEMS) { g.clear(); drawIcon(g, it); ctx.clearRect(0, 0, 32, 32); g.paint(ctx); ICON[it.id] = c.toDataURL(); } }
 
-function show(id) { document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id)); screen = id; }
+function show(id) { document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id)); screen = id; if (stale && id !== 'battle') location.reload(); }
 let screen = 'who', toastT;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2200); }
 
@@ -188,7 +188,7 @@ function levelUp(before, then) {
 
 // ---------- Utrustning: hjälten i mitten med platserna runt om, och det man äger för vald plats ----------
 let gFilter = 'weapon', gSel = null, gTab = 'items';
-const HAIRS = [['short', 'Short'], ['spiky', 'Spiky'], ['bowl', 'Bowl'], ['long', 'Long']];
+const HAIRS = Object.entries(HAIR_STYLES).map(([id, st]) => [id, st.name]);
 const HAIR_COL = ['#2a2a33', '#5a3a22', '#6b4426', '#8a5a34', '#b5532a', '#d98a3a', '#e9c463', '#f4e6b0', '#c8ccd8', '#e56aa8', '#4a8ad8', '#3fae6a'];
 const SKIN_COL = ['#fbe0c8', '#f3c7a2', '#e9b48c', '#d49a6a', '#b97a50', '#8a5a3a', '#6a4028'];
 const SLOT_SIDE = { L: ['helmet', 'armor', 'back'], R: ['weapon', 'shield', 'pet'] };
@@ -387,11 +387,26 @@ function goFullscreen() {
   else $('fs-tip').hidden = false;
 }
 
+// ---------- Uppdateringar ----------
+// En app på hemskärmen kan ligga öppen i dagar utan att laddas om. Därför jämförs versionen med servern vid start,
+// varje gång appen kommer fram igen och en gång i halvtimmen. Finns en nyare version laddas sidan om, men aldrig mitt i en strid.
+let BUILD = null, stale = false;
+const fetchBuild = async () => { try { const r = await fetch('version.json?' + Date.now(), { cache: 'no-store' }); return r.ok ? (await r.json()).build : null; } catch (e) { return null; } };
+async function checkUpdate() {
+  const b = await fetchBuild(); if (!b) return;
+  if (!BUILD) { BUILD = b; return; }
+  if (b !== BUILD) { stale = true; if (screen !== 'battle') location.reload(); }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
+setInterval(checkUpdate, 30 * 60 * 1000);
+if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+
 // ---------- Start ----------
 (async function () {
   const art = await loadArt();
   words = (await (await fetch('audio/words.json')).json()).words;
   try { CONTENT[0] = await (await fetch('content/world1.json')).json(); } catch (e) { console.error('world1.json', e); }
+  checkUpdate();
   await sync.init({ ...SYNC_CONFIG, xpToLevel });
   S.profiles.forEach(adopt);
   sync.subscribe(onSync);
