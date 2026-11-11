@@ -1,0 +1,41 @@
+{
+ "lines": [
+  {
+   "id": "book",
+   "en": "Long ago, all words lived in one big book.",
+   "sec": 2.9,
+   "heard": "long ago all words lived in one big book"
+  },
+  {
+   "id": "emperor",
+   "en": "The Emperor wanted their power.",
+   "sec": 1.96,
+   "heard": "the emperor wanted their power"
+  },
+  {
+   "id": "broke",
+   "en": "The book broke! The words flew away.",
+   "sec": 2.15,
+   "heard": "the book broke the words flew away"
+  },
+  {
+   "id": "star",
+   "en": "He has one star. He wants three.",
+   "sec": 2.22,
+   "heard": "he has one star he wants three"
+  },
+  {
+   "id": "page",
+   "en": "You found a little book.",
+   "sec": 1.39,
+   "heard": "you found a little book"
+  },
+  {
+   "id": "find",
+   "en": "Find the words!",
+   "sec": 1.17,
+   "heard": "find the words"
+  }
+ ],
+ "miss": []
+}

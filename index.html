@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>The Last World War</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#141622">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<section id="title" class="screen on"><div id="title-root"></div></section>
+
+<section id="who" class="screen">
+  <h1>Who is playing?</h1>
+  <button id="cloud" class="grey" aria-label="Parents">☁</button>
+  <div id="who-list"></div>
+</section>
+
+<section id="map" class="screen">
+  <iframe id="map-frame" title="Karta"></iframe>
+  <div id="map-bar">
+    <button id="b-gear"><canvas id="b-gear-c" width="24" height="24"></canvas><span>Gear</span></button>
+    <button id="b-book"><canvas id="b-book-c" width="24" height="24"></canvas><span>Book</span></button>
+    <button id="b-shop"><canvas id="b-shop-c" width="24" height="24"></canvas><span>Shop</span><em id="shop-dot" hidden></em></button>
+    <button id="b-who"><canvas id="b-who-c" width="40" height="24" class="wide"></canvas><span>Players</span></button>
+    <div id="me"><b id="me-name"></b><span>Level <b id="me-level"></b></span><div class="bar"><i id="me-xp"></i></div></div>
+  </div>
+</section>
+
+<section id="parent" class="screen">
+  <header><button id="parent-back">◀ Tillbaka</button><h2>För föräldrar: spara och synka</h2></header>
+  <div id="parent-box"></div>
+</section>
+
+<section id="battle" class="screen"><div id="battle-root"></div></section>
+
+<section id="gear" class="screen">
+  <header><button class="back">◀ Map</button><h2>Gear</h2><div class="wallet"><span class="coin"></span><b class="gold"></b></div></header>
+  <div class="cols">
+    <div class="stage gearstage">
+      <div class="doll">
+        <div class="slotcol" id="gs-left"></div>
+        <div class="portrait"><canvas id="gear-bg"></canvas><canvas id="gear-hero"></canvas></div>
+        <div class="slotcol" id="gs-right"></div>
+      </div>
+      <div class="plate"><b id="g-name"></b><span id="g-level"></span><div class="bar"><i id="g-xp"></i></div></div>
+      <div id="gear-stats"></div>
+    </div>
+    <div class="bag"><h3 id="bag-title"></h3><div id="gear-grid"></div><div id="gear-sheet" hidden></div></div>
+  </div>
+</section>
+
+<section id="book" class="screen">
+  <header><button class="back">◀ Map</button><h2>My Word Book</h2><div class="wallet" id="book-count"></div></header>
+  <div id="book-legend"></div>
+  <div id="book-pages"></div>
+  <div id="book-sheet" hidden></div>
+</section>
+
+<section id="shop" class="screen">
+  <header><button class="back">◀ Map</button><h2>Today's shop</h2><div class="wallet"><span class="coin"></span><b class="gold"></b></div></header>
+  <div class="cols">
+    <div class="stage"><canvas id="shop-hero"></canvas><div id="shop-try"></div></div>
+    <div class="bag"><div id="shop-list"></div><p id="shop-note">New items tomorrow!</p></div>
+  </div>
+</section>
+
+<div id="result" hidden><div class="box"><h2></h2><div class="sv"></div><div class="stars"></div><p class="lines"></p><div class="acts"></div></div></div>
+<div id="toast"></div>
+<div id="rotate"><div><span>↻</span><b>Turn your screen sideways</b><small>Vrid skärmen till liggande läge</small></div></div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

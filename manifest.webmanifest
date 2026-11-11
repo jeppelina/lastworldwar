@@ -1,0 +1,9 @@
+{
+  "name": "The Last World War",
+  "short_name": "Last World War",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#141622",
+  "theme_color": "#141622"
+}

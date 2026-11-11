@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Lärovärlden: världskarta</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #16326a; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  body { font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", "Helvetica Neue", sans-serif; font-weight: 700; color: #fff6e0; }
+  #map { position: absolute; left: 0; top: 0; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; display: block; }
+  img.px, canvas.px { image-rendering: pixelated; vertical-align: middle; }
+
+  .panel { background: #2a2046; border: 3px solid #f4e3b0; box-shadow: 0 0 0 3px #1b1630, 0 6px 0 3px rgba(10, 8, 30, .45); }
+  .btn { font: inherit; color: #1b1630; background: #ffd84a; border: 3px solid #1b1630; box-shadow: inset 0 -4px 0 #c8861c, inset 0 3px 0 #fff3a8; padding: 9px 14px 11px; cursor: pointer; touch-action: manipulation; }
+  .btn:active { transform: translateY(2px); box-shadow: inset 0 -2px 0 #c8861c, inset 0 3px 0 #fff3a8; }
+  .btn.alt { background: #cfd6ee; box-shadow: inset 0 -4px 0 #8d98b3, inset 0 3px 0 #ffffff; }
+  .btn.go { background: #6ee06a; box-shadow: inset 0 -4px 0 #2f9a3c, inset 0 3px 0 #c8ffc0; }
+  .btn[disabled] { background: #77778c; box-shadow: inset 0 -4px 0 #50506a; color: #2a2046; cursor: default; }
+
+  #top { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 8px; padding: calc(8px + env(safe-area-inset-top)) 10px 0; pointer-events: none; }
+  #top > * { pointer-events: auto; }
+  #back { padding: 6px 10px 8px; font-size: 14px; }
+  #title { flex: 1; min-width: 0; padding: 5px 10px 6px; line-height: 1.15; }
+  #title b { display: block; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #title span { display: block; font-size: 11px; color: #cdbfe6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #stats { padding: 5px 9px 6px; font-size: 14px; line-height: 1.3; text-align: right; white-space: nowrap; }
+  #stats img { width: 14px; height: 14px; margin-right: 4px; position: relative; top: -1px; }
+
+  #bottom { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 10px; padding: 0 10px calc(10px + env(safe-area-inset-bottom)); pointer-events: none; }
+  #bottom > * { pointer-events: auto; font-size: 14px; }
+
+  #card { position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%); width: min(330px, calc(100vw - 32px)); padding: 12px 14px 14px; display: none; }
+  #card.on { display: block; }
+  #card .kind { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #ffd84a; }
+  #card h2 { margin: 2px 0 8px; font-size: 21px; line-height: 1.1; }
+  #card .row { display: flex; gap: 8px; font-size: 14px; margin: 5px 0; align-items: baseline; }
+  #card .row i { font-style: normal; color: #cdbfe6; flex: 0 0 74px; }
+  #card .row em { font-style: normal; }
+  #card .stars img { width: 28px; height: 28px; margin-right: 2px; }
+  #card .coin { width: 14px; height: 14px; margin-right: 4px; position: relative; top: -1px; }
+  #card .acts { display: flex; gap: 10px; margin-top: 12px; }
+  #card .acts .btn { flex: 1; font-size: 16px; }
+  #card .acts .btn.alt { flex: 0 0 auto; }
+  #card .note { font-size: 12px; color: #cdbfe6; margin-top: 8px; }
+
+  #toast { position: absolute; left: 50%; top: 76px; transform: translateX(-50%); padding: 8px 14px; font-size: 14px; text-align: center; max-width: calc(100vw - 40px); opacity: 0; transition: opacity .25s; pointer-events: none; }
+  #toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+<canvas id="map"></canvas>
+
+<div id="top">
+  <button id="back" class="btn alt" hidden>&#9664; Map</button>
+  <div id="title" class="panel"><b></b><span></span></div>
+  <div id="stats" class="panel"></div>
+</div>
+
+<div id="card" class="panel">
+  <div class="kind"></div>
+  <h2></h2>
+  <div class="row"><i>Tränar</i><em class="trains"></em></div>
+  <div class="row"><i>Reward</i><em class="reward"></em></div>
+  <div class="row"><i>Stars</i><em class="stars"></em></div>
+  <div class="note"></div>
+  <div class="acts"><button class="btn go play">Play</button><button class="btn alt close">Close</button></div>
+</div>
+
+<div id="bottom">
+  <button id="demo" class="btn">Klara banan (demo)</button>
+  <button id="reset" class="btn alt">Nollställ</button>
+</div>
+<div id="toast" class="panel"></div>
+
+<script>
+  // Laddar skripten i ordning med tidsstämpel, så att en omladdning alltid ger senaste versionen.
+  (function next(list) {
+    if (!list.length) return;
+    const s = document.createElement('script');
+    s.src = list[0] + '?t=' + Date.now(); s.onload = () => next(list.slice(1));
+    document.body.appendChild(s);
+  })(['data.js', 'sprites.js', 'biomes.js', 'map.js']);
+</script>
+</body>
+</html>

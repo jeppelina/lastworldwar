@@ -1,0 +1,5077 @@
+{
+ "schema": 1,
+ "world": "ordskogen",
+ "title": "Word Forest",
+ "locale": {
+  "target": "en-US",
+  "support": "sv-SE"
+ },
+ "about": "Innehåll och lärandedesign för värld 1. Förklaring och schema: docs/pedagogik/larandedesign.md. Filen genereras inte i spelet, den läses som den är.",
+ "bands": {
+  "A": {
+   "sv": "lyssnare, läser inte än (ungefär 5 till 6 år)",
+   "reads": false,
+   "newPerRun": 3,
+   "options": 3,
+   "maxStage": 4
+  },
+  "B": {
+   "sv": "nybörjarläsare, läser svenska långsamt (ungefär 7 till 8 år)",
+   "reads": true,
+   "newPerRun": 4,
+   "options": 4,
+   "maxStage": 5
+  },
+  "C": {
+   "sv": "läsare, läser svenska flytande (ungefär 9 till 10 år)",
+   "reads": true,
+   "newPerRun": 6,
+   "options": 4,
+   "maxStage": 5
+  }
+ },
+ "stages": [
+  {
+   "n": 0,
+   "id": "new",
+   "sv": "Nytt",
+   "can": "har inte mött ordet",
+   "intervalDays": 0,
+   "tasks": {
+    "pic": {
+     "A": [],
+     "B": [],
+     "C": []
+    },
+    "nopic": {
+     "A": [],
+     "B": [],
+     "C": []
+    }
+   },
+   "gate": []
+  },
+  {
+   "n": 1,
+   "id": "met",
+   "sv": "Träffat",
+   "can": "känner igen ordet med fullt stöd, få val",
+   "intervalDays": 1,
+   "tasks": {
+    "pic": {
+     "A": [
+      "listen_pick_picture"
+     ],
+     "B": [
+      "listen_pick_picture"
+     ],
+     "C": [
+      "listen_pick_picture"
+     ]
+    },
+    "nopic": {
+     "A": [
+      "en_to_sv"
+     ],
+     "B": [
+      "en_to_sv"
+     ],
+     "C": [
+      "en_to_sv"
+     ]
+    }
+   },
+   "gate": [
+    "listen_pick_picture",
+    "en_to_sv"
+   ],
+   "options": 2
+  },
+  {
+   "n": 2,
+   "id": "hears",
+   "sv": "Känner igen",
+   "can": "hör ordet och väljer rätt betydelse bland lika alternativ",
+   "intervalDays": 2,
+   "tasks": {
+    "pic": {
+     "A": [
+      "listen_pick_picture",
+      "true_false"
+     ],
+     "B": [
+      "listen_pick_picture",
+      "true_false",
+      "read_pick_picture"
+     ],
+     "C": [
+      "listen_pick_picture",
+      "read_pick_picture",
+      "true_false"
+     ]
+    },
+    "nopic": {
+     "A": [
+      "en_to_sv",
+      "true_false"
+     ],
+     "B": [
+      "en_to_sv",
+      "listen_pick_word"
+     ],
+     "C": [
+      "en_to_sv",
+      "listen_pick_word"
+     ]
+    }
+   },
+   "gate": [
+    "listen_pick_picture",
+    "en_to_sv"
+   ]
+  },
+  {
+   "n": 3,
+   "id": "finds",
+   "sv": "Hittar ordet",
+   "can": "går från bild eller svenska till rätt engelskt ord, utan att ordet är givet",
+   "intervalDays": 4,
+   "tasks": {
+    "pic": {
+     "A": [
+      "picture_pick_word",
+      "odd_one_out"
+     ],
+     "B": [
+      "picture_pick_word",
+      "listen_pick_word",
+      "read_pick_picture"
+     ],
+     "C": [
+      "picture_pick_word",
+      "listen_pick_word",
+      "missing_letter"
+     ]
+    },
+    "nopic": {
+     "A": [
+      "sv_to_en"
+     ],
+     "B": [
+      "sv_to_en",
+      "listen_pick_word",
+      "odd_one_out"
+     ],
+     "C": [
+      "sv_to_en",
+      "odd_one_out",
+      "missing_letter"
+     ]
+    }
+   },
+   "gate": [
+    "picture_pick_word",
+    "sv_to_en"
+   ]
+  },
+  {
+   "n": 4,
+   "id": "sentence",
+   "sv": "Förstår i mening",
+   "can": "förstår ordet i en fras eller mening utan svenskt stöd",
+   "intervalDays": 7,
+   "tasks": {
+    "pic": {
+     "A": [
+      "listen_sentence_pick_picture",
+      "sentence_true_false"
+     ],
+     "B": [
+      "listen_sentence_pick_picture",
+      "sentence_true_false",
+      "fill_gap"
+     ],
+     "C": [
+      "listen_sentence_pick_picture",
+      "fill_gap",
+      "sentence_true_false"
+     ]
+    },
+    "nopic": {
+     "A": [
+      "listen_sentence_pick_picture",
+      "sentence_true_false"
+     ],
+     "B": [
+      "listen_sentence_pick_picture",
+      "fill_gap",
+      "sentence_true_false"
+     ],
+     "C": [
+      "listen_sentence_pick_picture",
+      "fill_gap",
+      "sentence_true_false"
+     ]
+    }
+   },
+   "gate": [
+    "listen_sentence_pick_picture",
+    "fill_gap"
+   ]
+  },
+  {
+   "n": 5,
+   "id": "builds",
+   "sv": "Bygger själv",
+   "can": "stavar ordet eller bygger en fras med det",
+   "intervalDays": 14,
+   "tasks": {
+    "pic": {
+     "A": [],
+     "B": [
+      "missing_letter",
+      "spell_tiles",
+      "build_sentence"
+     ],
+     "C": [
+      "spell_tiles",
+      "build_sentence"
+     ]
+    },
+    "nopic": {
+     "A": [],
+     "B": [
+      "missing_letter",
+      "build_sentence",
+      "spell_tiles"
+     ],
+     "C": [
+      "spell_tiles",
+      "build_sentence"
+     ]
+    }
+   },
+   "gate": [
+    "spell_tiles",
+    "build_sentence"
+   ]
+  }
+ ],
+ "taskTypes": {
+  "listen_pick_picture": {
+   "prompt": "en_audio",
+   "answer": "pictures",
+   "reads": false,
+   "sv": false,
+   "showWord": true,
+   "gate": true
+  },
+  "read_pick_picture": {
+   "prompt": "en_text",
+   "answer": "pictures",
+   "reads": true,
+   "sv": false,
+   "showWord": true,
+   "gate": false
+  },
+  "picture_pick_word": {
+   "prompt": "picture",
+   "answer": "en_words",
+   "reads": false,
+   "sv": false,
+   "showWord": false,
+   "gate": true,
+   "note": "Band A: korten är ljudknappar. Band C: bara text."
+  },
+  "listen_pick_word": {
+   "prompt": "en_audio",
+   "answer": "en_text",
+   "reads": true,
+   "sv": false,
+   "showWord": false,
+   "gate": false
+  },
+  "en_to_sv": {
+   "prompt": "en_audio",
+   "answer": "sv_words",
+   "reads": false,
+   "sv": true,
+   "showWord": true,
+   "gate": true,
+   "note": "Band A: svenska kort med röst och demo."
+  },
+  "sv_to_en": {
+   "prompt": "sv_audio_text",
+   "answer": "en_words",
+   "reads": false,
+   "sv": true,
+   "showWord": false,
+   "gate": true,
+   "note": "Band A: engelska kort är ljudknappar."
+  },
+  "true_false": {
+   "prompt": "en_audio+picture",
+   "answer": "yes_no",
+   "reads": false,
+   "sv": false,
+   "showWord": true,
+   "gate": false
+  },
+  "odd_one_out": {
+   "prompt": "four_words",
+   "answer": "one_of_four",
+   "reads": false,
+   "sv": false,
+   "showWord": false,
+   "gate": false
+  },
+  "missing_letter": {
+   "prompt": "en_audio+word_with_gap",
+   "answer": "letters",
+   "reads": true,
+   "sv": false,
+   "showWord": false,
+   "gate": false,
+   "onlyIf": "spell"
+  },
+  "spell_tiles": {
+   "prompt": "en_audio+picture_or_sv",
+   "answer": "letter_tiles",
+   "reads": true,
+   "sv": false,
+   "showWord": false,
+   "gate": true,
+   "onlyIf": "spell"
+  },
+  "listen_sentence_pick_picture": {
+   "prompt": "sentence_audio",
+   "answer": "scenes",
+   "reads": false,
+   "sv": false,
+   "showWord": true,
+   "gate": true
+  },
+  "sentence_true_false": {
+   "prompt": "sentence_audio+scene",
+   "answer": "yes_no",
+   "reads": false,
+   "sv": false,
+   "showWord": true,
+   "gate": false
+  },
+  "fill_gap": {
+   "prompt": "sentence_audio+text_with_gap",
+   "answer": "en_words",
+   "reads": true,
+   "sv": false,
+   "showWord": false,
+   "gate": true
+  },
+  "build_sentence": {
+   "prompt": "sentence_audio_or_sv",
+   "answer": "word_tiles",
+   "reads": true,
+   "sv": true,
+   "showWord": false,
+   "gate": true
+  }
+ },
+ "fightRoles": {
+  "new": "Banans nya ord för den här omgången (efter lär in-stunden). Varje nytt ord frågas två gånger med minst två andra frågor emellan, i stadium 1-format. Fylls ut med paketets ord i sitt eget stadium.",
+  "review": "Förfallna ord ur reviewNodes, lägst stadium först, i ordets eget stadium. Finns inga förfallna: paketets ord.",
+  "mix": "Allt som förekommit i omgången, de nya orden en tredje gång, formatet ett steg svårare där noden tillåter. Sista frågan är en prövning ett stadium upp som inte kan flytta ned ordet.",
+  "safe_review": "Riskfritt: ingen fiende, ingen skada. Förfallna ord ur reviewNodes. Flyttar ord upp och ned som vanligt.",
+  "safe_phrases": "Riskfritt: fraserna i en_to_sv och sv_to_en.",
+  "boss_minions": "Förstrid: bildord ur hela världen, lägst stadium och äldst först.",
+  "boss_troll": "Trollet: tre faser efter andel liv kvar, se phases."
+ },
+ "rules": {
+  "firstTryOnly": true,
+  "promoteMaxPerDay": 1,
+  "meetCorrectInRun": 2,
+  "meetGap": 2,
+  "demoteSteps": 1,
+  "minStageAfterMet": 1,
+  "requeueGap": [
+   2,
+   4
+  ],
+  "knownAtCheckStartsAt": 2,
+  "troubleAfterLapses": 3,
+  "masteredIntervalDays": [
+   30,
+   60
+  ],
+  "targetAccuracy": [
+   0.8,
+   0.9
+  ],
+  "lockUntilAudioDone": true,
+  "helpCountsAs": "wrong_without_enemy_hit",
+  "helpStreak": "pause",
+  "easeIfAccuracyBelow": 0.6,
+  "unlockNextNode": "win_and_all_pack_words_met",
+  "noNewWordsIfDueOver": 15
+ },
+ "sceneFormat": "scene = {pic, n?, size?, color?, mood?, speed?, anim?} eller {pics: [..]}. Motorn ritar emojin n gånger, stor eller liten, med färgram, ansiktsmärke, fartstreck eller rörelse. Fälten är platshållare tills riktiga bilder finns.",
+ "audio": {
+  "en": "audio/<audio>.mp3 och audio/<audio>.slow.mp3",
+  "sv": "audio/sv/<id>.mp3 (text: fältet sv, för fraser och meningar också)",
+  "sentences": "audio/s/<id>.mp3 och .slow.mp3",
+  "rule": "say är exakt text till talsyntesen. have = klippet finns redan i game/audio. accept = homofoner som Whisper-kontrollen ska godkänna. ttsRisk = lyssna igenom för hand."
+ },
+ "items": [
+  {
+   "id": "cat",
+   "en": "cat",
+   "sv": "katt",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐱",
+   "say": "Cat.",
+   "audio": "cat",
+   "have": true,
+   "node": 1,
+   "diff": 1,
+   "cognate": true,
+   "spell": true,
+   "foils": [
+    "bat"
+   ],
+   "ex": {
+    "id": "c_cat_and_dog",
+    "en": "A cat and a dog.",
+    "sv": "En katt och en hund."
+   }
+  },
+  {
+   "id": "dog",
+   "en": "dog",
+   "sv": "hund",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐶",
+   "say": "Dog.",
+   "audio": "dog",
+   "have": true,
+   "node": 1,
+   "diff": 1,
+   "cognate": false,
+   "spell": true,
+   "foils": [
+    "duck",
+    "frog"
+   ],
+   "ex": {
+    "id": "c_two_dogs",
+    "en": "Two dogs.",
+    "sv": "Två hundar."
+   }
+  },
+  {
+   "id": "bird",
+   "en": "bird",
+   "sv": "fågel",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐦",
+   "say": "Bird.",
+   "audio": "bird",
+   "have": true,
+   "node": 1,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "foils": [
+    "bear",
+    "bee"
+   ],
+   "ex": {
+    "id": "s_bird_fly",
+    "en": "The bird can fly.",
+    "sv": "Fågeln kan flyga."
+   }
+  },
+  {
+   "id": "tree",
+   "en": "tree",
+   "sv": "träd",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "🌳",
+   "say": "Tree.",
+   "audio": "tree",
+   "have": true,
+   "node": 1,
+   "diff": 1,
+   "cognate": true,
+   "spell": true,
+   "foils": [
+    "three",
+    "leaf",
+    "forest"
+   ],
+   "note": "Förväxlas lätt med three: använd inte three som distraktor före stadium 3.",
+   "ex": {
+    "id": "c_tree_and_flower",
+    "en": "A tree and a flower.",
+    "sv": "Ett träd och en blomma."
+   }
+  },
+  {
+   "id": "sun",
+   "en": "sun",
+   "sv": "sol",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "☀️",
+   "say": "Sun.",
+   "audio": "sun",
+   "have": true,
+   "node": 1,
+   "diff": 1,
+   "cognate": false,
+   "spell": true,
+   "foils": [
+    "star",
+    "moon"
+   ],
+   "accept": [
+    "son"
+   ]
+  },
+  {
+   "id": "flower",
+   "en": "flower",
+   "sv": "blomma",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "🌸",
+   "say": "Flower.",
+   "audio": "flower",
+   "have": true,
+   "node": 1,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "accept": [
+    "flour"
+   ],
+   "ex": {
+    "id": "c_yellow_flower",
+    "en": "A yellow flower.",
+    "sv": "En gul blomma."
+   }
+  },
+  {
+   "id": "fish",
+   "en": "fish",
+   "sv": "fisk",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐟",
+   "say": "Fish.",
+   "audio": "fish",
+   "have": true,
+   "node": 2,
+   "diff": 1,
+   "cognate": true,
+   "spell": true,
+   "foils": [
+    "frog",
+    "fox"
+   ],
+   "ex": {
+    "id": "c_small_fish",
+    "en": "A small fish.",
+    "sv": "En liten fisk."
+   }
+  },
+  {
+   "id": "frog",
+   "en": "frog",
+   "sv": "groda",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐸",
+   "say": "Frog.",
+   "audio": "frog",
+   "have": true,
+   "node": 2,
+   "diff": 2,
+   "cognate": false,
+   "spell": true,
+   "foils": [
+    "fox",
+    "fish"
+   ],
+   "ex": {
+    "id": "c_three_frogs",
+    "en": "Three frogs.",
+    "sv": "Tre grodor."
+   }
+  },
+  {
+   "id": "duck",
+   "en": "duck",
+   "sv": "anka",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🦆",
+   "say": "Duck.",
+   "audio": "duck",
+   "have": true,
+   "node": 2,
+   "diff": 2,
+   "cognate": false,
+   "spell": true,
+   "foils": [
+    "dog"
+   ],
+   "ex": {
+    "id": "c_frog_and_duck",
+    "en": "A frog and a duck.",
+    "sv": "En groda och en anka."
+   }
+  },
+  {
+   "id": "water",
+   "en": "water",
+   "sv": "vatten",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "💧",
+   "say": "Water.",
+   "audio": "water",
+   "have": true,
+   "node": 2,
+   "diff": 1,
+   "cognate": true,
+   "spell": false
+  },
+  {
+   "id": "bear",
+   "en": "bear",
+   "sv": "björn",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐻",
+   "say": "Bear.",
+   "audio": "bear",
+   "have": true,
+   "node": 2,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "foils": [
+    "bird",
+    "bee"
+   ],
+   "accept": [
+    "bare"
+   ],
+   "ex": {
+    "id": "c_big_bear",
+    "en": "A big bear.",
+    "sv": "En stor björn."
+   }
+  },
+  {
+   "id": "apple",
+   "en": "apple",
+   "sv": "äpple",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "🍎",
+   "say": "Apple.",
+   "audio": "apple",
+   "have": true,
+   "node": 2,
+   "diff": 1,
+   "cognate": true,
+   "spell": false,
+   "ex": {
+    "id": "c_red_apple",
+    "en": "A red apple.",
+    "sv": "Ett rött äpple."
+   }
+  },
+  {
+   "id": "yes",
+   "en": "yes",
+   "sv": "ja",
+   "pos": "small",
+   "cat": "small",
+   "pic": null,
+   "hint": "✅",
+   "say": "Yes.",
+   "audio": "yes",
+   "have": false,
+   "node": 2,
+   "diff": 1,
+   "cognate": false,
+   "spell": true,
+   "demo": {
+    "kind": "icon",
+    "emoji": "✅"
+   },
+   "contrast": "no",
+   "note": "Lärs genom användning: knapparna i true_false heter Yes och No."
+  },
+  {
+   "id": "no",
+   "en": "no",
+   "sv": "nej",
+   "pos": "small",
+   "cat": "small",
+   "pic": null,
+   "hint": "❌",
+   "say": "No.",
+   "audio": "no",
+   "have": false,
+   "node": 2,
+   "diff": 1,
+   "cognate": true,
+   "spell": true,
+   "demo": {
+    "kind": "icon",
+    "emoji": "❌"
+   },
+   "contrast": "yes",
+   "accept": [
+    "know"
+   ],
+   "note": "Lärs genom användning: knapparna i true_false heter Yes och No."
+  },
+  {
+   "id": "leaf",
+   "en": "leaf",
+   "sv": "löv",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "🍃",
+   "say": "Leaf.",
+   "audio": "leaf",
+   "have": false,
+   "node": 3,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "foils": [
+    "flower",
+    "tree"
+   ],
+   "ex": {
+    "id": "c_green_leaf",
+    "en": "A green leaf.",
+    "sv": "Ett grönt löv."
+   }
+  },
+  {
+   "id": "bee",
+   "en": "bee",
+   "sv": "bi",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐝",
+   "say": "Bee.",
+   "audio": "bee",
+   "have": false,
+   "node": 3,
+   "diff": 1,
+   "cognate": true,
+   "spell": true,
+   "foils": [
+    "bear",
+    "bird"
+   ],
+   "accept": [
+    "be",
+    "b"
+   ],
+   "ttsRisk": true,
+   "ex": {
+    "id": "c_four_bees",
+    "en": "Four bees.",
+    "sv": "Fyra bin."
+   }
+  },
+  {
+   "id": "fox",
+   "en": "fox",
+   "sv": "räv",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🦊",
+   "say": "Fox.",
+   "audio": "fox",
+   "have": true,
+   "node": 3,
+   "diff": 2,
+   "cognate": false,
+   "spell": true,
+   "foils": [
+    "frog",
+    "fish"
+   ],
+   "ex": {
+    "id": "s_fox_fast",
+    "en": "The fox is fast.",
+    "sv": "Räven är snabb."
+   }
+  },
+  {
+   "id": "mouse",
+   "en": "mouse",
+   "sv": "mus",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐭",
+   "say": "Mouse.",
+   "audio": "mouse",
+   "have": false,
+   "node": 3,
+   "diff": 1,
+   "cognate": true,
+   "spell": false,
+   "foils": [
+    "house"
+   ],
+   "ex": {
+    "id": "s_mouse_small",
+    "en": "The mouse is small.",
+    "sv": "Musen är liten."
+   }
+  },
+  {
+   "id": "big",
+   "en": "big",
+   "sv": "stor",
+   "pos": "adj",
+   "cat": "describe",
+   "pic": null,
+   "hint": "🐘",
+   "say": "Big.",
+   "audio": "big",
+   "have": false,
+   "node": 3,
+   "diff": 3,
+   "cognate": false,
+   "spell": true,
+   "demo": {
+    "kind": "size",
+    "who": "enemy",
+    "size": "big"
+   },
+   "contrast": "small",
+   "foils": [
+    "pig"
+   ],
+   "ex": {
+    "id": "c_big_bear",
+    "en": "A big bear.",
+    "sv": "En stor björn."
+   }
+  },
+  {
+   "id": "red",
+   "en": "red",
+   "sv": "röd",
+   "pos": "color",
+   "cat": "color",
+   "pic": null,
+   "hint": "🔴",
+   "say": "Red.",
+   "audio": "red",
+   "have": false,
+   "node": 3,
+   "diff": 2,
+   "cognate": true,
+   "spell": true,
+   "demo": {
+    "kind": "swatch",
+    "hex": "#e0352b"
+   },
+   "accept": [
+    "read"
+   ],
+   "ex": {
+    "id": "c_red_apple",
+    "en": "A red apple.",
+    "sv": "Ett rött äpple."
+   }
+  },
+  {
+   "id": "green",
+   "en": "green",
+   "sv": "grön",
+   "pos": "color",
+   "cat": "color",
+   "pic": null,
+   "hint": "🟢",
+   "say": "Green.",
+   "audio": "green",
+   "have": false,
+   "node": 3,
+   "diff": 2,
+   "cognate": true,
+   "spell": false,
+   "demo": {
+    "kind": "swatch",
+    "hex": "#2fa84f"
+   },
+   "ex": {
+    "id": "c_green_frog",
+    "en": "A green frog.",
+    "sv": "En grön groda."
+   }
+  },
+  {
+   "id": "key",
+   "en": "key",
+   "sv": "nyckel",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🔑",
+   "say": "Key.",
+   "audio": "key",
+   "have": true,
+   "node": 4,
+   "diff": 2,
+   "cognate": false,
+   "spell": false
+  },
+  {
+   "id": "horse",
+   "en": "horse",
+   "sv": "häst",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐴",
+   "say": "Horse.",
+   "audio": "horse",
+   "have": true,
+   "node": 5,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "foils": [
+    "house"
+   ],
+   "ex": {
+    "id": "c_small_horse",
+    "en": "A small horse.",
+    "sv": "En liten häst."
+   }
+  },
+  {
+   "id": "cow",
+   "en": "cow",
+   "sv": "ko",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐮",
+   "say": "Cow.",
+   "audio": "cow",
+   "have": true,
+   "node": 5,
+   "diff": 1,
+   "cognate": true,
+   "spell": false,
+   "ex": {
+    "id": "s_cow_slow",
+    "en": "The cow is slow.",
+    "sv": "Kon är långsam."
+   }
+  },
+  {
+   "id": "pig",
+   "en": "pig",
+   "sv": "gris",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐷",
+   "say": "Pig.",
+   "audio": "pig",
+   "have": true,
+   "node": 5,
+   "diff": 2,
+   "cognate": false,
+   "spell": true,
+   "foils": [
+    "big"
+   ],
+   "ex": {
+    "id": "c_three_pigs",
+    "en": "Three pigs.",
+    "sv": "Tre grisar."
+   }
+  },
+  {
+   "id": "egg",
+   "en": "egg",
+   "sv": "ägg",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "🥚",
+   "say": "Egg.",
+   "audio": "egg",
+   "have": true,
+   "node": 5,
+   "diff": 1,
+   "cognate": true,
+   "spell": true,
+   "foils": [
+    "nest"
+   ],
+   "ex": {
+    "id": "c_one_egg",
+    "en": "One egg.",
+    "sv": "Ett ägg."
+   }
+  },
+  {
+   "id": "small",
+   "en": "small",
+   "sv": "liten",
+   "pos": "adj",
+   "cat": "describe",
+   "pic": null,
+   "hint": "🐜",
+   "say": "Small.",
+   "audio": "small",
+   "have": false,
+   "node": 5,
+   "diff": 3,
+   "cognate": false,
+   "spell": false,
+   "demo": {
+    "kind": "size",
+    "who": "enemy",
+    "size": "small"
+   },
+   "contrast": "big",
+   "foils": [
+    "slow"
+   ],
+   "ex": {
+    "id": "c_small_horse",
+    "en": "A small horse.",
+    "sv": "En liten häst."
+   }
+  },
+  {
+   "id": "one",
+   "en": "one",
+   "sv": "ett",
+   "pos": "number",
+   "cat": "number",
+   "pic": null,
+   "hint": "1️⃣",
+   "say": "One.",
+   "audio": "one",
+   "have": false,
+   "node": 5,
+   "diff": 1,
+   "cognate": false,
+   "spell": false,
+   "demo": {
+    "kind": "dots",
+    "n": 1
+   },
+   "accept": [
+    "won",
+    "1"
+   ],
+   "note": "Svenska har två former (en, ett). Visa med en prick.",
+   "ex": {
+    "id": "c_one_egg",
+    "en": "One egg.",
+    "sv": "Ett ägg."
+   }
+  },
+  {
+   "id": "two",
+   "en": "two",
+   "sv": "två",
+   "pos": "number",
+   "cat": "number",
+   "pic": null,
+   "hint": "2️⃣",
+   "say": "Two.",
+   "audio": "two",
+   "have": false,
+   "node": 5,
+   "diff": 1,
+   "cognate": true,
+   "spell": false,
+   "demo": {
+    "kind": "dots",
+    "n": 2
+   },
+   "accept": [
+    "to",
+    "too",
+    "2"
+   ],
+   "ex": {
+    "id": "c_two_dogs",
+    "en": "Two dogs.",
+    "sv": "Två hundar."
+   }
+  },
+  {
+   "id": "three",
+   "en": "three",
+   "sv": "tre",
+   "pos": "number",
+   "cat": "number",
+   "pic": null,
+   "hint": "3️⃣",
+   "say": "Three.",
+   "audio": "three",
+   "have": false,
+   "node": 5,
+   "diff": 1,
+   "cognate": true,
+   "spell": false,
+   "demo": {
+    "kind": "dots",
+    "n": 3
+   },
+   "foils": [
+    "tree"
+   ],
+   "accept": [
+    "3"
+   ],
+   "note": "Tränar th-ljudet. Förväxlas lätt med tree: använd som distraktor först från stadium 3.",
+   "ex": {
+    "id": "c_three_frogs",
+    "en": "Three frogs.",
+    "sv": "Tre grodor."
+   }
+  },
+  {
+   "id": "snake",
+   "en": "snake",
+   "sv": "orm",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐍",
+   "say": "Snake.",
+   "audio": "snake",
+   "have": true,
+   "node": 6,
+   "diff": 2,
+   "cognate": false,
+   "spell": false
+  },
+  {
+   "id": "fire",
+   "en": "fire",
+   "sv": "eld",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "🔥",
+   "say": "Fire.",
+   "audio": "fire",
+   "have": true,
+   "node": 6,
+   "diff": 2,
+   "cognate": false,
+   "spell": false
+  },
+  {
+   "id": "house",
+   "en": "house",
+   "sv": "hus",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🏠",
+   "say": "House.",
+   "audio": "house",
+   "have": true,
+   "node": 6,
+   "diff": 1,
+   "cognate": true,
+   "spell": false,
+   "foils": [
+    "horse",
+    "mouse"
+   ]
+  },
+  {
+   "id": "rain",
+   "en": "rain",
+   "sv": "regn",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "🌧️",
+   "say": "Rain.",
+   "audio": "rain",
+   "have": false,
+   "node": 6,
+   "diff": 2,
+   "cognate": true,
+   "spell": false
+  },
+  {
+   "id": "blue",
+   "en": "blue",
+   "sv": "blå",
+   "pos": "color",
+   "cat": "color",
+   "pic": null,
+   "hint": "🔵",
+   "say": "Blue.",
+   "audio": "blue",
+   "have": false,
+   "node": 6,
+   "diff": 2,
+   "cognate": true,
+   "spell": false,
+   "demo": {
+    "kind": "swatch",
+    "hex": "#2f6fe0"
+   },
+   "ex": {
+    "id": "c_blue_fish",
+    "en": "A blue fish.",
+    "sv": "En blå fisk."
+   }
+  },
+  {
+   "id": "yellow",
+   "en": "yellow",
+   "sv": "gul",
+   "pos": "color",
+   "cat": "color",
+   "pic": null,
+   "hint": "🟡",
+   "say": "Yellow.",
+   "audio": "yellow",
+   "have": false,
+   "node": 6,
+   "diff": 3,
+   "cognate": false,
+   "spell": false,
+   "demo": {
+    "kind": "swatch",
+    "hex": "#f5c518"
+   },
+   "ex": {
+    "id": "c_yellow_flower",
+    "en": "A yellow flower.",
+    "sv": "En gul blomma."
+   }
+  },
+  {
+   "id": "run",
+   "en": "run",
+   "sv": "springa",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "hint": "🏃",
+   "say": "Run.",
+   "audio": "run",
+   "have": false,
+   "node": 6,
+   "diff": 3,
+   "cognate": false,
+   "spell": true,
+   "demo": {
+    "kind": "anim",
+    "who": "hero",
+    "anim": "run"
+   },
+   "ex": {
+    "id": "s_horse_run",
+    "en": "The horse can run.",
+    "sv": "Hästen kan springa."
+   }
+  },
+  {
+   "id": "jump",
+   "en": "jump",
+   "sv": "hoppa",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "hint": "🤸",
+   "say": "Jump.",
+   "audio": "jump",
+   "have": false,
+   "node": 6,
+   "diff": 3,
+   "cognate": false,
+   "spell": true,
+   "demo": {
+    "kind": "anim",
+    "who": "hero",
+    "anim": "jump"
+   },
+   "ex": {
+    "id": "s_frog_jump",
+    "en": "The frog can jump.",
+    "sv": "Grodan kan hoppa."
+   }
+  },
+  {
+   "id": "sword",
+   "en": "sword",
+   "sv": "svärd",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🗡️",
+   "say": "Sword.",
+   "audio": "sword",
+   "have": true,
+   "node": 7,
+   "diff": 2,
+   "cognate": true,
+   "spell": false,
+   "foils": [
+    "shield"
+   ]
+  },
+  {
+   "id": "shield",
+   "en": "shield",
+   "sv": "sköld",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🛡️",
+   "say": "Shield.",
+   "audio": "shield",
+   "have": true,
+   "node": 7,
+   "diff": 2,
+   "cognate": true,
+   "spell": false,
+   "foils": [
+    "sword"
+   ]
+  },
+  {
+   "id": "nest",
+   "en": "nest",
+   "sv": "fågelbo",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "🪺",
+   "say": "Nest.",
+   "audio": "nest",
+   "have": false,
+   "node": 8,
+   "diff": 2,
+   "cognate": false,
+   "spell": true,
+   "foils": [
+    "egg"
+   ],
+   "note": "Emojin 🪺 kräver iOS 15.4 eller senare. Byt mot egen pixelbild om en äldre iPad ska fungera."
+  },
+  {
+   "id": "star",
+   "en": "star",
+   "sv": "stjärna",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "⭐",
+   "say": "Star.",
+   "audio": "star",
+   "have": true,
+   "node": 8,
+   "diff": 2,
+   "cognate": true,
+   "spell": true,
+   "foils": [
+    "sun",
+    "moon"
+   ],
+   "ex": {
+    "id": "c_five_stars",
+    "en": "Five stars.",
+    "sv": "Fem stjärnor."
+   }
+  },
+  {
+   "id": "fly",
+   "en": "fly",
+   "sv": "flyga",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "hint": "🕊️",
+   "say": "Fly.",
+   "audio": "fly",
+   "have": false,
+   "node": 8,
+   "diff": 2,
+   "cognate": true,
+   "spell": false,
+   "demo": {
+    "kind": "scene",
+    "scene": {
+     "pic": "🐦",
+     "anim": "fly"
+    }
+   },
+   "foils": [
+    "five"
+   ],
+   "ex": {
+    "id": "s_bird_fly",
+    "en": "The bird can fly.",
+    "sv": "Fågeln kan flyga."
+   }
+  },
+  {
+   "id": "sleep",
+   "en": "sleep",
+   "sv": "sova",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "hint": "😴",
+   "say": "Sleep.",
+   "audio": "sleep",
+   "have": false,
+   "node": 8,
+   "diff": 3,
+   "cognate": false,
+   "spell": false,
+   "demo": {
+    "kind": "anim",
+    "who": "hero",
+    "anim": "sleep"
+   },
+   "foils": [
+    "slow",
+    "see"
+   ],
+   "ex": {
+    "id": "s_cat_sleep",
+    "en": "The cat can sleep.",
+    "sv": "Katten kan sova."
+   }
+  },
+  {
+   "id": "eat",
+   "en": "eat",
+   "sv": "äta",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "hint": "😋",
+   "say": "Eat.",
+   "audio": "eat",
+   "have": false,
+   "node": 8,
+   "diff": 2,
+   "cognate": true,
+   "spell": false,
+   "demo": {
+    "kind": "anim",
+    "who": "hero",
+    "anim": "eat"
+   },
+   "accept": [
+    "it"
+   ],
+   "ttsRisk": true,
+   "ex": {
+    "id": "s_eat_apples",
+    "en": "I can eat two apples.",
+    "sv": "Jag kan äta två äpplen."
+   }
+  },
+  {
+   "id": "happy",
+   "en": "happy",
+   "sv": "glad",
+   "pos": "adj",
+   "cat": "describe",
+   "pic": null,
+   "hint": "😀",
+   "say": "Happy.",
+   "audio": "happy",
+   "have": false,
+   "node": 8,
+   "diff": 3,
+   "cognate": false,
+   "spell": false,
+   "demo": {
+    "kind": "face",
+    "emoji": "😀"
+   },
+   "contrast": "sad",
+   "ex": {
+    "id": "c_happy_dog",
+    "en": "A happy dog.",
+    "sv": "En glad hund."
+   }
+  },
+  {
+   "id": "four",
+   "en": "four",
+   "sv": "fyra",
+   "pos": "number",
+   "cat": "number",
+   "pic": null,
+   "hint": "4️⃣",
+   "say": "Four.",
+   "audio": "four",
+   "have": false,
+   "node": 8,
+   "diff": 2,
+   "cognate": true,
+   "spell": false,
+   "demo": {
+    "kind": "dots",
+    "n": 4
+   },
+   "foils": [
+    "five"
+   ],
+   "accept": [
+    "for",
+    "4"
+   ],
+   "ex": {
+    "id": "c_four_bees",
+    "en": "Four bees.",
+    "sv": "Fyra bin."
+   }
+  },
+  {
+   "id": "five",
+   "en": "five",
+   "sv": "fem",
+   "pos": "number",
+   "cat": "number",
+   "pic": null,
+   "hint": "5️⃣",
+   "say": "Five.",
+   "audio": "five",
+   "have": false,
+   "node": 8,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "demo": {
+    "kind": "dots",
+    "n": 5
+   },
+   "foils": [
+    "four",
+    "fly"
+   ],
+   "accept": [
+    "5"
+   ],
+   "ex": {
+    "id": "c_five_stars",
+    "en": "Five stars.",
+    "sv": "Fem stjärnor."
+   }
+  },
+  {
+   "id": "forest",
+   "en": "forest",
+   "sv": "skog",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "🌲🌲🌲",
+   "say": "Forest.",
+   "audio": "forest",
+   "have": false,
+   "node": 9,
+   "diff": 3,
+   "cognate": false,
+   "spell": false,
+   "foils": [
+    "tree",
+    "flower"
+   ],
+   "note": "Bilden är tre granar för att inte blandas ihop med tree (ett lövträd).",
+   "ex": {
+    "id": "c_big_forest",
+    "en": "The big forest.",
+    "sv": "Den stora skogen."
+   }
+  },
+  {
+   "id": "swim",
+   "en": "swim",
+   "sv": "simma",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "hint": "🏊",
+   "say": "Swim.",
+   "audio": "swim",
+   "have": false,
+   "node": 9,
+   "diff": 2,
+   "cognate": true,
+   "spell": true,
+   "demo": {
+    "kind": "scene",
+    "scene": {
+     "pic": "🐟",
+     "anim": "swim"
+    }
+   },
+   "ex": {
+    "id": "s_fish_swim",
+    "en": "The fish can swim.",
+    "sv": "Fisken kan simma."
+   }
+  },
+  {
+   "id": "sad",
+   "en": "sad",
+   "sv": "ledsen",
+   "pos": "adj",
+   "cat": "describe",
+   "pic": null,
+   "hint": "😢",
+   "say": "Sad.",
+   "audio": "sad",
+   "have": false,
+   "node": 9,
+   "diff": 3,
+   "cognate": false,
+   "spell": true,
+   "demo": {
+    "kind": "face",
+    "emoji": "😢"
+   },
+   "contrast": "happy",
+   "ex": {
+    "id": "c_sad_pig",
+    "en": "A sad pig.",
+    "sv": "En ledsen gris."
+   }
+  },
+  {
+   "id": "fast",
+   "en": "fast",
+   "sv": "snabb",
+   "pos": "adj",
+   "cat": "describe",
+   "pic": null,
+   "hint": "⚡",
+   "say": "Fast.",
+   "audio": "fast",
+   "have": false,
+   "node": 9,
+   "diff": 3,
+   "cognate": false,
+   "spell": true,
+   "demo": {
+    "kind": "speed",
+    "who": "enemy",
+    "speed": "fast"
+   },
+   "contrast": "slow",
+   "note": "Falsk vän: svenska 'fast' betyder något annat. Visa alltid med fart-demo första gångerna.",
+   "ex": {
+    "id": "c_fast_horse",
+    "en": "A fast horse.",
+    "sv": "En snabb häst."
+   }
+  },
+  {
+   "id": "black",
+   "en": "black",
+   "sv": "svart",
+   "pos": "color",
+   "cat": "color",
+   "pic": null,
+   "hint": "⚫",
+   "say": "Black.",
+   "audio": "black",
+   "have": false,
+   "node": 9,
+   "diff": 3,
+   "cognate": false,
+   "spell": false,
+   "demo": {
+    "kind": "swatch",
+    "hex": "#1c1c1c"
+   },
+   "ex": {
+    "id": "c_black_cat",
+    "en": "A black cat.",
+    "sv": "En svart katt."
+   }
+  },
+  {
+   "id": "a",
+   "en": "a",
+   "sv": "en, ett",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": null,
+   "audio": null,
+   "have": false,
+   "node": 9,
+   "diff": 3,
+   "cognate": false,
+   "spell": false,
+   "bands": [
+    "B",
+    "C"
+   ],
+   "isolated": false,
+   "startStage": 4,
+   "ttsRisk": true,
+   "note": "Spelas aldrig upp ensamt. Lärs bara i fraser och meningar.",
+   "ex": {
+    "id": "c_big_bear",
+    "en": "A big bear.",
+    "sv": "En stor björn."
+   }
+  },
+  {
+   "id": "the",
+   "en": "the",
+   "sv": "den, det (katten = the cat)",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": null,
+   "audio": null,
+   "have": false,
+   "node": 9,
+   "diff": 3,
+   "cognate": false,
+   "spell": false,
+   "bands": [
+    "B",
+    "C"
+   ],
+   "isolated": false,
+   "startStage": 4,
+   "ttsRisk": true,
+   "note": "Spelas aldrig upp ensamt (talsyntesen klarar inte 'the' isolerat, se PLAN.md). Lärs bara i fraser och meningar.",
+   "ex": {
+    "id": "c_big_forest",
+    "en": "The big forest.",
+    "sv": "Den stora skogen."
+   }
+  },
+  {
+   "id": "and",
+   "en": "and",
+   "sv": "och",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "And.",
+   "audio": "and",
+   "have": false,
+   "node": 9,
+   "diff": 3,
+   "cognate": false,
+   "spell": true,
+   "bands": [
+    "B",
+    "C"
+   ],
+   "accept": [
+    "end"
+   ],
+   "ttsRisk": true,
+   "note": "Klippet behöver lyssnas igenom för hand.",
+   "ex": {
+    "id": "c_cat_and_dog",
+    "en": "A cat and a dog.",
+    "sv": "En katt och en hund."
+   }
+  },
+  {
+   "id": "owl",
+   "en": "owl",
+   "sv": "uggla",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🦉",
+   "say": "Owl.",
+   "audio": "owl",
+   "have": true,
+   "node": 10,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "accept": [
+    "all"
+   ],
+   "ttsRisk": true,
+   "ex": {
+    "id": "s_see_two_owls",
+    "en": "I see two owls.",
+    "sv": "Jag ser två ugglor."
+   }
+  },
+  {
+   "id": "bat",
+   "en": "bat",
+   "sv": "fladdermus",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🦇",
+   "say": "Bat.",
+   "audio": "bat",
+   "have": true,
+   "node": 10,
+   "diff": 2,
+   "cognate": false,
+   "spell": true,
+   "foils": [
+    "cat"
+   ],
+   "note": "Bilden är djuret. Blanda inte in slagträ.",
+   "ex": {
+    "id": "s_bat_black",
+    "en": "The bat is black.",
+    "sv": "Fladdermusen är svart."
+   }
+  },
+  {
+   "id": "moon",
+   "en": "moon",
+   "sv": "måne",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "🌙",
+   "say": "Moon.",
+   "audio": "moon",
+   "have": true,
+   "node": 10,
+   "diff": 1,
+   "cognate": true,
+   "spell": false,
+   "foils": [
+    "sun",
+    "star"
+   ],
+   "ex": {
+    "id": "s_see_moon",
+    "en": "I see the moon.",
+    "sv": "Jag ser månen."
+   }
+  },
+  {
+   "id": "troll",
+   "en": "troll",
+   "sv": "troll",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🧌",
+   "say": "Troll.",
+   "audio": "troll",
+   "have": false,
+   "node": 10,
+   "diff": 1,
+   "cognate": true,
+   "spell": false,
+   "note": "Emojin 🧌 kräver iOS 15.4 eller senare. Använd bossens egen sprite som bild.",
+   "ex": {
+    "id": "s_troll_sad",
+    "en": "The troll is sad.",
+    "sv": "Trollet är ledset."
+   }
+  },
+  {
+   "id": "slow",
+   "en": "slow",
+   "sv": "långsam",
+   "pos": "adj",
+   "cat": "describe",
+   "pic": null,
+   "hint": "🐌",
+   "say": "Slow.",
+   "audio": "slow",
+   "have": false,
+   "node": 10,
+   "diff": 3,
+   "cognate": false,
+   "spell": false,
+   "demo": {
+    "kind": "speed",
+    "who": "enemy",
+    "speed": "slow"
+   },
+   "contrast": "fast",
+   "foils": [
+    "sleep",
+    "small"
+   ],
+   "ex": {
+    "id": "s_cow_slow",
+    "en": "The cow is slow.",
+    "sv": "Kon är långsam."
+   }
+  },
+  {
+   "id": "see",
+   "en": "see",
+   "sv": "se",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "hint": "👀",
+   "say": "See.",
+   "audio": "see",
+   "have": false,
+   "node": 10,
+   "diff": 2,
+   "cognate": true,
+   "spell": false,
+   "demo": {
+    "kind": "anim",
+    "who": "hero",
+    "anim": "look"
+   },
+   "foils": [
+    "sleep",
+    "swim"
+   ],
+   "accept": [
+    "sea",
+    "c"
+   ],
+   "ex": {
+    "id": "s_see_fox",
+    "en": "I see a fox.",
+    "sv": "Jag ser en räv."
+   }
+  },
+  {
+   "id": "is",
+   "en": "is",
+   "sv": "är",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "Is.",
+   "audio": "is",
+   "have": false,
+   "node": 10,
+   "diff": 3,
+   "cognate": false,
+   "spell": true,
+   "bands": [
+    "B",
+    "C"
+   ],
+   "accept": [
+    "his"
+   ],
+   "ttsRisk": true,
+   "note": "Klippet behöver lyssnas igenom för hand.",
+   "ex": {
+    "id": "s_cat_big",
+    "en": "The cat is big.",
+    "sv": "Katten är stor."
+   }
+  },
+  {
+   "id": "I",
+   "en": "I",
+   "sv": "jag",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "I.",
+   "audio": "I",
+   "have": false,
+   "node": 10,
+   "diff": 3,
+   "cognate": false,
+   "spell": false,
+   "bands": [
+    "B",
+    "C"
+   ],
+   "accept": [
+    "eye",
+    "i"
+   ],
+   "ttsRisk": true,
+   "note": "Klippet behöver lyssnas igenom för hand: enstaka 'I' är svårt för talsyntesen.",
+   "ex": {
+    "id": "s_eat_apples",
+    "en": "I can eat two apples.",
+    "sv": "Jag kan äta två äpplen."
+   }
+  },
+  {
+   "id": "can",
+   "en": "can",
+   "sv": "kan",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "Can.",
+   "audio": "can",
+   "have": false,
+   "node": 10,
+   "diff": 2,
+   "cognate": true,
+   "spell": true,
+   "bands": [
+    "B",
+    "C"
+   ],
+   "ttsRisk": true,
+   "ex": {
+    "id": "s_bird_fly",
+    "en": "The bird can fly.",
+    "sv": "Fågeln kan flyga."
+   }
+  },
+  {
+   "id": "ph_hello",
+   "en": "Hello!",
+   "sv": "Hej!",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "hint": "👋",
+   "say": "Hello!",
+   "audio": "ph_hello",
+   "have": false,
+   "node": 1,
+   "diff": 2,
+   "cognate": true,
+   "spell": false,
+   "maxStage": 3
+  },
+  {
+   "id": "ph_lets_go",
+   "en": "Let's go!",
+   "sv": "Nu kör vi!",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "hint": "🚀",
+   "say": "Let's go!",
+   "audio": "ph_lets_go",
+   "have": false,
+   "node": 1,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "maxStage": 3
+  },
+  {
+   "id": "ph_good_job",
+   "en": "Good job!",
+   "sv": "Bra jobbat!",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "hint": "👍",
+   "say": "Good job!",
+   "audio": "en-good-job",
+   "have": true,
+   "node": 1,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "maxStage": 3
+  },
+  {
+   "id": "ph_try_again",
+   "en": "Try again!",
+   "sv": "Försök igen!",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "hint": "🔁",
+   "say": "Try again!",
+   "audio": "en-try-again",
+   "have": true,
+   "node": 1,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "maxStage": 3
+  },
+  {
+   "id": "ph_help",
+   "en": "Help!",
+   "sv": "Hjälp!",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "hint": "🆘",
+   "say": "Help!",
+   "audio": "ph_help",
+   "have": false,
+   "node": 1,
+   "diff": 2,
+   "cognate": true,
+   "spell": false,
+   "maxStage": 3,
+   "note": "Knappen 'visa mig' i striden heter Help! Frasen lärs genom användning."
+  },
+  {
+   "id": "ph_you_win",
+   "en": "You win!",
+   "sv": "Du vann!",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "hint": "🏆",
+   "say": "You win!",
+   "audio": "en-you-win",
+   "have": true,
+   "node": 1,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "maxStage": 3
+  },
+  {
+   "id": "ph_thank_you",
+   "en": "Thank you!",
+   "sv": "Tack!",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "hint": "🙏",
+   "say": "Thank you!",
+   "audio": "ph_thank_you",
+   "have": false,
+   "node": 4,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "maxStage": 3
+  },
+  {
+   "id": "ph_goodbye",
+   "en": "Goodbye!",
+   "sv": "Hej då!",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "hint": "👋",
+   "say": "Goodbye!",
+   "audio": "ph_goodbye",
+   "have": false,
+   "node": 7,
+   "diff": 2,
+   "cognate": false,
+   "spell": false,
+   "maxStage": 3
+  }
+ ],
+ "sentences": [
+  {
+   "id": "c_two_dogs",
+   "kind": "chunk",
+   "node": 5,
+   "en": "Two dogs.",
+   "sv": "Två hundar.",
+   "say": "Two dogs.",
+   "audio": "s/c_two_dogs",
+   "have": false,
+   "uses": [
+    "two",
+    "dog"
+   ],
+   "tiles": [
+    "Two",
+    "dogs"
+   ],
+   "scene": {
+    "pic": "🐶",
+    "n": 2
+   },
+   "foils": [
+    {
+     "pic": "🐶",
+     "n": 1
+    },
+    {
+     "pic": "🐶",
+     "n": 3
+    },
+    {
+     "pic": "🐱",
+     "n": 2
+    }
+   ]
+  },
+  {
+   "id": "c_three_frogs",
+   "kind": "chunk",
+   "node": 5,
+   "en": "Three frogs.",
+   "sv": "Tre grodor.",
+   "say": "Three frogs.",
+   "audio": "s/c_three_frogs",
+   "have": false,
+   "uses": [
+    "three",
+    "frog"
+   ],
+   "tiles": [
+    "Three",
+    "frogs"
+   ],
+   "scene": {
+    "pic": "🐸",
+    "n": 3
+   },
+   "foils": [
+    {
+     "pic": "🐸",
+     "n": 2
+    },
+    {
+     "pic": "🐸",
+     "n": 1
+    },
+    {
+     "pic": "🦆",
+     "n": 3
+    }
+   ]
+  },
+  {
+   "id": "c_one_egg",
+   "kind": "chunk",
+   "node": 5,
+   "en": "One egg.",
+   "sv": "Ett ägg.",
+   "say": "One egg.",
+   "audio": "s/c_one_egg",
+   "have": false,
+   "uses": [
+    "one",
+    "egg"
+   ],
+   "tiles": [
+    "One",
+    "egg"
+   ],
+   "scene": {
+    "pic": "🥚",
+    "n": 1
+   },
+   "foils": [
+    {
+     "pic": "🥚",
+     "n": 2
+    },
+    {
+     "pic": "🥚",
+     "n": 3
+    },
+    {
+     "pic": "🍎",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "id": "c_three_pigs",
+   "kind": "chunk",
+   "node": 5,
+   "en": "Three pigs.",
+   "sv": "Tre grisar.",
+   "say": "Three pigs.",
+   "audio": "s/c_three_pigs",
+   "have": false,
+   "uses": [
+    "three",
+    "pig"
+   ],
+   "tiles": [
+    "Three",
+    "pigs"
+   ],
+   "scene": {
+    "pic": "🐷",
+    "n": 3
+   },
+   "foils": [
+    {
+     "pic": "🐷",
+     "n": 2
+    },
+    {
+     "pic": "🐮",
+     "n": 3
+    },
+    {
+     "pic": "🐷",
+     "n": 1
+    }
+   ]
+  },
+  {
+   "id": "c_big_bear",
+   "kind": "chunk",
+   "node": 5,
+   "en": "A big bear.",
+   "sv": "En stor björn.",
+   "say": "A big bear.",
+   "audio": "s/c_big_bear",
+   "have": false,
+   "uses": [
+    "a",
+    "big",
+    "bear"
+   ],
+   "tiles": [
+    "A",
+    "big",
+    "bear"
+   ],
+   "scene": {
+    "pic": "🐻",
+    "size": "big"
+   },
+   "foils": [
+    {
+     "pic": "🐻",
+     "size": "small"
+    },
+    {
+     "pic": "🐭",
+     "size": "big"
+    },
+    {
+     "pic": "🐶",
+     "size": "big"
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "big",
+     "small",
+     "red"
+    ]
+   }
+  },
+  {
+   "id": "c_small_horse",
+   "kind": "chunk",
+   "node": 5,
+   "en": "A small horse.",
+   "sv": "En liten häst.",
+   "say": "A small horse.",
+   "audio": "s/c_small_horse",
+   "have": false,
+   "uses": [
+    "a",
+    "small",
+    "horse"
+   ],
+   "tiles": [
+    "A",
+    "small",
+    "horse"
+   ],
+   "scene": {
+    "pic": "🐴",
+    "size": "small"
+   },
+   "foils": [
+    {
+     "pic": "🐴",
+     "size": "big"
+    },
+    {
+     "pic": "🐮",
+     "size": "small"
+    },
+    {
+     "pic": "🐷",
+     "size": "big"
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "small",
+     "big",
+     "green"
+    ]
+   }
+  },
+  {
+   "id": "c_small_fish",
+   "kind": "chunk",
+   "node": 5,
+   "en": "A small fish.",
+   "sv": "En liten fisk.",
+   "say": "A small fish.",
+   "audio": "s/c_small_fish",
+   "have": false,
+   "uses": [
+    "a",
+    "small",
+    "fish"
+   ],
+   "tiles": [
+    "A",
+    "small",
+    "fish"
+   ],
+   "scene": {
+    "pic": "🐟",
+    "size": "small"
+   },
+   "foils": [
+    {
+     "pic": "🐟",
+     "size": "big"
+    },
+    {
+     "pic": "🐸",
+     "size": "small"
+    },
+    {
+     "pic": "🦆",
+     "size": "big"
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "small",
+     "big",
+     "two"
+    ]
+   }
+  },
+  {
+   "id": "c_red_apple",
+   "kind": "chunk",
+   "node": 6,
+   "en": "A red apple.",
+   "sv": "Ett rött äpple.",
+   "say": "A red apple.",
+   "audio": "s/c_red_apple",
+   "have": false,
+   "uses": [
+    "a",
+    "red",
+    "apple"
+   ],
+   "tiles": [
+    "A",
+    "red",
+    "apple"
+   ],
+   "scene": {
+    "pic": "🍎",
+    "color": "red"
+   },
+   "foils": [
+    {
+     "pic": "🍏",
+     "color": "green"
+    },
+    {
+     "pic": "🌼",
+     "color": "yellow"
+    },
+    {
+     "pic": "🍎",
+     "color": "red",
+     "n": 2
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "red",
+     "green",
+     "blue"
+    ]
+   }
+  },
+  {
+   "id": "c_green_frog",
+   "kind": "chunk",
+   "node": 6,
+   "en": "A green frog.",
+   "sv": "En grön groda.",
+   "say": "A green frog.",
+   "audio": "s/c_green_frog",
+   "have": false,
+   "uses": [
+    "a",
+    "green",
+    "frog"
+   ],
+   "tiles": [
+    "A",
+    "green",
+    "frog"
+   ],
+   "scene": {
+    "pic": "🐸",
+    "color": "green"
+   },
+   "foils": [
+    {
+     "pic": "🐟",
+     "color": "blue"
+    },
+    {
+     "pic": "🍏",
+     "color": "green"
+    },
+    {
+     "pic": "🍃",
+     "color": "green"
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "green",
+     "red",
+     "yellow"
+    ]
+   }
+  },
+  {
+   "id": "c_blue_fish",
+   "kind": "chunk",
+   "node": 6,
+   "en": "A blue fish.",
+   "sv": "En blå fisk.",
+   "say": "A blue fish.",
+   "audio": "s/c_blue_fish",
+   "have": false,
+   "uses": [
+    "a",
+    "blue",
+    "fish"
+   ],
+   "tiles": [
+    "A",
+    "blue",
+    "fish"
+   ],
+   "scene": {
+    "pic": "🐟",
+    "color": "blue"
+   },
+   "foils": [
+    {
+     "pic": "🐠",
+     "color": "yellow"
+    },
+    {
+     "pic": "🐸",
+     "color": "green"
+    },
+    {
+     "pic": "💧",
+     "color": "blue"
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "blue",
+     "yellow",
+     "red"
+    ]
+   }
+  },
+  {
+   "id": "c_yellow_flower",
+   "kind": "chunk",
+   "node": 6,
+   "en": "A yellow flower.",
+   "sv": "En gul blomma.",
+   "say": "A yellow flower.",
+   "audio": "s/c_yellow_flower",
+   "have": false,
+   "uses": [
+    "a",
+    "yellow",
+    "flower"
+   ],
+   "tiles": [
+    "A",
+    "yellow",
+    "flower"
+   ],
+   "scene": {
+    "pic": "🌼",
+    "color": "yellow"
+   },
+   "foils": [
+    {
+     "pic": "🌹",
+     "color": "red"
+    },
+    {
+     "pic": "☀️",
+     "color": "yellow"
+    },
+    {
+     "pic": "🍃",
+     "color": "green"
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "yellow",
+     "blue",
+     "green"
+    ]
+   }
+  },
+  {
+   "id": "c_green_leaf",
+   "kind": "chunk",
+   "node": 6,
+   "en": "A green leaf.",
+   "sv": "Ett grönt löv.",
+   "say": "A green leaf.",
+   "audio": "s/c_green_leaf",
+   "have": false,
+   "uses": [
+    "a",
+    "green",
+    "leaf"
+   ],
+   "tiles": [
+    "A",
+    "green",
+    "leaf"
+   ],
+   "scene": {
+    "pic": "🍃",
+    "color": "green"
+   },
+   "foils": [
+    {
+     "pic": "🍂",
+     "color": "red"
+    },
+    {
+     "pic": "🐸",
+     "color": "green"
+    },
+    {
+     "pic": "🌹",
+     "color": "red"
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "green",
+     "red",
+     "blue"
+    ]
+   }
+  },
+  {
+   "id": "c_four_bees",
+   "kind": "chunk",
+   "node": 8,
+   "en": "Four bees.",
+   "sv": "Fyra bin.",
+   "say": "Four bees.",
+   "audio": "s/c_four_bees",
+   "have": false,
+   "uses": [
+    "four",
+    "bee"
+   ],
+   "tiles": [
+    "Four",
+    "bees"
+   ],
+   "scene": {
+    "pic": "🐝",
+    "n": 4
+   },
+   "foils": [
+    {
+     "pic": "🐝",
+     "n": 5
+    },
+    {
+     "pic": "🐝",
+     "n": 3
+    },
+    {
+     "pic": "🐦",
+     "n": 4
+    }
+   ]
+  },
+  {
+   "id": "c_five_stars",
+   "kind": "chunk",
+   "node": 8,
+   "en": "Five stars.",
+   "sv": "Fem stjärnor.",
+   "say": "Five stars.",
+   "audio": "s/c_five_stars",
+   "have": false,
+   "uses": [
+    "five",
+    "star"
+   ],
+   "tiles": [
+    "Five",
+    "stars"
+   ],
+   "scene": {
+    "pic": "⭐",
+    "n": 5
+   },
+   "foils": [
+    {
+     "pic": "⭐",
+     "n": 4
+    },
+    {
+     "pic": "⭐",
+     "n": 2
+    },
+    {
+     "pic": "🌸",
+     "n": 5
+    }
+   ]
+  },
+  {
+   "id": "c_happy_dog",
+   "kind": "chunk",
+   "node": 8,
+   "en": "A happy dog.",
+   "sv": "En glad hund.",
+   "say": "A happy dog.",
+   "audio": "s/c_happy_dog",
+   "have": false,
+   "uses": [
+    "a",
+    "happy",
+    "dog"
+   ],
+   "tiles": [
+    "A",
+    "happy",
+    "dog"
+   ],
+   "scene": {
+    "pic": "🐶",
+    "mood": "happy"
+   },
+   "foils": [
+    {
+     "pic": "🐶",
+     "mood": "sad"
+    },
+    {
+     "pic": "🐱",
+     "mood": "happy"
+    },
+    {
+     "pic": "🐷",
+     "mood": "sad"
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "happy",
+     "big",
+     "small"
+    ]
+   }
+  },
+  {
+   "id": "c_cat_and_dog",
+   "kind": "chunk",
+   "node": 9,
+   "en": "A cat and a dog.",
+   "sv": "En katt och en hund.",
+   "say": "A cat and a dog.",
+   "audio": "s/c_cat_and_dog",
+   "have": false,
+   "uses": [
+    "a",
+    "cat",
+    "and",
+    "dog"
+   ],
+   "tiles": [
+    "A",
+    "cat",
+    "and",
+    "a",
+    "dog"
+   ],
+   "scene": {
+    "pics": [
+     "🐱",
+     "🐶"
+    ]
+   },
+   "foils": [
+    {
+     "pics": [
+      "🐱",
+      "🐦"
+     ]
+    },
+    {
+     "pics": [
+      "🐷",
+      "🐶"
+     ]
+    },
+    {
+     "pic": "🐱"
+    }
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "and",
+     "a",
+     "big"
+    ]
+   }
+  },
+  {
+   "id": "c_frog_and_duck",
+   "kind": "chunk",
+   "node": 9,
+   "en": "A frog and a duck.",
+   "sv": "En groda och en anka.",
+   "say": "A frog and a duck.",
+   "audio": "s/c_frog_and_duck",
+   "have": false,
+   "uses": [
+    "a",
+    "frog",
+    "and",
+    "duck"
+   ],
+   "tiles": [
+    "A",
+    "frog",
+    "and",
+    "a",
+    "duck"
+   ],
+   "scene": {
+    "pics": [
+     "🐸",
+     "🦆"
+    ]
+   },
+   "foils": [
+    {
+     "pics": [
+      "🐸",
+      "🐟"
+     ]
+    },
+    {
+     "pics": [
+      "🐻",
+      "🦆"
+     ]
+    },
+    {
+     "pic": "🦆"
+    }
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "and",
+     "a",
+     "two"
+    ]
+   }
+  },
+  {
+   "id": "c_tree_and_flower",
+   "kind": "chunk",
+   "node": 9,
+   "en": "A tree and a flower.",
+   "sv": "Ett träd och en blomma.",
+   "say": "A tree and a flower.",
+   "audio": "s/c_tree_and_flower",
+   "have": false,
+   "uses": [
+    "a",
+    "tree",
+    "and",
+    "flower"
+   ],
+   "tiles": [
+    "A",
+    "tree",
+    "and",
+    "a",
+    "flower"
+   ],
+   "scene": {
+    "pics": [
+     "🌳",
+     "🌸"
+    ]
+   },
+   "foils": [
+    {
+     "pics": [
+      "🌳",
+      "🍃"
+     ]
+    },
+    {
+     "pics": [
+      "☀️",
+      "🌸"
+     ]
+    },
+    {
+     "pic": "🌳"
+    }
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "and",
+     "the",
+     "red"
+    ]
+   }
+  },
+  {
+   "id": "c_black_cat",
+   "kind": "chunk",
+   "node": 9,
+   "en": "A black cat.",
+   "sv": "En svart katt.",
+   "say": "A black cat.",
+   "audio": "s/c_black_cat",
+   "have": false,
+   "uses": [
+    "a",
+    "black",
+    "cat"
+   ],
+   "tiles": [
+    "A",
+    "black",
+    "cat"
+   ],
+   "scene": {
+    "pic": "🐈‍⬛",
+    "color": "black"
+   },
+   "foils": [
+    {
+     "pic": "🐱",
+     "color": "yellow"
+    },
+    {
+     "pic": "🐶",
+     "color": "black"
+    },
+    {
+     "pic": "🐈‍⬛",
+     "color": "black",
+     "n": 2
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "black",
+     "blue",
+     "big"
+    ]
+   }
+  },
+  {
+   "id": "c_sad_pig",
+   "kind": "chunk",
+   "node": 9,
+   "en": "A sad pig.",
+   "sv": "En ledsen gris.",
+   "say": "A sad pig.",
+   "audio": "s/c_sad_pig",
+   "have": false,
+   "uses": [
+    "a",
+    "sad",
+    "pig"
+   ],
+   "tiles": [
+    "A",
+    "sad",
+    "pig"
+   ],
+   "scene": {
+    "pic": "🐷",
+    "mood": "sad"
+   },
+   "foils": [
+    {
+     "pic": "🐷",
+     "mood": "happy"
+    },
+    {
+     "pic": "🐮",
+     "mood": "sad"
+    },
+    {
+     "pic": "🐶",
+     "mood": "happy"
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "sad",
+     "happy",
+     "fast"
+    ]
+   }
+  },
+  {
+   "id": "c_fast_horse",
+   "kind": "chunk",
+   "node": 9,
+   "en": "A fast horse.",
+   "sv": "En snabb häst.",
+   "say": "A fast horse.",
+   "audio": "s/c_fast_horse",
+   "have": false,
+   "uses": [
+    "a",
+    "fast",
+    "horse"
+   ],
+   "tiles": [
+    "A",
+    "fast",
+    "horse"
+   ],
+   "scene": {
+    "pic": "🐴",
+    "speed": "fast"
+   },
+   "foils": [
+    {
+     "pic": "🐴",
+     "speed": "slow"
+    },
+    {
+     "pic": "🐍",
+     "speed": "fast"
+    },
+    {
+     "pic": "🐮",
+     "speed": "slow"
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "fast",
+     "sad",
+     "black"
+    ]
+   }
+  },
+  {
+   "id": "c_big_forest",
+   "kind": "chunk",
+   "node": 9,
+   "en": "The big forest.",
+   "sv": "Den stora skogen.",
+   "say": "The big forest.",
+   "audio": "s/c_big_forest",
+   "have": false,
+   "uses": [
+    "the",
+    "big",
+    "forest"
+   ],
+   "tiles": [
+    "The",
+    "big",
+    "forest"
+   ],
+   "scene": {
+    "pic": "🌲",
+    "n": 5
+   },
+   "foils": [
+    {
+     "pic": "🌳",
+     "n": 1
+    },
+    {
+     "pic": "🌸",
+     "n": 5
+    },
+    {
+     "pic": "🌲",
+     "n": 1
+    }
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "the",
+     "and",
+     "two"
+    ]
+   }
+  },
+  {
+   "id": "s_cat_big",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The cat is big.",
+   "sv": "Katten är stor.",
+   "say": "The cat is big.",
+   "audio": "s/s_cat_big",
+   "have": false,
+   "uses": [
+    "the",
+    "cat",
+    "is",
+    "big"
+   ],
+   "tiles": [
+    "The",
+    "cat",
+    "is",
+    "big"
+   ],
+   "scene": {
+    "pic": "🐱",
+    "size": "big"
+   },
+   "foils": [
+    {
+     "pic": "🐱",
+     "size": "small"
+    },
+    {
+     "pic": "🐶",
+     "size": "big"
+    },
+    {
+     "pic": "🐭",
+     "size": "small"
+    }
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "is",
+     "and",
+     "a"
+    ]
+   }
+  },
+  {
+   "id": "s_mouse_small",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The mouse is small.",
+   "sv": "Musen är liten.",
+   "say": "The mouse is small.",
+   "audio": "s/s_mouse_small",
+   "have": false,
+   "uses": [
+    "the",
+    "mouse",
+    "is",
+    "small"
+   ],
+   "tiles": [
+    "The",
+    "mouse",
+    "is",
+    "small"
+   ],
+   "scene": {
+    "pic": "🐭",
+    "size": "small"
+   },
+   "foils": [
+    {
+     "pic": "🐭",
+     "size": "big"
+    },
+    {
+     "pic": "🐻",
+     "size": "small"
+    },
+    {
+     "pic": "🏠",
+     "size": "small"
+    }
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "small",
+     "big",
+     "fast"
+    ]
+   }
+  },
+  {
+   "id": "s_frog_green",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The frog is green.",
+   "sv": "Grodan är grön.",
+   "say": "The frog is green.",
+   "audio": "s/s_frog_green",
+   "have": false,
+   "uses": [
+    "the",
+    "frog",
+    "is",
+    "green"
+   ],
+   "tiles": [
+    "The",
+    "frog",
+    "is",
+    "green"
+   ],
+   "scene": {
+    "pic": "🐸",
+    "color": "green"
+   },
+   "foils": [
+    {
+     "pic": "🦊",
+     "color": "red"
+    },
+    {
+     "pic": "🐟",
+     "color": "blue"
+    },
+    {
+     "pic": "🍃",
+     "color": "green"
+    }
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "is",
+     "can",
+     "and"
+    ]
+   }
+  },
+  {
+   "id": "s_apple_red",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The apple is red.",
+   "sv": "Äpplet är rött.",
+   "say": "The apple is red.",
+   "audio": "s/s_apple_red",
+   "have": false,
+   "uses": [
+    "the",
+    "apple",
+    "is",
+    "red"
+   ],
+   "tiles": [
+    "The",
+    "apple",
+    "is",
+    "red"
+   ],
+   "scene": {
+    "pic": "🍎",
+    "color": "red"
+   },
+   "foils": [
+    {
+     "pic": "🍏",
+     "color": "green"
+    },
+    {
+     "pic": "🌹",
+     "color": "red"
+    },
+    {
+     "pic": "🌼",
+     "color": "yellow"
+    }
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "red",
+     "green",
+     "blue"
+    ]
+   }
+  },
+  {
+   "id": "s_bat_black",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The bat is black.",
+   "sv": "Fladdermusen är svart.",
+   "say": "The bat is black.",
+   "audio": "s/s_bat_black",
+   "have": false,
+   "uses": [
+    "the",
+    "bat",
+    "is",
+    "black"
+   ],
+   "tiles": [
+    "The",
+    "bat",
+    "is",
+    "black"
+   ],
+   "scene": {
+    "pic": "🦇",
+    "color": "black"
+   },
+   "foils": [
+    {
+     "pic": "🐈‍⬛",
+     "color": "black"
+    },
+    {
+     "pic": "🐦",
+     "color": "blue"
+    },
+    {
+     "pic": "🐤",
+     "color": "yellow"
+    }
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "the",
+     "a",
+     "and"
+    ]
+   }
+  },
+  {
+   "id": "s_dog_happy",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The dog is happy.",
+   "sv": "Hunden är glad.",
+   "say": "The dog is happy.",
+   "audio": "s/s_dog_happy",
+   "have": false,
+   "uses": [
+    "the",
+    "dog",
+    "is",
+    "happy"
+   ],
+   "tiles": [
+    "The",
+    "dog",
+    "is",
+    "happy"
+   ],
+   "scene": {
+    "pic": "🐶",
+    "mood": "happy"
+   },
+   "foils": [
+    {
+     "pic": "🐶",
+     "mood": "sad"
+    },
+    {
+     "pic": "🦆",
+     "mood": "happy"
+    },
+    {
+     "pic": "🐱",
+     "mood": "sad"
+    }
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "happy",
+     "sad",
+     "slow"
+    ]
+   }
+  },
+  {
+   "id": "s_troll_sad",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The troll is sad.",
+   "sv": "Trollet är ledset.",
+   "say": "The troll is sad.",
+   "audio": "s/s_troll_sad",
+   "have": false,
+   "uses": [
+    "the",
+    "troll",
+    "is",
+    "sad"
+   ],
+   "tiles": [
+    "The",
+    "troll",
+    "is",
+    "sad"
+   ],
+   "scene": {
+    "pic": "🧌",
+    "mood": "sad"
+   },
+   "foils": [
+    {
+     "pic": "🧌",
+     "mood": "happy"
+    },
+    {
+     "pic": "🦉",
+     "mood": "sad"
+    },
+    {
+     "pic": "🐻",
+     "mood": "happy"
+    }
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "sad",
+     "happy",
+     "fast"
+    ]
+   }
+  },
+  {
+   "id": "s_fox_fast",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The fox is fast.",
+   "sv": "Räven är snabb.",
+   "say": "The fox is fast.",
+   "audio": "s/s_fox_fast",
+   "have": false,
+   "uses": [
+    "the",
+    "fox",
+    "is",
+    "fast"
+   ],
+   "tiles": [
+    "The",
+    "fox",
+    "is",
+    "fast"
+   ],
+   "scene": {
+    "pic": "🦊",
+    "speed": "fast"
+   },
+   "foils": [
+    {
+     "pic": "🦊",
+     "speed": "slow"
+    },
+    {
+     "pic": "🐸",
+     "speed": "fast"
+    },
+    {
+     "pic": "🐮",
+     "speed": "slow"
+    }
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "fast",
+     "slow",
+     "sad"
+    ]
+   }
+  },
+  {
+   "id": "s_cow_slow",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The cow is slow.",
+   "sv": "Kon är långsam.",
+   "say": "The cow is slow.",
+   "audio": "s/s_cow_slow",
+   "have": false,
+   "uses": [
+    "the",
+    "cow",
+    "is",
+    "slow"
+   ],
+   "tiles": [
+    "The",
+    "cow",
+    "is",
+    "slow"
+   ],
+   "scene": {
+    "pic": "🐮",
+    "speed": "slow"
+   },
+   "foils": [
+    {
+     "pic": "🐮",
+     "speed": "fast"
+    },
+    {
+     "pic": "🐴",
+     "speed": "slow"
+    },
+    {
+     "pic": "🐴",
+     "speed": "fast"
+    }
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "slow",
+     "fast",
+     "small"
+    ]
+   }
+  },
+  {
+   "id": "s_bird_fly",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The bird can fly.",
+   "sv": "Fågeln kan flyga.",
+   "say": "The bird can fly.",
+   "audio": "s/s_bird_fly",
+   "have": false,
+   "uses": [
+    "the",
+    "bird",
+    "can",
+    "fly"
+   ],
+   "tiles": [
+    "The",
+    "bird",
+    "can",
+    "fly"
+   ],
+   "scene": {
+    "pic": "🐦",
+    "anim": "fly"
+   },
+   "foils": [
+    {
+     "pic": "🐦",
+     "anim": "sleep"
+    },
+    {
+     "pic": "🐟",
+     "anim": "swim"
+    },
+    {
+     "pic": "🐸",
+     "anim": "jump"
+    }
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "can",
+     "is",
+     "and"
+    ]
+   }
+  },
+  {
+   "id": "s_fish_swim",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The fish can swim.",
+   "sv": "Fisken kan simma.",
+   "say": "The fish can swim.",
+   "audio": "s/s_fish_swim",
+   "have": false,
+   "uses": [
+    "the",
+    "fish",
+    "can",
+    "swim"
+   ],
+   "tiles": [
+    "The",
+    "fish",
+    "can",
+    "swim"
+   ],
+   "scene": {
+    "pic": "🐟",
+    "anim": "swim"
+   },
+   "foils": [
+    {
+     "pic": "🐟",
+     "anim": "jump"
+    },
+    {
+     "pic": "🦆",
+     "anim": "fly"
+    },
+    {
+     "pic": "🐴",
+     "anim": "run"
+    }
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "swim",
+     "fly",
+     "run"
+    ]
+   }
+  },
+  {
+   "id": "s_frog_jump",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The frog can jump.",
+   "sv": "Grodan kan hoppa.",
+   "say": "The frog can jump.",
+   "audio": "s/s_frog_jump",
+   "have": false,
+   "uses": [
+    "the",
+    "frog",
+    "can",
+    "jump"
+   ],
+   "tiles": [
+    "The",
+    "frog",
+    "can",
+    "jump"
+   ],
+   "scene": {
+    "pic": "🐸",
+    "anim": "jump"
+   },
+   "foils": [
+    {
+     "pic": "🐸",
+     "anim": "sleep"
+    },
+    {
+     "pic": "🦊",
+     "anim": "run"
+    },
+    {
+     "pic": "🦆",
+     "anim": "swim"
+    }
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "jump",
+     "sleep",
+     "eat"
+    ]
+   }
+  },
+  {
+   "id": "s_horse_run",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The horse can run.",
+   "sv": "Hästen kan springa.",
+   "say": "The horse can run.",
+   "audio": "s/s_horse_run",
+   "have": false,
+   "uses": [
+    "the",
+    "horse",
+    "can",
+    "run"
+   ],
+   "tiles": [
+    "The",
+    "horse",
+    "can",
+    "run"
+   ],
+   "scene": {
+    "pic": "🐴",
+    "anim": "run"
+   },
+   "foils": [
+    {
+     "pic": "🐴",
+     "anim": "sleep"
+    },
+    {
+     "pic": "🐸",
+     "anim": "jump"
+    },
+    {
+     "pic": "🦉",
+     "anim": "fly"
+    }
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "run",
+     "fly",
+     "swim"
+    ]
+   }
+  },
+  {
+   "id": "s_cat_sleep",
+   "kind": "sentence",
+   "node": 10,
+   "en": "The cat can sleep.",
+   "sv": "Katten kan sova.",
+   "say": "The cat can sleep.",
+   "audio": "s/s_cat_sleep",
+   "have": false,
+   "uses": [
+    "the",
+    "cat",
+    "can",
+    "sleep"
+   ],
+   "tiles": [
+    "The",
+    "cat",
+    "can",
+    "sleep"
+   ],
+   "scene": {
+    "pic": "🐱",
+    "anim": "sleep"
+   },
+   "foils": [
+    {
+     "pic": "🐱",
+     "anim": "run"
+    },
+    {
+     "pic": "🐶",
+     "anim": "sleep"
+    },
+    {
+     "pic": "🐶",
+     "anim": "eat"
+    }
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "sleep",
+     "swim",
+     "see"
+    ]
+   }
+  },
+  {
+   "id": "s_eat_apples",
+   "kind": "sentence",
+   "node": 10,
+   "en": "I can eat two apples.",
+   "sv": "Jag kan äta två äpplen.",
+   "say": "I can eat two apples.",
+   "audio": "s/s_eat_apples",
+   "have": false,
+   "uses": [
+    "I",
+    "can",
+    "eat",
+    "two",
+    "apple"
+   ],
+   "tiles": [
+    "I",
+    "can",
+    "eat",
+    "two",
+    "apples"
+   ],
+   "scene": {
+    "pic": "🍎",
+    "n": 2,
+    "anim": "eat"
+   },
+   "foils": [
+    {
+     "pic": "🍎",
+     "n": 1,
+     "anim": "eat"
+    },
+    {
+     "pic": "🥚",
+     "n": 2,
+     "anim": "eat"
+    },
+    {
+     "pic": "🍎",
+     "n": 3
+    }
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "eat",
+     "see",
+     "run"
+    ]
+   }
+  },
+  {
+   "id": "s_see_fox",
+   "kind": "sentence",
+   "node": 10,
+   "en": "I see a fox.",
+   "sv": "Jag ser en räv.",
+   "say": "I see a fox.",
+   "audio": "s/s_see_fox",
+   "have": false,
+   "uses": [
+    "I",
+    "see",
+    "a",
+    "fox"
+   ],
+   "tiles": [
+    "I",
+    "see",
+    "a",
+    "fox"
+   ],
+   "scene": {
+    "pic": "🦊"
+   },
+   "foils": [
+    {
+     "pic": "🐸"
+    },
+    {
+     "pic": "🐟"
+    },
+    {
+     "pic": "🦊",
+     "n": 2
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "see",
+     "can",
+     "is"
+    ]
+   }
+  },
+  {
+   "id": "s_see_two_owls",
+   "kind": "sentence",
+   "node": 10,
+   "en": "I see two owls.",
+   "sv": "Jag ser två ugglor.",
+   "say": "I see two owls.",
+   "audio": "s/s_see_two_owls",
+   "have": false,
+   "uses": [
+    "I",
+    "see",
+    "two",
+    "owl"
+   ],
+   "tiles": [
+    "I",
+    "see",
+    "two",
+    "owls"
+   ],
+   "scene": {
+    "pic": "🦉",
+    "n": 2
+   },
+   "foils": [
+    {
+     "pic": "🦉",
+     "n": 1
+    },
+    {
+     "pic": "🦇",
+     "n": 2
+    },
+    {
+     "pic": "🦉",
+     "n": 3
+    }
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "I",
+     "A",
+     "The"
+    ]
+   }
+  },
+  {
+   "id": "s_see_moon",
+   "kind": "sentence",
+   "node": 10,
+   "en": "I see the moon.",
+   "sv": "Jag ser månen.",
+   "say": "I see the moon.",
+   "audio": "s/s_see_moon",
+   "have": false,
+   "uses": [
+    "I",
+    "see",
+    "the",
+    "moon"
+   ],
+   "tiles": [
+    "I",
+    "see",
+    "the",
+    "moon"
+   ],
+   "scene": {
+    "pic": "🌙"
+   },
+   "foils": [
+    {
+     "pic": "☀️"
+    },
+    {
+     "pic": "⭐"
+    },
+    {
+     "pic": "🦇"
+    }
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "the",
+     "is",
+     "and"
+    ]
+   }
+  },
+  {
+   "id": "s_see_big_bear",
+   "kind": "sentence",
+   "node": 10,
+   "en": "I see a big bear.",
+   "sv": "Jag ser en stor björn.",
+   "say": "I see a big bear.",
+   "audio": "s/s_see_big_bear",
+   "have": false,
+   "uses": [
+    "I",
+    "see",
+    "a",
+    "big",
+    "bear"
+   ],
+   "tiles": [
+    "I",
+    "see",
+    "a",
+    "big",
+    "bear"
+   ],
+   "scene": {
+    "pic": "🐻",
+    "size": "big"
+   },
+   "foils": [
+    {
+     "pic": "🐻",
+     "size": "small"
+    },
+    {
+     "pic": "🐝",
+     "size": "big"
+    },
+    {
+     "pic": "🐦",
+     "size": "small"
+    }
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "a",
+     "is",
+     "and"
+    ]
+   }
+  },
+  {
+   "id": "s_see_troll",
+   "kind": "sentence",
+   "node": 10,
+   "en": "I can see the troll.",
+   "sv": "Jag kan se trollet.",
+   "say": "I can see the troll.",
+   "audio": "s/s_see_troll",
+   "have": false,
+   "uses": [
+    "I",
+    "can",
+    "see",
+    "the",
+    "troll"
+   ],
+   "tiles": [
+    "I",
+    "can",
+    "see",
+    "the",
+    "troll"
+   ],
+   "scene": {
+    "pic": "🧌"
+   },
+   "foils": [
+    {
+     "pic": "🔥"
+    },
+    {
+     "pic": "🐻"
+    },
+    {
+     "pic": "🌳"
+    }
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "can",
+     "is",
+     "and"
+    ]
+   }
+  }
+ ],
+ "nodes": [
+  {
+   "n": 1,
+   "type": "level",
+   "name": "The Glade",
+   "sv": "Gläntan",
+   "safe": false,
+   "introduce": [
+    "cat",
+    "dog",
+    "bird",
+    "tree",
+    "sun",
+    "flower"
+   ],
+   "phrases": [
+    "ph_hello",
+    "ph_lets_go",
+    "ph_good_job",
+    "ph_try_again",
+    "ph_help",
+    "ph_you_win"
+   ],
+   "reviewNodes": [],
+   "sentences": [],
+   "maxStage": 2,
+   "goal": {
+    "A": 2,
+    "B": 3,
+    "C": 3
+   },
+   "newTasks": {
+    "A": [
+     "listen_pick_picture"
+    ],
+    "B": [
+     "listen_pick_picture"
+    ],
+    "C": [
+     "listen_pick_picture"
+    ]
+   },
+   "tasks": {
+    "A": [
+     "listen_pick_picture"
+    ],
+    "B": [
+     "listen_pick_picture"
+    ],
+    "C": [
+     "listen_pick_picture"
+    ]
+   },
+   "fights": [
+    "new",
+    "review",
+    "mix"
+   ],
+   "note": "Bara bildord, bara lyssna och välj bild. Två val vid första frågan på ett nytt ord, sedan tre (A) eller fyra (B, C). Fraserna hörs i menyer och återkoppling med svensk text de fem första gångerna."
+  },
+  {
+   "n": 2,
+   "type": "level",
+   "name": "The Brook",
+   "sv": "Bäcken",
+   "safe": false,
+   "introduce": [
+    "fish",
+    "frog",
+    "duck",
+    "water",
+    "bear",
+    "apple",
+    "yes",
+    "no"
+   ],
+   "phrases": [],
+   "reviewNodes": [
+    1
+   ],
+   "sentences": [],
+   "maxStage": 2,
+   "goal": {
+    "A": 2,
+    "B": 3,
+    "C": 3
+   },
+   "newTasks": {
+    "A": [
+     "true_false"
+    ],
+    "B": [
+     "true_false",
+     "read_pick_picture"
+    ],
+    "C": [
+     "true_false",
+     "read_pick_picture"
+    ]
+   },
+   "tasks": {
+    "A": [
+     "listen_pick_picture",
+     "true_false"
+    ],
+    "B": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture"
+    ],
+    "C": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture"
+    ]
+   },
+   "fights": [
+    "new",
+    "review",
+    "mix"
+   ],
+   "note": "Yes och No lärs genom knapparna i true_false. Läsare får read_pick_picture på ord från nod 1 som nått stadium 2."
+  },
+  {
+   "n": 3,
+   "type": "level",
+   "name": "The Big Oak",
+   "sv": "Stora eken",
+   "safe": false,
+   "introduce": [
+    "leaf",
+    "bee",
+    "fox",
+    "mouse",
+    "big",
+    "red",
+    "green"
+   ],
+   "phrases": [],
+   "reviewNodes": [
+    1,
+    2
+   ],
+   "sentences": [],
+   "maxStage": 3,
+   "goal": {
+    "A": 2,
+    "B": 3,
+    "C": 3
+   },
+   "newTasks": {
+    "A": [
+     "en_to_sv",
+     "picture_pick_word"
+    ],
+    "B": [
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word"
+    ],
+    "C": [
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word"
+    ]
+   },
+   "tasks": {
+    "A": [
+     "listen_pick_picture",
+     "true_false",
+     "en_to_sv",
+     "picture_pick_word"
+    ],
+    "B": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word"
+    ],
+    "C": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word"
+    ]
+   },
+   "fights": [
+    "new",
+    "review",
+    "mix"
+   ],
+   "note": "Första orden utan bild: big (fienden växer), red och green (färgruta), alla med svensk översättning i text och röst. Small väntar till nod 5 så att motsatsparet inte lärs in samtidigt."
+  },
+  {
+   "n": 4,
+   "type": "chest",
+   "name": "Mossy Chest",
+   "sv": "Mossig kista",
+   "safe": true,
+   "introduce": [
+    "key"
+   ],
+   "phrases": [
+    "ph_thank_you"
+   ],
+   "reviewNodes": [
+    1,
+    2,
+    3
+   ],
+   "sentences": [],
+   "maxStage": 3,
+   "goal": {
+    "A": 2,
+    "B": 3,
+    "C": 3
+   },
+   "newTasks": {
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "tasks": {
+    "A": [
+     "listen_pick_picture",
+     "true_false",
+     "en_to_sv",
+     "picture_pick_word"
+    ],
+    "B": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word"
+    ],
+    "C": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word"
+    ]
+   },
+   "fights": [
+    "safe_review"
+   ],
+   "questions": 6,
+   "note": "Riskfri kontrollpunkt: sex lås, ett per rätt svar, ingen fiende och ingen skada. Frågorna är förfallna ord ur nod 1 till 3. Ordet key lärs här. Thank you! sägs när kistan öppnas."
+  },
+  {
+   "n": 5,
+   "type": "level",
+   "name": "The Farm",
+   "sv": "Bondgården",
+   "safe": false,
+   "introduce": [
+    "horse",
+    "cow",
+    "pig",
+    "egg",
+    "small",
+    "one",
+    "two",
+    "three"
+   ],
+   "phrases": [],
+   "reviewNodes": [
+    2,
+    3
+   ],
+   "sentences": [
+    "c_two_dogs",
+    "c_three_frogs",
+    "c_one_egg",
+    "c_three_pigs",
+    "c_big_bear",
+    "c_small_horse",
+    "c_small_fish"
+   ],
+   "maxStage": 4,
+   "goal": {
+    "A": 2,
+    "B": 3,
+    "C": 3
+   },
+   "newTasks": {
+    "A": [
+     "sv_to_en",
+     "listen_sentence_pick_picture"
+    ],
+    "B": [
+     "sv_to_en",
+     "listen_sentence_pick_picture"
+    ],
+    "C": [
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "missing_letter"
+    ]
+   },
+   "tasks": {
+    "A": [
+     "listen_pick_picture",
+     "true_false",
+     "en_to_sv",
+     "picture_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture"
+    ],
+    "B": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture"
+    ],
+    "C": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "missing_letter"
+    ]
+   },
+   "fights": [
+    "new",
+    "review",
+    "mix"
+   ],
+   "note": "Första fraserna: räkneord plus substantiv (two dogs) och storlek plus substantiv (a big bear). sv_to_en börjar här för ord utan bild som nått stadium 3."
+  },
+  {
+   "n": 6,
+   "type": "level",
+   "name": "The Fox Den",
+   "sv": "Rävlyan",
+   "safe": false,
+   "introduce": [
+    "snake",
+    "fire",
+    "house",
+    "rain",
+    "blue",
+    "yellow",
+    "run",
+    "jump"
+   ],
+   "phrases": [],
+   "reviewNodes": [
+    1,
+    3,
+    5
+   ],
+   "sentences": [
+    "c_red_apple",
+    "c_green_frog",
+    "c_blue_fish",
+    "c_yellow_flower",
+    "c_green_leaf"
+   ],
+   "maxStage": 4,
+   "goal": {
+    "A": 2,
+    "B": 3,
+    "C": 3
+   },
+   "newTasks": {
+    "A": [
+     "odd_one_out"
+    ],
+    "B": [
+     "odd_one_out",
+     "missing_letter"
+    ],
+    "C": [
+     "odd_one_out",
+     "spell_tiles"
+    ]
+   },
+   "tasks": {
+    "A": [
+     "listen_pick_picture",
+     "true_false",
+     "en_to_sv",
+     "picture_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "odd_one_out"
+    ],
+    "B": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "odd_one_out",
+     "missing_letter"
+    ],
+    "C": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "missing_letter",
+     "odd_one_out",
+     "spell_tiles"
+    ]
+   },
+   "fights": [
+    "new",
+    "review",
+    "mix"
+   ],
+   "note": "Första verben: hjälten springer och hoppar när ordet visas. Färgfraser (a red apple). Stavning börjar för läsare på korta ljudenliga ord som nått stadium 3."
+  },
+  {
+   "n": 7,
+   "type": "shop",
+   "name": "Forest Shop",
+   "sv": "Skogsboden",
+   "safe": true,
+   "introduce": [
+    "sword",
+    "shield"
+   ],
+   "phrases": [
+    "ph_goodbye"
+   ],
+   "reviewNodes": [
+    5,
+    6
+   ],
+   "sentences": [],
+   "maxStage": 3,
+   "goal": {
+    "A": 2,
+    "B": 3,
+    "C": 3
+   },
+   "newTasks": {
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "tasks": {
+    "A": [
+     "listen_pick_picture",
+     "true_false",
+     "en_to_sv",
+     "picture_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "odd_one_out"
+    ],
+    "B": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "odd_one_out",
+     "missing_letter"
+    ],
+    "C": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "missing_letter",
+     "odd_one_out",
+     "spell_tiles"
+    ]
+   },
+   "fights": [
+    "safe_phrases"
+   ],
+   "questions": 3,
+   "note": "Riskfri: handlaren hälsar (Hello!), sword och shield lärs på varorna, Thank you! och Goodbye! vid köp. Tre snabba frågor på fraserna ger en liten rabatt, inget straff vid fel."
+  },
+  {
+   "n": 8,
+   "type": "level",
+   "name": "The Bird Nest",
+   "sv": "Fågelboet",
+   "safe": false,
+   "introduce": [
+    "nest",
+    "star",
+    "fly",
+    "sleep",
+    "eat",
+    "happy",
+    "four",
+    "five"
+   ],
+   "phrases": [],
+   "reviewNodes": [
+    2,
+    5,
+    6
+   ],
+   "sentences": [
+    "c_four_bees",
+    "c_five_stars",
+    "c_happy_dog"
+   ],
+   "maxStage": 4,
+   "goal": {
+    "A": 2,
+    "B": 3,
+    "C": 3
+   },
+   "newTasks": {
+    "A": [
+     "sentence_true_false"
+    ],
+    "B": [
+     "sentence_true_false",
+     "spell_tiles"
+    ],
+    "C": [
+     "sentence_true_false"
+    ]
+   },
+   "tasks": {
+    "A": [
+     "listen_pick_picture",
+     "true_false",
+     "en_to_sv",
+     "picture_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "odd_one_out",
+     "sentence_true_false"
+    ],
+    "B": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "odd_one_out",
+     "missing_letter",
+     "sentence_true_false",
+     "spell_tiles"
+    ],
+    "C": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "missing_letter",
+     "odd_one_out",
+     "spell_tiles",
+     "sentence_true_false"
+    ]
+   },
+   "fights": [
+    "new",
+    "review",
+    "mix"
+   ],
+   "note": "Fler verb med animation, räkneord till fem, happy med ansikte. sentence_true_false på fraserna från nod 5 och 6."
+  },
+  {
+   "n": 9,
+   "type": "level",
+   "name": "The Dark Path",
+   "sv": "Mörka stigen",
+   "safe": false,
+   "introduce": [
+    "forest",
+    "swim",
+    "sad",
+    "fast",
+    "black",
+    "a",
+    "the",
+    "and"
+   ],
+   "phrases": [],
+   "reviewNodes": [
+    3,
+    6,
+    8
+   ],
+   "sentences": [
+    "c_cat_and_dog",
+    "c_frog_and_duck",
+    "c_tree_and_flower",
+    "c_black_cat",
+    "c_sad_pig",
+    "c_fast_horse",
+    "c_big_forest"
+   ],
+   "maxStage": 5,
+   "goal": {
+    "A": 3,
+    "B": 3,
+    "C": 4
+   },
+   "newTasks": {
+    "A": [],
+    "B": [
+     "fill_gap",
+     "build_sentence"
+    ],
+    "C": [
+     "fill_gap",
+     "build_sentence"
+    ]
+   },
+   "tasks": {
+    "A": [
+     "listen_pick_picture",
+     "true_false",
+     "en_to_sv",
+     "picture_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "odd_one_out",
+     "sentence_true_false"
+    ],
+    "B": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "odd_one_out",
+     "missing_letter",
+     "sentence_true_false",
+     "spell_tiles",
+     "fill_gap",
+     "build_sentence"
+    ],
+    "C": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "missing_letter",
+     "odd_one_out",
+     "spell_tiles",
+     "sentence_true_false",
+     "fill_gap",
+     "build_sentence"
+    ]
+   },
+   "fights": [
+    "new",
+    "review",
+    "mix"
+   ],
+   "note": "Frasnoden: a, the och and lärs i fraser (a cat and a dog), aldrig ensamma. Läsare bygger fraser av brickor. Sad och fast kommer en nod efter sina motsatser."
+  },
+  {
+   "n": 10,
+   "type": "level",
+   "name": "The Owl Tree",
+   "sv": "Ugglans träd",
+   "safe": false,
+   "introduce": [
+    "owl",
+    "bat",
+    "moon",
+    "troll",
+    "slow",
+    "see",
+    "is",
+    "I",
+    "can"
+   ],
+   "phrases": [],
+   "reviewNodes": [
+    5,
+    8,
+    9
+   ],
+   "sentences": [
+    "s_cat_big",
+    "s_mouse_small",
+    "s_frog_green",
+    "s_apple_red",
+    "s_bat_black",
+    "s_dog_happy",
+    "s_troll_sad",
+    "s_fox_fast",
+    "s_cow_slow",
+    "s_bird_fly",
+    "s_fish_swim",
+    "s_frog_jump",
+    "s_horse_run",
+    "s_cat_sleep",
+    "s_eat_apples",
+    "s_see_fox",
+    "s_see_two_owls",
+    "s_see_moon",
+    "s_see_big_bear",
+    "s_see_troll"
+   ],
+   "maxStage": 5,
+   "goal": {
+    "A": 3,
+    "B": 3,
+    "C": 4
+   },
+   "newTasks": {
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "tasks": {
+    "A": [
+     "listen_pick_picture",
+     "true_false",
+     "en_to_sv",
+     "picture_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "odd_one_out",
+     "sentence_true_false"
+    ],
+    "B": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "odd_one_out",
+     "missing_letter",
+     "sentence_true_false",
+     "spell_tiles",
+     "fill_gap",
+     "build_sentence"
+    ],
+    "C": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "missing_letter",
+     "odd_one_out",
+     "spell_tiles",
+     "sentence_true_false",
+     "fill_gap",
+     "build_sentence"
+    ]
+   },
+   "fights": [
+    "new",
+    "review",
+    "mix"
+   ],
+   "note": "Meningsnoden: tre mönster (The X is Y. The X can Z. I see X.) byggda nästan helt av kända ord. Få nya ord, och de är lätta bildord."
+  },
+  {
+   "n": 11,
+   "type": "boss",
+   "name": "The Forgetful Troll",
+   "sv": "Trollet Glömsk",
+   "safe": false,
+   "introduce": [],
+   "phrases": [],
+   "reviewNodes": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "sentences": [],
+   "maxStage": 5,
+   "goal": {
+    "A": 3,
+    "B": 3,
+    "C": 4
+   },
+   "newTasks": {
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "tasks": {
+    "A": [
+     "listen_pick_picture",
+     "true_false",
+     "en_to_sv",
+     "picture_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "odd_one_out",
+     "sentence_true_false"
+    ],
+    "B": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "odd_one_out",
+     "missing_letter",
+     "sentence_true_false",
+     "spell_tiles",
+     "fill_gap",
+     "build_sentence"
+    ],
+    "C": [
+     "listen_pick_picture",
+     "true_false",
+     "read_pick_picture",
+     "en_to_sv",
+     "picture_pick_word",
+     "listen_pick_word",
+     "sv_to_en",
+     "listen_sentence_pick_picture",
+     "missing_letter",
+     "odd_one_out",
+     "spell_tiles",
+     "sentence_true_false",
+     "fill_gap",
+     "build_sentence"
+    ]
+   },
+   "fights": [
+    "boss_minions",
+    "boss_troll"
+   ],
+   "phases": [
+    {
+     "id": "words",
+     "sv": "ord med bild",
+     "from": "pos:noun",
+     "tasks": {
+      "A": [
+       "listen_pick_picture",
+       "picture_pick_word"
+      ],
+      "B": [
+       "picture_pick_word",
+       "listen_pick_word",
+       "read_pick_picture"
+      ],
+      "C": [
+       "picture_pick_word",
+       "listen_pick_word",
+       "spell_tiles"
+      ]
+     },
+     "questions": 8
+    },
+    {
+     "id": "nopic",
+     "sv": "ord utan bild och fraser",
+     "from": "pic:null",
+     "tasks": {
+      "A": [
+       "en_to_sv",
+       "sv_to_en"
+      ],
+      "B": [
+       "sv_to_en",
+       "en_to_sv",
+       "odd_one_out"
+      ],
+      "C": [
+       "sv_to_en",
+       "odd_one_out",
+       "missing_letter"
+      ]
+     },
+     "questions": 8
+    },
+    {
+     "id": "sentences",
+     "sv": "fraser och meningar",
+     "from": "sentences",
+     "tasks": {
+      "A": [
+       "listen_sentence_pick_picture",
+       "sentence_true_false"
+      ],
+      "B": [
+       "listen_sentence_pick_picture",
+       "fill_gap",
+       "sentence_true_false"
+      ],
+      "C": [
+       "listen_sentence_pick_picture",
+       "fill_gap",
+       "build_sentence"
+      ]
+     },
+     "questions": 8
+    }
+   ],
+   "gate": {
+    "allMet": true,
+    "shareAtStage": 0.7,
+    "stage": 2
+   },
+   "note": "Blandat prov på hela världen. Förstriden tar bildord, trollet har tre faser efter liv: ord med bild, ord utan bild, meningar. Urvalet väljer lägst stadium och längst sedan senast först. Svaren räknas som vanliga repetitioner."
+  }
+ ]
+}
