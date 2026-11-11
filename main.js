@@ -39,6 +39,7 @@ const adopt = (p) => {
   Object.assign(p, sync.stateFor(pid(p), today())); p.words = bookFor(pid(p));
   const look = latest(pid(p), 'look'), prefs = latest(pid(p), 'prefs');
   if (look && look.skin) p.look = look; p.reading = prefs ? prefs.reading !== false : true;
+  if (prefs && prefs.name) p.name = prefs.name;                 // namnet följer med mellan enheter (ligger i hushållets skyddade data, inte i koden)
   save();
 };
 const rec = (type, payload) => { sync.record(pid(P), type, payload); adopt(P); };
@@ -350,12 +351,14 @@ async function signUp(email, password) {
   } catch (e) { return { ok: false, msg: 'inget nät' }; }
 }
 function namesForm() {
-  return '<h3>Spelarnas namn</h3><p class="dim">Namnen sparas bara på den här enheten, inte i molnet.</p><div id="names">' +
+  return '<h3>Spelarnas namn</h3><p class="dim">Namnen sparas i hushållets konto och syns på alla enheter som är inloggade.</p><div id="names">' +
     S.profiles.map((p, i) => `<label><input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}"><span><input type="checkbox" data-r="${i}" ${p.reading !== false ? 'checked' : ''}> Läser</span></label>`).join('') + '</div><p class="dim">Utan "Läser" får barnet nästan bara bilduppgifter, och högst två val när något ska läsas.</p>';
 }
 function bindNames() {
-  document.querySelectorAll('#names input[data-r]').forEach((el) => (el.onchange = () => { const p = S.profiles[+el.dataset.r]; sync.record(pid(p), 'prefs', { reading: el.checked }); adopt(p); }));
+  document.querySelectorAll('#names input[data-r]').forEach((el) => (el.onchange = () => { const p = S.profiles[+el.dataset.r]; sync.record(pid(p), 'prefs', { reading: el.checked, name: p.name }); adopt(p); }));
   document.querySelectorAll('#names input[data-i]').forEach((el) => (el.oninput = () => { S.profiles[+el.dataset.i].name = el.value.trim() || `Player ${+el.dataset.i + 1}`; save(); }));
+  // När fältet lämnas sparas namnet som en händelse, så att det syns på familjens andra enheter.
+  document.querySelectorAll('#names input[data-i]').forEach((el) => (el.onchange = () => { const p = S.profiles[+el.dataset.i]; sync.record(pid(p), 'prefs', { reading: p.reading !== false, name: p.name }); adopt(p); sync.sync(); }));
 }
 function renderParent(msg = '') {
   const s = sync.status(), box = $('parent-box');
