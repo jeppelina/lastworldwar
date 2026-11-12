@@ -80,7 +80,7 @@ export class Quiz {
     const t0 = Date.now();                                  // svarstid: från att uppgiften visas till svaret
     const finish = (right) => {
       if (locked) return; locked = true; task.ms = Date.now() - t0; this.done(task, right);
-      if (!right && task.free) return this.teach(it, quizEl, wordEl, () => cb({ right: false, free: true }));
+      if (!right && task.free) { quizEl.classList.add('bad'); if (this.sfx) this.sfx('wrong'); return setTimeout(() => { quizEl.classList.remove('bad'); this.teach(it, quizEl, wordEl, () => cb({ right: false, free: true })); }, 1600); }   // låt det röda kortet synas innan ordet lärs ut
       cb({ right, free: false });
     };
     const frame = (inner, audio = true) => { quizEl.innerHTML = `<div class="speak"${audio ? '' : ' style="visibility:hidden"'}><button class="again" aria-label="Play again">🔊</button><button class="slow" aria-label="Slowly">🐢</button></div>${inner}`;

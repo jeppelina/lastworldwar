@@ -226,3 +226,15 @@ header .back, #parent-back { min-height:46px; min-width:96px; padding:10px 18px;
   #result .box { padding:8px 16px; } #result .lines { margin:6px 0 10px; font-size:14px; } #result .stars { font-size:26px; line-height:1.1; }
   #book-meter { padding:4px 12px 6px; }
 }
+
+/* Tydligare rätt och fel (2026-11-12): valt fel kort blir rött med kryss, rätt kort grönt med bock, övriga kort tonas ner,
+   hela frågepanelen färgas, och striden väntar längre innan nästa fråga (battle.js). */
+.card.right { border-color:#12924a; background:linear-gradient(#5fe39a, #27b866); color:#04220f; box-shadow:0 0 0 4px #b9ffd6, 0 6px 0 #12924a; animation:pop .4s cubic-bezier(.2, 1.8, .4, 1); opacity:1; }
+.card.wrong { border-color:#9c1f1f; background:linear-gradient(#ff7b7b, #e03a3a); color:#fff; box-shadow:0 0 0 4px #ffc9c9, 0 6px 0 #9c1f1f; animation:shake .5s; opacity:1; }
+.card.right, .card.wrong { position:relative; }
+.card.right::after, .card.wrong::after { position:absolute; left:6px; top:6px; width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-size:22px; font-weight:900; color:#fff; }
+.card.right::after { content:"\2713"; background:#12924a; } .card.wrong::after { content:"\2715"; background:#9c1f1f; }
+.cards:has(.right, .wrong) .card:not(.right):not(.wrong) { opacity:.3; }
+.quiz.ok { background:#103a22; box-shadow:inset 0 0 0 8px #49d17d; } .quiz.bad { background:#4a1212; box-shadow:inset 0 0 0 8px #e2473d; }
+.quiz.ok::after, .quiz.bad::after { width:72px; height:72px; font-size:46px; }
+.tile.wrong { background:#e03a3a; color:#fff; }

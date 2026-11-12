@@ -99,9 +99,9 @@ function sfx(kind) {
   try {
     unlock(); const t = actx.currentTime, tone = (f0, f1, at, dur, type, vol) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t + at); o.frequency.exponentialRampToValueAtTime(f1, t + at + dur);
       g.gain.setValueAtTime(0.0001, t + at); g.gain.exponentialRampToValueAtTime(vol, t + at + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + at + dur); o.connect(g); g.connect(actx.destination); o.start(t + at); o.stop(t + at + dur + 0.02); };
-    if (kind === 'right') { tone(784, 784, 0, 0.11, 'triangle', 0.22); tone(1175, 1175, 0.1, 0.2, 'triangle', 0.22); }
+    if (kind === 'right') { [1047, 1319, 1568].forEach((f, i) => tone(f, f, i * 0.09, i === 2 ? 0.34 : 0.1, 'triangle', 0.3)); tone(2093, 2093, 0.18, 0.3, 'sine', 0.12); }      // ljus, stigande treklang
     else if (kind === 'level') { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, f, i * 0.11, i === 4 ? 0.5 : 0.14, 'triangle', 0.24)); tone(262, 262, 0.44, 0.5, 'sine', 0.2); }
-    else if (kind === 'wrong') { tone(220, 150, 0, 0.28, 'sawtooth', 0.12); tone(110, 80, 0, 0.3, 'sine', 0.2); }
+    else if (kind === 'wrong') { tone(233, 220, 0, 0.2, 'square', 0.16); tone(165, 139, 0.2, 0.36, 'square', 0.16); tone(110, 70, 0, 0.56, 'sine', 0.3); }   // mörkt, fallande tvåtonsljud
     else if (BLIP[kind]) for (const [f, at, len] of BLIP[kind]) tone(f, f, at, len + 0.02, 'triangle', 0.13);
   } catch (e) {}
 }
@@ -268,7 +268,7 @@ function startBattle(k, i, node, w) {
   node = { ...node, ...R.nodeInfo(w.id, i) };                // banans rekommenderade nivå och lättnad (balance.js)
   run = { level: P.level, stats: heroStats(P), words: 0, wordXp: 0 };
   const C = contentFor(k);                                   // världar med innehållsfil har byggd pedagogik, övriga kör enkla frågor tills vidare
-  const quiz = C ? new Quiz({ newCap: P.young ? K.newPerRunYoung : K.newPerRun, content: C, prior: Object.keys(CONTENT).filter((j) => +j < k).flatMap((j) => contentFor(+j).items), nodeIdx: i, book: P.words, day: dayNum(), reading: P.reading !== false, play, save,
+  const quiz = C ? new Quiz({ sfx, newCap: P.young ? K.newPerRunYoung : K.newPerRun, content: C, prior: Object.keys(CONTENT).filter((j) => +j < k).flatMap((j) => contentFor(+j).items), nodeIdx: i, book: P.words, day: dayNum(), reading: P.reading !== false, play, save,
     onAnswer: (t, right, up) => { sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.type, correct: right, stage: w.id + ':' + i, ms: t.ms, chosen: right ? null : t.chosen }); if (up && up.up) wordUp(t.item, up); } }) : null;
   battle = new Battle($('battle-root'), { profile: P, worldIdx: k, nodeIdx: i, node, words: wordsFor(k, i), quiz, rewardMult: R.rewardFactor(P.level, node.rec), play, sfx, voiceIdle, onEnd: (r) => endBattle(r, k, i, node, w) });
   if ((P.runs || 0) < 3) { play('audio/en-listen.mp3'); toast('Listen, and choose the picture.' + sv('listen', 'Lyssna och välj bilden.')); }

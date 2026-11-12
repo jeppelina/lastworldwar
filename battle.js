@@ -200,7 +200,7 @@ export class Battle {
       setTimeout(() => { if (this.over) return; if (next === 'next') this.nextFight(); else this.finish(true); }, 900);
       return;
     }
-    if (next === 'enemy') this.enemyAttack(); else { this.hud(); this.phase = 'wait'; this.askSoon(1300); }
+    if (next === 'enemy') this.enemyAttack(); else { this.hud(); this.phase = 'wait'; this.askSoon(2000); }
   }
   enemyAttack() { R.resetCountdown(this.run); this.anim = { who: 'enemy', t0: this.now(), dur: 0.85, fired: new Set() }; }
   enemyHit() {
@@ -208,7 +208,7 @@ export class Battle {
     this.hero.flashUntil = this.now() + 0.14; this.hero.hurtAt = this.now(); this.shake = Math.max(this.shake, 4);
     this.float(`-${dmg}`, this.heroX, this.groundY - 56, 'hurt'); this.burst(this.heroX, this.groundY - 26, 8, RED, 60); this.hud();
   }
-  afterEnemy() { if (R.defeated(this.run)) { this.hero.deadAt = this.now(); setTimeout(() => this.finish(false), 900); } else { this.hud(); this.phase = 'wait'; this.askSoon(2400); } }
+  afterEnemy() { if (R.defeated(this.run)) { this.hero.deadAt = this.now(); setTimeout(() => this.finish(false), 900); } else { this.hud(); this.phase = 'wait'; this.askSoon(3200); } }
   finish(win) {
     if (this.over) return; this.over = true; this.phase = 'over';
     const res = R.result(this.run, win); if (this.gaveUp) res.gaveUp = true;
