@@ -37,7 +37,7 @@ export class Quiz {
   next() {
     this.asked++;
     if (this.requeue.length && this.asked - this.requeue[0].at >= 2) return this.task(this.requeue.shift().item);
-    if (this.sentences.length && this.asked > 2 && Math.random() < 0.3) { const s = pick(this.sentences); return { sentence: s, type: s.gap && Math.random() < 0.5 ? 'sentence_gap' : 'build_sentence' }; }
+    if (this.sentences.length && this.asked > 2 && Math.random() < 0.45) { const s = pick(this.sentences.filter((x) => x !== this.lastSentence).length ? this.sentences.filter((x) => x !== this.lastSentence) : this.sentences); this.lastSentence = s; return { sentence: s, type: s.gap && Math.random() < 0.3 ? 'sentence_gap' : 'build_sentence' }; }
     const met = (i) => !!this.book[i.id], fresh = this.own.filter((i) => !met(i)), known = this.own.filter(met);
     if (fresh.length && (this.newSeen < this.newCap || !known.length) && (this.asked - this.lastNew >= 2 || !known.length)) { this.lastNew = this.asked; this.newSeen++; return this.task(fresh[0]); }   // nya ord ett i taget, med gamla emellan
     const due = this.earlier.filter((i) => isDue(this.book[i.id], this.day) && i !== this.last);
