@@ -436,6 +436,19 @@
     else if (ph === 3) rect(p.x + 7, p.y - 9, 1, 1);
     else if (ph === 4) { rect(p.x + 6, p.y - 9, 3, 1); rect(p.x + 7, p.y - 10, 1, 3); }
   }
+  // Ordgymmet: en liten arena (colosseum) i sten, med valv i två våningar, en trasig överkant och en röd vimpel.
+  function drawArena(p, dark, t) {
+    const x = p.x, y = p.y, L = dark ? '#8a8a96' : '#e8d3a0', M = dark ? '#6a6a76' : '#c9ad72', D = dark ? '#3c3c48' : '#6b4f2c', O = '#2a1d10';
+    const R = (c, a, b, w, h) => { ctx.fillStyle = c; rect(x + a, y + b, w, h); };
+    R(O, -13, -12, 26, 13); R(O, -12, -15, 15, 4); R(O, 3, -13, 6, 2);                 // kontur, och den högre vänstra delen
+    R(M, -12, -11, 24, 11); R(L, -12, -11, 24, 2); R(L, -11, -14, 13, 3); R(M, 4, -12, 4, 1);
+    R(D, -12, -6, 24, 1);                                                              // list mellan våningarna
+    for (let k = -10; k <= 8; k += 4) { R(D, k, -10, 2, 3); R(O, k, -9, 2, 2); }        // övre valv
+    for (let k = -10; k <= 8; k += 4) { R(D, k, -4, 2, 4); R(O, k, -3, 2, 3); }         // nedre valv
+    R(O, -2, -5, 4, 5); R(dark ? '#55556a' : '#f2b632', -1, -4, 2, 4);                 // porten lyser
+    if (dark) return;
+    const w = ((t * 4) | 0) % 2; R(O, -8, -21, 1, 7); R('#d8433b', -7, -21 + w, 4, 2); R('#d8433b', -7, -20, 3 + w, 1);   // vimpel
+  }
   function stars3(x, y, n) { for (let s = 0; s < 3; s++) img(s < n ? C.star : C.starOff, x - 10 + s * 7 + 3, y + 6 - (s === 1 ? 2 : 0)); }
 
   let lastT = now();
@@ -510,7 +523,7 @@
     for (let s = 0; s < upto; s++) for (let j = 0; j < m.segs[s].length; j += 5, q++) {
       const p = m.segs[s][j]; ctx.fillStyle = (q - ((t * 7) | 0)) % 7 === 0 ? '#ffffff' : '#fff3a8'; rect(p.x, p.y, 1, 1);
     }
-    w.side.forEach((sd, j) => drawTent(m.sides[j], !done[sd.after], t, 5 + j));
+    w.side.forEach((sd, j) => (sd.mini && sd.mini.game === 'gym' ? drawArena(m.sides[j], !done[sd.after], t) : drawTent(m.sides[j], !done[sd.after], t, 5 + j)));
     const order = m.pts.map((p, i) => i).sort((a, b) => m.pts[a].y - m.pts[b].y);
     for (const i of order) {
       const p = m.pts[i], nd = w.nodes[i], st = done[i] ? 'done' : i === ci && !walking ? 'cur' : (i === ci && walking) ? 'lock' : 'lock';

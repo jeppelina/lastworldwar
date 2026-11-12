@@ -60,7 +60,9 @@
 //   v10  2026-11-12  Ordgymmet (gym.js, K.gym): träna alla mötta ord utan fiende. Mer guld för nivåerna över Steel
 //                   (K.learn.gold Gold 5 -> 8, Emerald 6 -> 12, Crystal 7 -> 16, Star 7 -> 20, Neutron Star 7 -> 25) och en dagsbonus
 //                   för första passet varje dag. Inte simulerat.
-export const version = 10;
+//   v11  2026-11-12  Försprånget K.knownStart 4 -> 2,5: ett ord barnet kan första gången behöver nu fyra till fem rätta svar
+//                   för Steel (förut räckte två). Gäller bara nya svar: försprånget står sparat per svar i loggen.
+export const version = 11;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -112,7 +114,7 @@ export const K = {
   // föräldern har inte bett om den och ett lås på vanliga banor kan stänga in ett barn. `on` läses bara av simulatorn.
   gate: { boss: { share: 0.5, tier: 2 }, node: { on: false, share: 0.6, tier: 1 } },
   gym: { questions: 15, daily: 5 },   // ordgymmet: frågor per pass, och dagsbonus (fiendeguld på hjältens nivå) för första passet varje dag
-  knownStart: 4,       // rätt svar första gången barnet möter ett ord ger ordet minst så här många poäng (försprång)
+  knownStart: 2.5,       // rätt svar första gången barnet möter ett ord ger ordet minst så här många poäng (försprång)
   firstOptions: 4,     // antal kort vid första mötet (skrivna val för barn som inte läser är alltid två, och ger då inget försprång)
   wordShare: 1,        // andel av varje banas ord som används (introduce och phrases, de första i listan). 1 = alla.
   // Minispel (noderna av typen 'mini' i map/data.js och sidostoppen). Guldet räknas som fiendeguld på nodens rek, så att det
