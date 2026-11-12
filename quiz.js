@@ -1,5 +1,5 @@
 // Övningsmotorn. Väljer nästa ord och övning utifrån hur bra barnet kan ordet (words.js), ritar övningen i
-// frågepanelen och rapporterar rätt eller fel till striden. Innehållet kommer från content/world1.json.
+// frågepanelen och rapporterar rätt eller fel till striden. Innehållet kommer från content/world<N>.json.
 import { record, meet, tasksFor, tierOf, isDue } from './words.js';
 import { pic } from './pics.js';
 
@@ -8,14 +8,14 @@ const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
 export class Quiz {
-  // o: { content, nodeIdx, book (profilens ordbok, ändras på plats), day, play(url), save() }
+  // o: { content, prior (ord från tidigare världar), nodeIdx, book (profilens ordbok, ändras på plats), day, play(url), save() }
   constructor(o) {
     Object.assign(this, o);
     this.node = o.content.nodes[o.nodeIdx] || o.content.nodes[o.content.nodes.length - 1];
-    this.items = o.content.items; this.byId = Object.fromEntries(this.items.map((i) => [i.id, i]));
+    this.items = [...(o.prior || []).map((i) => ({ ...i, node: 0 })), ...o.content.items]; this.byId = Object.fromEntries(this.items.map((i) => [i.id, i]));
     const n = this.node.n, boss = this.node.type === 'boss';
     this.reach = this.items.filter((i) => i.node <= n);                                   // allt barnet kan ha mött hittills
-    this.own = boss ? this.reach : [...(this.node.introduce || []), ...(this.node.phrases || [])].map((id) => this.byId[id]).filter(Boolean);
+    this.own = boss ? this.reach.filter((i) => i.node > 0) : [...(this.node.introduce || []), ...(this.node.phrases || [])].map((id) => this.byId[id]).filter(Boolean);
     this.earlier = this.reach.filter((i) => !this.own.includes(i));
     this.sentences = (this.node.sentences || []).map((id) => o.content.sentences.find((s) => s.id === id)).filter(Boolean);
     if (this.reading === undefined) this.reading = true;

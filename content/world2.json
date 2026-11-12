@@ -1,0 +1,1893 @@
+{
+ "schema": 1,
+ "world": "soloknen",
+ "title": "Sun Desert",
+ "locale": {
+  "target": "en-US",
+  "support": "sv-SE"
+ },
+ "about": "Genereras av prototypes/content/build_world2.py. Ändra där, inte här.",
+ "items": [
+  {
+   "id": "milk",
+   "en": "milk",
+   "sv": "mjölk",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🥛",
+   "say": "Milk.",
+   "audio": "milk",
+   "node": 1,
+   "foils": []
+  },
+  {
+   "id": "juice",
+   "en": "juice",
+   "sv": "juice",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🧃",
+   "say": "Juice.",
+   "audio": "juice",
+   "node": 1,
+   "foils": [
+    "milk"
+   ]
+  },
+  {
+   "id": "bread",
+   "en": "bread",
+   "sv": "bröd",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🍞",
+   "say": "Bread.",
+   "audio": "bread",
+   "node": 1,
+   "foils": []
+  },
+  {
+   "id": "banana",
+   "en": "banana",
+   "sv": "banan",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🍌",
+   "say": "Banana.",
+   "audio": "banana",
+   "node": 1,
+   "foils": []
+  },
+  {
+   "id": "cup",
+   "en": "cup",
+   "sv": "kopp",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "☕",
+   "say": "Cup.",
+   "audio": "cup",
+   "node": 1,
+   "foils": []
+  },
+  {
+   "id": "camel",
+   "en": "camel",
+   "sv": "kamel",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🐪",
+   "say": "Camel.",
+   "audio": "camel",
+   "node": 1,
+   "foils": []
+  },
+  {
+   "id": "cheese",
+   "en": "cheese",
+   "sv": "ost",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🧀",
+   "say": "Cheese.",
+   "audio": "cheese",
+   "node": 2,
+   "foils": []
+  },
+  {
+   "id": "cake",
+   "en": "cake",
+   "sv": "tårta",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🍰",
+   "say": "Cake.",
+   "audio": "cake",
+   "node": 2,
+   "foils": [
+    "bread"
+   ]
+  },
+  {
+   "id": "orange",
+   "en": "orange",
+   "sv": "apelsin",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🍊",
+   "say": "Orange.",
+   "audio": "orange",
+   "node": 2,
+   "foils": [
+    "banana"
+   ]
+  },
+  {
+   "id": "carrot",
+   "en": "carrot",
+   "sv": "morot",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🥕",
+   "say": "Carrot.",
+   "audio": "carrot",
+   "node": 2,
+   "foils": []
+  },
+  {
+   "id": "hot",
+   "en": "hot",
+   "sv": "varm",
+   "pos": "adj",
+   "cat": "describe",
+   "pic": "🥵",
+   "say": "Hot.",
+   "audio": "hot",
+   "node": 2,
+   "foils": [],
+   "accept": [
+    "hut"
+   ]
+  },
+  {
+   "id": "cold",
+   "en": "cold",
+   "sv": "kall",
+   "pos": "adj",
+   "cat": "describe",
+   "pic": "🥶",
+   "say": "Cold.",
+   "audio": "cold",
+   "node": 2,
+   "foils": [
+    "hot"
+   ]
+  },
+  {
+   "id": "hat",
+   "en": "hat",
+   "sv": "hatt",
+   "pos": "noun",
+   "cat": "clothes",
+   "pic": "🎩",
+   "say": "Hat.",
+   "audio": "hat",
+   "node": 3,
+   "foils": []
+  },
+  {
+   "id": "shoe",
+   "en": "shoe",
+   "sv": "sko",
+   "pos": "noun",
+   "cat": "clothes",
+   "pic": "👟",
+   "say": "Shoe.",
+   "audio": "shoe",
+   "node": 3,
+   "foils": []
+  },
+  {
+   "id": "bag",
+   "en": "bag",
+   "sv": "väska",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🎒",
+   "say": "Bag.",
+   "audio": "bag",
+   "node": 3,
+   "foils": []
+  },
+  {
+   "id": "shirt",
+   "en": "shirt",
+   "sv": "tröja",
+   "pos": "noun",
+   "cat": "clothes",
+   "pic": "👕",
+   "say": "Shirt.",
+   "audio": "shirt",
+   "node": 3,
+   "foils": [
+    "hat"
+   ]
+  },
+  {
+   "id": "sock",
+   "en": "sock",
+   "sv": "strumpa",
+   "pos": "noun",
+   "cat": "clothes",
+   "pic": "🧦",
+   "say": "Sock.",
+   "audio": "sock",
+   "node": 3,
+   "foils": [
+    "shoe"
+   ],
+   "accept": [
+    "sok"
+   ]
+  },
+  {
+   "id": "new",
+   "en": "new",
+   "sv": "ny",
+   "pos": "adj",
+   "cat": "describe",
+   "pic": null,
+   "say": "New.",
+   "audio": "new",
+   "node": 3,
+   "foils": [],
+   "accept": [
+    "knew",
+    "nu"
+   ]
+  },
+  {
+   "id": "old",
+   "en": "old",
+   "sv": "gammal",
+   "pos": "adj",
+   "cat": "describe",
+   "pic": null,
+   "say": "Old.",
+   "audio": "old",
+   "node": 3,
+   "foils": [
+    "new"
+   ]
+  },
+  {
+   "id": "tomato",
+   "en": "tomato",
+   "sv": "tomat",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🍅",
+   "say": "Tomato.",
+   "audio": "tomato",
+   "node": 5,
+   "foils": [
+    "orange"
+   ]
+  },
+  {
+   "id": "cookie",
+   "en": "cookie",
+   "sv": "kaka",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🍪",
+   "say": "Cookie.",
+   "audio": "cookie",
+   "node": 5,
+   "foils": [
+    "cake"
+   ]
+  },
+  {
+   "id": "ice_cream",
+   "en": "ice cream",
+   "sv": "glass",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🍦",
+   "say": "Ice cream.",
+   "audio": "ice_cream",
+   "node": 5,
+   "foils": []
+  },
+  {
+   "id": "pizza",
+   "en": "pizza",
+   "sv": "pizza",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🍕",
+   "say": "Pizza.",
+   "audio": "pizza",
+   "node": 5,
+   "foils": []
+  },
+  {
+   "id": "coin",
+   "en": "coin",
+   "sv": "mynt",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🪙",
+   "say": "Coin.",
+   "audio": "coin",
+   "node": 5,
+   "foils": [],
+   "accept": [
+    "koin"
+   ]
+  },
+  {
+   "id": "like",
+   "en": "like",
+   "sv": "gilla",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Like.",
+   "audio": "like",
+   "node": 5,
+   "foils": []
+  },
+  {
+   "id": "want",
+   "en": "want",
+   "sv": "vilja ha",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Want.",
+   "audio": "want",
+   "node": 5,
+   "foils": [
+    "like"
+   ]
+  },
+  {
+   "id": "six",
+   "en": "six",
+   "sv": "sex",
+   "pos": "number",
+   "cat": "number",
+   "pic": null,
+   "say": "Six.",
+   "audio": "six",
+   "node": 5,
+   "foils": []
+  },
+  {
+   "id": "seven",
+   "en": "seven",
+   "sv": "sju",
+   "pos": "number",
+   "cat": "number",
+   "pic": null,
+   "say": "Seven.",
+   "audio": "seven",
+   "node": 5,
+   "foils": [
+    "six"
+   ]
+  },
+  {
+   "id": "bed",
+   "en": "bed",
+   "sv": "säng",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🛏️",
+   "say": "Bed.",
+   "audio": "bed",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "chair",
+   "en": "chair",
+   "sv": "stol",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🪑",
+   "say": "Chair.",
+   "audio": "chair",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "table",
+   "en": "table",
+   "sv": "bord",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": null,
+   "say": "Table.",
+   "audio": "table",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "tent",
+   "en": "tent",
+   "sv": "tält",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "⛺",
+   "say": "Tent.",
+   "audio": "tent",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "clock",
+   "en": "clock",
+   "sv": "klocka",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "⏰",
+   "say": "Clock.",
+   "audio": "clock",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "my",
+   "en": "my",
+   "sv": "min",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "My.",
+   "audio": "my",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "your",
+   "en": "your",
+   "sv": "din",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "Your.",
+   "audio": "your",
+   "node": 6,
+   "foils": [
+    "my"
+   ]
+  },
+  {
+   "id": "in",
+   "en": "in",
+   "sv": "i",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "In.",
+   "audio": "in",
+   "node": 6,
+   "foils": [],
+   "accept": [
+    "inn"
+   ]
+  },
+  {
+   "id": "plate",
+   "en": "plate",
+   "sv": "tallrik",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🍽️",
+   "say": "Plate.",
+   "audio": "plate",
+   "node": 8,
+   "foils": [
+    "cup"
+   ]
+  },
+  {
+   "id": "spoon",
+   "en": "spoon",
+   "sv": "sked",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🥄",
+   "say": "Spoon.",
+   "audio": "spoon",
+   "node": 8,
+   "foils": []
+  },
+  {
+   "id": "knife",
+   "en": "knife",
+   "sv": "kniv",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🔪",
+   "say": "Knife.",
+   "audio": "knife",
+   "node": 8,
+   "foils": [
+    "spoon"
+   ]
+  },
+  {
+   "id": "cactus",
+   "en": "cactus",
+   "sv": "kaktus",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "🌵",
+   "say": "Cactus.",
+   "audio": "cactus",
+   "node": 8,
+   "foils": []
+  },
+  {
+   "id": "money",
+   "en": "money",
+   "sv": "pengar",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "💰",
+   "say": "Money.",
+   "audio": "money",
+   "node": 8,
+   "foils": [
+    "coin"
+   ]
+  },
+  {
+   "id": "hungry",
+   "en": "hungry",
+   "sv": "hungrig",
+   "pos": "adj",
+   "cat": "describe",
+   "pic": null,
+   "say": "Hungry.",
+   "audio": "hungry",
+   "node": 8,
+   "foils": []
+  },
+  {
+   "id": "thirsty",
+   "en": "thirsty",
+   "sv": "törstig",
+   "pos": "adj",
+   "cat": "describe",
+   "pic": null,
+   "say": "Thirsty.",
+   "audio": "thirsty",
+   "node": 8,
+   "foils": [
+    "hungry"
+   ]
+  },
+  {
+   "id": "have",
+   "en": "have",
+   "sv": "ha",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Have.",
+   "audio": "have",
+   "node": 8,
+   "foils": [
+    "want"
+   ]
+  },
+  {
+   "id": "drink",
+   "en": "drink",
+   "sv": "dricka",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Drink.",
+   "audio": "drink",
+   "node": 8,
+   "foils": []
+  },
+  {
+   "id": "door",
+   "en": "door",
+   "sv": "dörr",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🚪",
+   "say": "Door.",
+   "audio": "door",
+   "node": 9,
+   "foils": []
+  },
+  {
+   "id": "window",
+   "en": "window",
+   "sv": "fönster",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🪟",
+   "say": "Window.",
+   "audio": "window",
+   "node": 9,
+   "foils": [
+    "door"
+   ]
+  },
+  {
+   "id": "box",
+   "en": "box",
+   "sv": "låda",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "📦",
+   "say": "Box.",
+   "audio": "box",
+   "node": 9,
+   "foils": [
+    "bag"
+   ]
+  },
+  {
+   "id": "book",
+   "en": "book",
+   "sv": "bok",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "📖",
+   "say": "Book.",
+   "audio": "book",
+   "node": 9,
+   "foils": []
+  },
+  {
+   "id": "ball",
+   "en": "ball",
+   "sv": "boll",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "⚽",
+   "say": "Ball.",
+   "audio": "ball",
+   "node": 9,
+   "foils": []
+  },
+  {
+   "id": "on",
+   "en": "on",
+   "sv": "på",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "On.",
+   "audio": "on",
+   "node": 9,
+   "foils": [
+    "in"
+   ]
+  },
+  {
+   "id": "under",
+   "en": "under",
+   "sv": "under",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "Under.",
+   "audio": "under",
+   "node": 9,
+   "foils": [
+    "on",
+    "in"
+   ]
+  },
+  {
+   "id": "open",
+   "en": "open",
+   "sv": "öppna",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Open.",
+   "audio": "open",
+   "node": 9,
+   "foils": []
+  },
+  {
+   "id": "boat",
+   "en": "boat",
+   "sv": "båt",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "⛵",
+   "say": "Boat.",
+   "audio": "boat",
+   "node": 10,
+   "foils": []
+  },
+  {
+   "id": "car",
+   "en": "car",
+   "sv": "bil",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🚗",
+   "say": "Car.",
+   "audio": "car",
+   "node": 10,
+   "foils": [
+    "boat"
+   ]
+  },
+  {
+   "id": "lion",
+   "en": "lion",
+   "sv": "lejon",
+   "pos": "noun",
+   "cat": "animal",
+   "pic": "🦁",
+   "say": "Lion.",
+   "audio": "lion",
+   "node": 10,
+   "foils": [
+    "camel"
+   ]
+  },
+  {
+   "id": "eight",
+   "en": "eight",
+   "sv": "åtta",
+   "pos": "number",
+   "cat": "number",
+   "pic": null,
+   "say": "Eight.",
+   "audio": "eight",
+   "node": 10,
+   "foils": [
+    "six"
+   ],
+   "accept": [
+    "ate"
+   ]
+  },
+  {
+   "id": "nine",
+   "en": "nine",
+   "sv": "nio",
+   "pos": "number",
+   "cat": "number",
+   "pic": null,
+   "say": "Nine.",
+   "audio": "nine",
+   "node": 10,
+   "foils": [
+    "seven"
+   ]
+  },
+  {
+   "id": "ten",
+   "en": "ten",
+   "sv": "tio",
+   "pos": "number",
+   "cat": "number",
+   "pic": null,
+   "say": "Ten.",
+   "audio": "ten",
+   "node": 10,
+   "foils": []
+  },
+  {
+   "id": "it",
+   "en": "it",
+   "sv": "det",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "It.",
+   "audio": "it",
+   "node": 10,
+   "foils": [],
+   "accept": [
+    "eat"
+   ]
+  },
+  {
+   "id": "this",
+   "en": "this",
+   "sv": "den här",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "This.",
+   "audio": "this",
+   "node": 10,
+   "foils": [
+    "it"
+   ]
+  },
+  {
+   "id": "ph_please",
+   "en": "Please.",
+   "sv": "Snälla.",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "say": "Please.",
+   "audio": "ph_please",
+   "node": 2
+  },
+  {
+   "id": "ph_here_you_are",
+   "en": "Here you are.",
+   "sv": "Varsågod.",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "say": "Here you are.",
+   "audio": "ph_here_you_are",
+   "node": 3
+  },
+  {
+   "id": "ph_how_much",
+   "en": "How much?",
+   "sv": "Hur mycket?",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "say": "How much?",
+   "audio": "ph_how_much",
+   "node": 5
+  },
+  {
+   "id": "ph_good_morning",
+   "en": "Good morning!",
+   "sv": "God morgon!",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "say": "Good morning!",
+   "audio": "ph_good_morning",
+   "node": 1
+  }
+ ],
+ "sentences": [
+  {
+   "id": "d_cold_milk",
+   "node": 3,
+   "en": "Cold milk.",
+   "sv": "Kall mjölk.",
+   "say": "Cold milk.",
+   "audio": "s/d_cold_milk",
+   "tiles": [
+    "Cold",
+    "milk"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "Cold",
+     "Hot",
+     "New"
+    ]
+   }
+  },
+  {
+   "id": "d_hot_cup",
+   "node": 3,
+   "en": "A hot cup.",
+   "sv": "En varm kopp.",
+   "say": "A hot cup.",
+   "audio": "s/d_hot_cup",
+   "tiles": [
+    "A",
+    "hot",
+    "cup"
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "hot",
+     "cold",
+     "old"
+    ]
+   }
+  },
+  {
+   "id": "d_new_hat",
+   "node": 3,
+   "en": "A new hat.",
+   "sv": "En ny hatt.",
+   "say": "A new hat.",
+   "audio": "s/d_new_hat",
+   "tiles": [
+    "A",
+    "new",
+    "hat"
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "new",
+     "old",
+     "hot"
+    ]
+   }
+  },
+  {
+   "id": "d_new_bag",
+   "node": 3,
+   "en": "A new bag.",
+   "sv": "En ny väska.",
+   "say": "A new bag.",
+   "audio": "s/d_new_bag",
+   "tiles": [
+    "A",
+    "new",
+    "bag"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "bag",
+     "hat",
+     "sock"
+    ]
+   }
+  },
+  {
+   "id": "d_old_socks",
+   "node": 3,
+   "en": "Two old socks.",
+   "sv": "Två gamla strumpor.",
+   "say": "Two old socks.",
+   "audio": "s/d_old_socks",
+   "tiles": [
+    "Two",
+    "old",
+    "socks"
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "old",
+     "new",
+     "cold"
+    ]
+   }
+  },
+  {
+   "id": "d_like_pizza",
+   "node": 5,
+   "en": "I like pizza.",
+   "sv": "Jag gillar pizza.",
+   "say": "I like pizza.",
+   "audio": "s/d_like_pizza",
+   "tiles": [
+    "I",
+    "like",
+    "pizza"
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "like",
+     "jump",
+     "is"
+    ]
+   }
+  },
+  {
+   "id": "d_like_ice_cream",
+   "node": 5,
+   "en": "I like ice cream.",
+   "sv": "Jag gillar glass.",
+   "say": "I like ice cream.",
+   "audio": "s/d_like_ice_cream",
+   "tiles": [
+    "I",
+    "like",
+    "ice cream"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "ice cream",
+     "shoe",
+     "coin"
+    ]
+   }
+  },
+  {
+   "id": "d_want_cookie",
+   "node": 5,
+   "en": "I want a cookie.",
+   "sv": "Jag vill ha en kaka.",
+   "say": "I want a cookie.",
+   "audio": "s/d_want_cookie",
+   "tiles": [
+    "I",
+    "want",
+    "a",
+    "cookie"
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "want",
+     "run",
+     "the"
+    ]
+   }
+  },
+  {
+   "id": "d_six_tomatoes",
+   "node": 5,
+   "en": "Six tomatoes.",
+   "sv": "Sex tomater.",
+   "say": "Six tomatoes.",
+   "audio": "s/d_six_tomatoes",
+   "tiles": [
+    "Six",
+    "tomatoes"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "Six",
+     "Seven",
+     "Five"
+    ]
+   }
+  },
+  {
+   "id": "d_seven_coins",
+   "node": 5,
+   "en": "Seven coins.",
+   "sv": "Sju mynt.",
+   "say": "Seven coins.",
+   "audio": "s/d_seven_coins",
+   "tiles": [
+    "Seven",
+    "coins"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "Seven",
+     "Six",
+     "Four"
+    ]
+   }
+  },
+  {
+   "id": "d_want_cold_juice",
+   "node": 5,
+   "en": "I want cold juice.",
+   "sv": "Jag vill ha kall juice.",
+   "say": "I want cold juice.",
+   "audio": "s/d_want_cold_juice",
+   "tiles": [
+    "I",
+    "want",
+    "cold",
+    "juice"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "cold",
+     "hot",
+     "old"
+    ]
+   }
+  },
+  {
+   "id": "d_my_bed_big",
+   "node": 6,
+   "en": "My bed is big.",
+   "sv": "Min säng är stor.",
+   "say": "My bed is big.",
+   "audio": "s/d_my_bed_big",
+   "tiles": [
+    "My",
+    "bed",
+    "is",
+    "big"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "My",
+     "Your",
+     "In"
+    ]
+   }
+  },
+  {
+   "id": "d_your_chair_small",
+   "node": 6,
+   "en": "Your chair is small.",
+   "sv": "Din stol är liten.",
+   "say": "Your chair is small.",
+   "audio": "s/d_your_chair_small",
+   "tiles": [
+    "Your",
+    "chair",
+    "is",
+    "small"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "Your",
+     "My",
+     "In"
+    ]
+   }
+  },
+  {
+   "id": "d_cat_in_tent",
+   "node": 6,
+   "en": "The cat is in the tent.",
+   "sv": "Katten är i tältet.",
+   "say": "The cat is in the tent.",
+   "audio": "s/d_cat_in_tent",
+   "tiles": [
+    "The",
+    "cat",
+    "is",
+    "in",
+    "the",
+    "tent"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "in",
+     "my",
+     "and"
+    ]
+   }
+  },
+  {
+   "id": "d_my_clock_old",
+   "node": 6,
+   "en": "My clock is old.",
+   "sv": "Min klocka är gammal.",
+   "say": "My clock is old.",
+   "audio": "s/d_my_clock_old",
+   "tiles": [
+    "My",
+    "clock",
+    "is",
+    "old"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "old",
+     "new",
+     "cold"
+    ]
+   }
+  },
+  {
+   "id": "d_dog_in_my_bed",
+   "node": 6,
+   "en": "The dog is in my bed.",
+   "sv": "Hunden är i min säng.",
+   "say": "The dog is in my bed.",
+   "audio": "s/d_dog_in_my_bed",
+   "tiles": [
+    "The",
+    "dog",
+    "is",
+    "in",
+    "my",
+    "bed"
+   ],
+   "gap": {
+    "index": 4,
+    "options": [
+     "my",
+     "your",
+     "the"
+    ]
+   }
+  },
+  {
+   "id": "d_like_your_table",
+   "node": 6,
+   "en": "I like your table.",
+   "sv": "Jag gillar ditt bord.",
+   "say": "I like your table.",
+   "audio": "s/d_like_your_table",
+   "tiles": [
+    "I",
+    "like",
+    "your",
+    "table"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "table",
+     "tent",
+     "chair"
+    ]
+   }
+  },
+  {
+   "id": "d_have_spoon",
+   "node": 8,
+   "en": "I have a spoon.",
+   "sv": "Jag har en sked.",
+   "say": "I have a spoon.",
+   "audio": "s/d_have_spoon",
+   "tiles": [
+    "I",
+    "have",
+    "a",
+    "spoon"
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "have",
+     "is",
+     "in"
+    ]
+   }
+  },
+  {
+   "id": "d_camel_thirsty",
+   "node": 8,
+   "en": "The camel is thirsty.",
+   "sv": "Kamelen är törstig.",
+   "say": "The camel is thirsty.",
+   "audio": "s/d_camel_thirsty",
+   "tiles": [
+    "The",
+    "camel",
+    "is",
+    "thirsty"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "thirsty",
+     "hungry",
+     "new"
+    ]
+   }
+  },
+  {
+   "id": "d_bear_hungry",
+   "node": 8,
+   "en": "The bear is hungry.",
+   "sv": "Björnen är hungrig.",
+   "say": "The bear is hungry.",
+   "audio": "s/d_bear_hungry",
+   "tiles": [
+    "The",
+    "bear",
+    "is",
+    "hungry"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "hungry",
+     "thirsty",
+     "old"
+    ]
+   }
+  },
+  {
+   "id": "d_drink_milk",
+   "node": 8,
+   "en": "I can drink milk.",
+   "sv": "Jag kan dricka mjölk.",
+   "say": "I can drink milk.",
+   "audio": "s/d_drink_milk",
+   "tiles": [
+    "I",
+    "can",
+    "drink",
+    "milk"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "drink",
+     "eat",
+     "see"
+    ]
+   }
+  },
+  {
+   "id": "d_have_two_plates",
+   "node": 8,
+   "en": "I have two plates.",
+   "sv": "Jag har två tallrikar.",
+   "say": "I have two plates.",
+   "audio": "s/d_have_two_plates",
+   "tiles": [
+    "I",
+    "have",
+    "two",
+    "plates"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "plates",
+     "knives",
+     "cups"
+    ]
+   }
+  },
+  {
+   "id": "d_want_money",
+   "node": 8,
+   "en": "I want my money.",
+   "sv": "Jag vill ha mina pengar.",
+   "say": "I want my money.",
+   "audio": "s/d_want_money",
+   "tiles": [
+    "I",
+    "want",
+    "my",
+    "money"
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "want",
+     "drink",
+     "in"
+    ]
+   }
+  },
+  {
+   "id": "d_ball_on_box",
+   "node": 9,
+   "en": "The ball is on the box.",
+   "sv": "Bollen är på lådan.",
+   "say": "The ball is on the box.",
+   "audio": "s/d_ball_on_box",
+   "tiles": [
+    "The",
+    "ball",
+    "is",
+    "on",
+    "the",
+    "box"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "on",
+     "under",
+     "in"
+    ]
+   }
+  },
+  {
+   "id": "d_key_under_book",
+   "node": 9,
+   "en": "The key is under the book.",
+   "sv": "Nyckeln är under boken.",
+   "say": "The key is under the book.",
+   "audio": "s/d_key_under_book",
+   "tiles": [
+    "The",
+    "key",
+    "is",
+    "under",
+    "the",
+    "book"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "under",
+     "on",
+     "in"
+    ]
+   }
+  },
+  {
+   "id": "d_open_door",
+   "node": 9,
+   "en": "I can open the door.",
+   "sv": "Jag kan öppna dörren.",
+   "say": "I can open the door.",
+   "audio": "s/d_open_door",
+   "tiles": [
+    "I",
+    "can",
+    "open",
+    "the",
+    "door"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "open",
+     "drink",
+     "eat"
+    ]
+   }
+  },
+  {
+   "id": "d_book_in_bag",
+   "node": 9,
+   "en": "The book is in the bag.",
+   "sv": "Boken är i väskan.",
+   "say": "The book is in the bag.",
+   "audio": "s/d_book_in_bag",
+   "tiles": [
+    "The",
+    "book",
+    "is",
+    "in",
+    "the",
+    "bag"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "in",
+     "on",
+     "under"
+    ]
+   }
+  },
+  {
+   "id": "d_mouse_under_table",
+   "node": 9,
+   "en": "The mouse is under the table.",
+   "sv": "Musen är under bordet.",
+   "say": "The mouse is under the table.",
+   "audio": "s/d_mouse_under_table",
+   "tiles": [
+    "The",
+    "mouse",
+    "is",
+    "under",
+    "the",
+    "table"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "under",
+     "on",
+     "in"
+    ]
+   }
+  },
+  {
+   "id": "d_this_my_car",
+   "node": 10,
+   "en": "This is my car.",
+   "sv": "Den här är min bil.",
+   "say": "This is my car.",
+   "audio": "s/d_this_my_car",
+   "tiles": [
+    "This",
+    "is",
+    "my",
+    "car"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "This",
+     "It",
+     "In"
+    ]
+   }
+  },
+  {
+   "id": "d_it_big_boat",
+   "node": 10,
+   "en": "It is a big boat.",
+   "sv": "Det är en stor båt.",
+   "say": "It is a big boat.",
+   "audio": "s/d_it_big_boat",
+   "tiles": [
+    "It",
+    "is",
+    "a",
+    "big",
+    "boat"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "It",
+     "This",
+     "On"
+    ]
+   }
+  },
+  {
+   "id": "d_eight_coins",
+   "node": 10,
+   "en": "I have eight coins.",
+   "sv": "Jag har åtta mynt.",
+   "say": "I have eight coins.",
+   "audio": "s/d_eight_coins",
+   "tiles": [
+    "I",
+    "have",
+    "eight",
+    "coins"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "eight",
+     "nine",
+     "ten"
+    ]
+   }
+  },
+  {
+   "id": "d_lion_on_car",
+   "node": 10,
+   "en": "The lion is on the car.",
+   "sv": "Lejonet är på bilen.",
+   "say": "The lion is on the car.",
+   "audio": "s/d_lion_on_car",
+   "tiles": [
+    "The",
+    "lion",
+    "is",
+    "on",
+    "the",
+    "car"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "on",
+     "under",
+     "in"
+    ]
+   }
+  },
+  {
+   "id": "d_see_ten_boats",
+   "node": 10,
+   "en": "I can see ten boats.",
+   "sv": "Jag kan se tio båtar.",
+   "say": "I can see ten boats.",
+   "audio": "s/d_see_ten_boats",
+   "tiles": [
+    "I",
+    "can",
+    "see",
+    "ten",
+    "boats"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "ten",
+     "nine",
+     "eight"
+    ]
+   }
+  },
+  {
+   "id": "d_this_your_hat",
+   "node": 10,
+   "en": "This is your hat.",
+   "sv": "Den här är din hatt.",
+   "say": "This is your hat.",
+   "audio": "s/d_this_your_hat",
+   "tiles": [
+    "This",
+    "is",
+    "your",
+    "hat"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "your",
+     "my",
+     "the"
+    ]
+   }
+  },
+  {
+   "id": "d_it_is_hot",
+   "node": 10,
+   "en": "It is hot.",
+   "sv": "Det är varmt.",
+   "say": "It is hot.",
+   "audio": "s/d_it_is_hot",
+   "tiles": [
+    "It",
+    "is",
+    "hot"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "hot",
+     "cold",
+     "old"
+    ]
+   }
+  },
+  {
+   "id": "d_want_nine_cookies",
+   "node": 10,
+   "en": "I want nine cookies.",
+   "sv": "Jag vill ha nio kakor.",
+   "say": "I want nine cookies.",
+   "audio": "s/d_want_nine_cookies",
+   "tiles": [
+    "I",
+    "want",
+    "nine",
+    "cookies"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "nine",
+     "ten",
+     "six"
+    ]
+   }
+  },
+  {
+   "id": "d_lion_hungry",
+   "node": 10,
+   "en": "The lion is hungry.",
+   "sv": "Lejonet är hungrigt.",
+   "say": "The lion is hungry.",
+   "audio": "s/d_lion_hungry",
+   "tiles": [
+    "The",
+    "lion",
+    "is",
+    "hungry"
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "lion",
+     "camel",
+     "boat"
+    ]
+   }
+  }
+ ],
+ "nodes": [
+  {
+   "n": 1,
+   "type": "level",
+   "name": "The Oasis",
+   "introduce": [
+    "milk",
+    "juice",
+    "bread",
+    "banana",
+    "cup",
+    "camel"
+   ],
+   "phrases": [
+    "ph_good_morning"
+   ],
+   "sentences": []
+  },
+  {
+   "n": 2,
+   "type": "level",
+   "name": "The Caravan",
+   "introduce": [
+    "cheese",
+    "cake",
+    "orange",
+    "carrot",
+    "hot",
+    "cold"
+   ],
+   "phrases": [
+    "ph_please"
+   ],
+   "sentences": []
+  },
+  {
+   "n": 3,
+   "type": "level",
+   "name": "The Sand Dune",
+   "introduce": [
+    "hat",
+    "shoe",
+    "bag",
+    "shirt",
+    "sock",
+    "new",
+    "old"
+   ],
+   "phrases": [
+    "ph_here_you_are"
+   ],
+   "sentences": [
+    "d_cold_milk",
+    "d_hot_cup",
+    "d_new_hat",
+    "d_new_bag",
+    "d_old_socks"
+   ]
+  },
+  {
+   "n": 4,
+   "type": "chest",
+   "name": "Buried Chest",
+   "introduce": [],
+   "phrases": [],
+   "sentences": []
+  },
+  {
+   "n": 5,
+   "type": "level",
+   "name": "The Market",
+   "introduce": [
+    "tomato",
+    "cookie",
+    "ice_cream",
+    "pizza",
+    "coin",
+    "like",
+    "want",
+    "six",
+    "seven"
+   ],
+   "phrases": [
+    "ph_how_much"
+   ],
+   "sentences": [
+    "d_like_pizza",
+    "d_like_ice_cream",
+    "d_want_cookie",
+    "d_six_tomatoes",
+    "d_seven_coins",
+    "d_want_cold_juice"
+   ]
+  },
+  {
+   "n": 6,
+   "type": "level",
+   "name": "The Tent Camp",
+   "introduce": [
+    "bed",
+    "chair",
+    "table",
+    "tent",
+    "clock",
+    "my",
+    "your",
+    "in"
+   ],
+   "phrases": [],
+   "sentences": [
+    "d_my_bed_big",
+    "d_your_chair_small",
+    "d_cat_in_tent",
+    "d_my_clock_old",
+    "d_dog_in_my_bed",
+    "d_like_your_table"
+   ]
+  },
+  {
+   "n": 7,
+   "type": "shop",
+   "name": "Camel Shop",
+   "introduce": [],
+   "phrases": [],
+   "sentences": []
+  },
+  {
+   "n": 8,
+   "type": "level",
+   "name": "The Cactus Field",
+   "introduce": [
+    "plate",
+    "spoon",
+    "knife",
+    "cactus",
+    "money",
+    "hungry",
+    "thirsty",
+    "have",
+    "drink"
+   ],
+   "phrases": [],
+   "sentences": [
+    "d_have_spoon",
+    "d_camel_thirsty",
+    "d_bear_hungry",
+    "d_drink_milk",
+    "d_have_two_plates",
+    "d_want_money"
+   ]
+  },
+  {
+   "n": 9,
+   "type": "level",
+   "name": "The Ruin",
+   "introduce": [
+    "door",
+    "window",
+    "box",
+    "book",
+    "ball",
+    "on",
+    "under",
+    "open"
+   ],
+   "phrases": [],
+   "sentences": [
+    "d_ball_on_box",
+    "d_key_under_book",
+    "d_open_door",
+    "d_book_in_bag",
+    "d_mouse_under_table"
+   ]
+  },
+  {
+   "n": 10,
+   "type": "level",
+   "name": "The Sun Gate",
+   "introduce": [
+    "boat",
+    "car",
+    "lion",
+    "eight",
+    "nine",
+    "ten",
+    "it",
+    "this"
+   ],
+   "phrases": [],
+   "sentences": [
+    "d_this_my_car",
+    "d_it_big_boat",
+    "d_eight_coins",
+    "d_lion_on_car",
+    "d_see_ten_boats",
+    "d_this_your_hat",
+    "d_it_is_hot",
+    "d_want_nine_cookies",
+    "d_lion_hungry"
+   ]
+  },
+  {
+   "n": 11,
+   "type": "boss",
+   "name": "The Riddle Sphinx",
+   "introduce": [],
+   "phrases": [],
+   "sentences": []
+  }
+ ]
+}
