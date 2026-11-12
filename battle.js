@@ -6,6 +6,8 @@ import { drawHero, drawPet } from './hero.js';
 import { BY_ID, heroStats } from './catalog.js';
 import * as R from './rules.js';
 import { pic } from './pics.js';
+import { looks } from './skills.js';
+import * as SFX from './skillfx.js';
 
 const BIOMES = ['forest', 'desert', 'swamp', 'ice', 'volcano', 'cloud'];
 const SHADOW = ramp('#1d1b2e'), WHITE = ramp('#ffffff'), DUST = ramp('#cdbb9a'), SPARK = ramp('#ffd84a'), RED = ramp('#e2473d');
@@ -35,7 +37,7 @@ export const buildRun = (worldIdx, nodeIdx, node) => R.buildRun(worldIdx, nodeId
 // ---------- Attacker: en per vapentyp. pose(p, D) ger hjältens läge, events avfyras när p passerar "at".
 // hit = vilken av vapnets träffar i WEAPON_RULES (rules.js) som landar. Skadan och hur många som träffas står där. ----------
 const swingArc = (rest, p, up, down, a = 0.3, b = 0.5) => (p < a ? lerp(rest, up, ease(seg(p, 0, a))) : p < b ? lerp(up, down, seg(p, a, b)) : p < 0.75 ? down : lerp(down, rest, seg(p, 0.75, 1)));
-const ATTACKS = {
+export const ATTACKS = {      // exporteras för provscenen på fliken Powers (skill-stage.js)
   none: { dur: 0.6, ev: [{ at: 0.5, hit: 0 }], pose: (p, D) => ({ dx: dash(p, D), hand: [p > 0.42 && p < 0.6 ? 7 : 0, -2] }) },
   dagger: { dur: 0.8, ev: [{ at: 0.4, hit: 0 }, { at: 0.56, hit: 1 }], pose: (p, D) => ({ dx: dash(p, D, 0.3, 0.68), wAng: 1.5, hand: [(p > 0.36 && p < 0.45) || (p > 0.52 && p < 0.61) ? 8 : 0, -3] }) },
   club: { dur: 0.8, ev: [{ at: 0.5, hit: 0, fx: 'dust' }], pose: (p, D) => ({ dx: dash(p, D), wAng: swingArc(0.55, p, -1.1, 2.0) }) },
@@ -62,6 +64,9 @@ export class Battle {
     this.hero = Object.assign(this.run.hero, { flashUntil: 0, hurtAt: -9 });
     this.fx = []; this.anim = null; this.phase = 'intro'; this.shake = 0;
     this.q = R.newQuiz(); this.target = null; this.over = false; this.bf = null;
+    // Skillträdet: det hjälten bär (bara utseende, se skills.js och skillfx.js). lk = null när inget bärs, då ritas allt som förut.
+    const lk = o.profile.skills && o.profile.skills.worn ? looks(o.profile.skills) : null;
+    this.lk = lk && lk.any ? lk : null; this.sk = SFX.newFxState(); this.cheered = false;
     el.innerHTML = `<div class="scene"><canvas class="bg"></canvas><canvas class="fg"></canvas><div class="floaters"></div>
       <div class="hud"><div class="hp me"><b>♥</b><div class="bar"><i></i></div><span></span></div>
       <div class="mid"><span class="wave"></span><span class="streak"><i></i><i></i><i></i></span></div>
@@ -171,6 +176,15 @@ export class Battle {
     const type = this.gear.weapon ? this.gear.weapon.type : 'none', A = ATTACKS[type];
     this.anim = { who: 'hero', type, A, t0: this.now(), dur: A.dur * (sup ? 1.15 : 1), sup, fired: new Set(), D: Math.max(0, this.enemy.front - this.heroX - 24) };
     if (sup) this.banner('SUPER!', true);
+    // Superattackens utseende följer det burna steget på nivå 5. until = sekunder till första träffen, så att effekten landar med skadan.
+    if (sup && this.lk) { const [tx, ty] = this.target3(), hit = A.ev.find((e) => e.hit !== undefined) || A.ev[0]; this.fx.push(...SFX.superFx(this.lk, { now: this.anim.t0, x: tx, y: ty, gy: this.groundY, hx: this.heroX, hy: this.groundY - 26, until: hit.at * this.anim.dur })); }
+  }
+  // Segerposen efter sista fienden: följer superattacken på nivå 5 (en rörelse och gnistor, inget i reglerna). Utan ett buret steg där händer inget.
+  cheer() {
+    if (this.cheered || !this.lk || !this.lk.pose || this.anim) return;
+    this.cheered = true; const now = this.now();
+    this.anim = { who: 'cheer', t0: now, dur: 0.9, fired: new Set() };
+    this.fx.push(...SFX.cheerFx(this.lk, { now, x: this.heroX, y: this.groundY - 26, gy: this.groundY, hx: this.heroX, hy: this.groundY - 26 }));
   }
   target3() { const f = this.enemy.f.def, a = this.alive()[0] || this.enemy.members[0]; return [a.x, this.groundY - f.h * 0.5]; }
   fire(ev) {
@@ -189,6 +203,7 @@ export class Battle {
       if (m.hp <= 0 && !m.deadAt) { m.deadAt = this.now(); this.burst(m.x, this.groundY - this.enemy.f.def.h * 0.4, 12, DUST, 40); }
     }
     this.shake = Math.max(this.shake, (a.A.shake || 2) * (a.sup ? 1.5 : 1));
+    if (this.lk) this.fx.push(...SFX.impactFx(this.lk, { now: this.now(), x: tx, y: ty, gy: this.groundY, hx: this.heroX, hy: this.groundY - 26 }));   // träffen från det burna steget på nivå 3
     if (ev.fx === 'slash' || ev.fx === 'bigslash') this.fx.push({ kind: 'slash', t0: this.now(), dur: 0.16, x: tx - 4, y: ty, r: (ev.fx === 'bigslash' ? 22 : 12) * (a.sup ? 1.4 : 1), mat });
     if (ev.fx === 'shock' || ev.fx === 'dust') this.fx.push({ kind: 'shock', t0: this.now(), dur: 0.4, x: this.heroX + a.D + 18, y: this.groundY, r: ev.fx === 'shock' ? 60 : 16 });
     if (ev.fx === 'boom' || ev.fx === 'bigboom') this.burst(tx, ty, ev.fx === 'bigboom' ? 40 : 18, mat, ev.fx === 'bigboom' ? 130 : 80);
@@ -204,6 +219,7 @@ export class Battle {
       const f = this.enemy.f;
       const gold = Math.round(f.gold * (this.rewardMult ?? 1));      // samma avtrappning som resultatskärmen räknar med (reward i rules.js)
       if (gold > 0) this.float(`+${gold} gold`, this.enemy.members[0].x, this.groundY - f.def.h - 14, 'gold');
+      if (next === 'won') this.cheer();
       setTimeout(() => { if (this.over) return; if (next === 'next') this.nextFight(); else this.finish(true); }, 900);
       return;
     }
@@ -231,19 +247,27 @@ export class Battle {
     const sh = this.shake > 0.3 ? Math.round((Math.random() - 0.5) * this.shake) : 0; this.shake *= 0.8;
     if (BD && BD.drawAmbient) { try { BD.drawAmbient(g, BIOMES[this.worldIdx] || 'forest', W, H, groundY, now); } catch (e) {} }
     // hjältens läge
+    const lk = this.lk;
+    if (lk && this.bf && this.bf.defeated && !this.cheered && !this.anim) this.cheer();      // en hjälpt boss: segerposen medan bossen säger sin sista replik
     let hp = {}, a = this.anim, p = a ? (now - a.t0) / a.dur : 0;
     if (a && a.who === 'hero') hp = a.A.pose(Math.min(1, p), a.D) || {};
+    else if (a && a.who === 'cheer') hp = SFX.victoryPose(lk, Math.min(1, p)) || {};
     const hurt = Math.max(0, 1 - (now - this.hero.hurtAt) / 0.25), dx = (hp.dx || 0) - hurt * 5, dy = hp.dy || 0;
     const hx = this.heroX + dx + sh;
     g.begin(); g.ell(hx, groundY + 1.5, 12 + dy / 6, 2.4, SHADOW, false, null, 1); g.end({ outline: false, edge: false });
     const deadFor = this.hero.deadAt ? now - this.hero.deadAt : -1;
     if (deadFor < 0 || Math.floor(deadFor * 12) % 2 === 0) {
       if (this.gear.pet) drawPet(g, this.gear.pet, hx - 28, groundY - 30 + Math.round(Math.sin(now * 2) * 2), now);
-      g.push(Math.round(hx - 38.5), Math.round(groundY - 61 + dy)); g.flash = now < this.hero.flashUntil;
-      const gear = hp.noW ? Object.assign({}, this.gear, { weapon: null }) : this.gear;
-      drawHero(g, this.profile.look, gear, { t: now, wAng: hp.wAng, hand: hp.hand, noShadow: true, noPet: true });
-      g.flash = false; this.tip = g.anchor.tip || g.anchor.hand; this.hand = g.anchor.hand; this.over3 = [this.hand[0] - 4, this.hand[1] - 34]; g.pop();
+      if (!(lk && SFX.heroHidden(lk, a && a.who === 'hero' && a.sup, Math.min(1, p)))) {      // under Shadow Strike är hjälten borta en stund
+        g.push(Math.round(hx - 38.5), Math.round(groundY - 61 + dy)); g.flash = now < this.hero.flashUntil;
+        const gear = hp.noW ? Object.assign({}, this.gear, { weapon: null }) : this.gear, args = { t: now, wAng: hp.wAng, hand: hp.hand, noShadow: true, noPet: true };
+        // off = hur långt hjälten är från sin plats (så att sällskapet står kvar), busy = småvanorna vilar under attacker
+        if (lk) SFX.drawHeroWithSkills(g, this.profile.look, gear, { ...args, off: [Math.round(dx), Math.round(dy)], busy: !!a }, lk, this.sk); else drawHero(g, this.profile.look, gear, args);
+        g.flash = false; this.tip = g.anchor.tip || g.anchor.hand; this.hand = g.anchor.hand; this.over3 = [this.hand[0] - 4, this.hand[1] - 34]; g.pop();
+        if (lk && lk.trail && a && a.who === 'hero' && !this.fx.some((e) => e.kind === 'proj')) SFX.trailPush(this.sk, this.tip, this.hand, now);   // medan ett skott flyger hör spåret till skottet
+      }
     }
+    if (lk) SFX.drawTrail(g, this.sk, lk, now);
     // storsvärdet river upp gnistor när det släpas
     if (a && a.who === 'hero' && a.A.drag && p > 0.12 && p < 0.45 && this.tip) this.fx.push({ kind: 'p', t0: now, dur: 0.25, x: this.tip[0], y: groundY, vx: -30 - Math.random() * 30, vy: -20 - Math.random() * 30, rp: SPARK, lv: 5 });
     // fienderna
@@ -268,7 +292,8 @@ export class Battle {
         if (c && p >= c.from && p < c.to) { const at = c.at === 'tip' ? this.tip : this.over3, r = lerp(c.r0, c.r1, seg(p, c.from, c.to)) * (a.sup ? 1.3 : 1); g.begin(); g.ell(at[0], at[1], r, r, mat); g.end(); if (Math.random() < 0.6) this.fx.push({ kind: 'p', t0: now, dur: 0.3, x: at[0] + (Math.random() - 0.5) * r * 4, y: at[1] + (Math.random() - 0.5) * r * 4, vx: 0, vy: -10, rp: mat, lv: 5 }); }
         a.A.ev.forEach((ev, i) => { if (p >= ev.at && !a.fired.has(i)) { a.fired.add(i); this.fire(ev); } });
         if (p >= 1) { this.anim = null; this.afterHero(); }
-      } else {
+      } else if (a.who === 'cheer') { if (p >= 1) this.anim = null; }
+      else {
         if (p >= 0.5 && !a.fired.has(0)) { a.fired.add(0); this.enemyHit(); }
         if (p >= 1) { this.anim = null; this.afterEnemy(); }
       }
@@ -276,6 +301,7 @@ export class Battle {
     // effekter
     g.begin(); let any = false;
     this.fx = this.fx.filter((e) => {
+      if (e.kind === 'sk') return true;                          // skillträdets effekter ritas för sig längre ner
       const q = (now - e.t0) / e.dur; if (q >= 1) return false; any = true;
       if (e.kind === 'p') { const tt = now - e.t0; g.set(Math.round(e.x + e.vx * tt), Math.round(e.y + e.vy * tt + 60 * tt * tt), e.rp, q < 0.5 ? e.lv : 3); }
       if (e.kind === 'shock') for (let s = -1; s <= 1; s += 2) for (let j = 0; j < 5; j++) g.set(Math.round(e.x + s * (q * e.r + j * 2)), Math.round(e.y - j * (1 - q) * 2 - 1), DUST, 4 - (j % 2));
@@ -290,7 +316,9 @@ export class Battle {
       else g.ell(x, y, e.r, e.r, e.mat);
       g.end();
       if (Math.random() < 0.8) this.fx.push({ kind: 'p', t0: now, dur: 0.25, x: x - 3, y: y + (Math.random() - 0.5) * e.r, vx: -20, vy: 0, rp: e.mat, lv: 5 });
+      if (lk && lk.trail) SFX.trailPush(this.sk, [x, y], [x - 1, y], now);
     }
+    if (lk || this.fx.some((e) => e.kind === 'sk')) this.fx = this.fx.filter((e) => e.kind !== 'sk' || SFX.drawFx(g, e, now, this.sk));
     g.paint(this.ctx);
   }
 }

@@ -29,11 +29,11 @@
 <section id="map" class="screen">
   <iframe id="map-frame" title="Karta"></iframe>
   <div id="map-bar">
-    <button id="b-gear"><canvas id="b-gear-c" width="24" height="24"></canvas><span>Gear</span></button>
+    <button id="b-gear"><canvas id="b-gear-c" width="24" height="24"></canvas><span>Gear</span><em id="gear-dot" hidden></em></button>
     <button id="b-book"><canvas id="b-book-c" width="24" height="24"></canvas><span>Book</span></button>
     <button id="b-shop"><canvas id="b-shop-c" width="24" height="24"></canvas><span>Shop</span><em id="shop-dot" hidden></em></button>
     <button id="b-who"><canvas id="b-who-c" width="40" height="24" class="wide"></canvas><span>Players</span></button>
-    <div id="me"><b id="me-name"></b><span>Level <b id="me-level"></b></span><div class="bar"><i id="me-xp"></i></div></div>
+    <div id="me"><b id="me-name"></b><i id="me-title"></i><span>Level <b id="me-level"></b></span><div class="bar"><i id="me-xp"></i></div></div>
   </div>
 </section>
 
@@ -50,7 +50,7 @@
 </section>
 
 <section id="gear" class="screen">
-  <header><button class="back">◀ Map</button><h2>Gear</h2><div class="wallet"><span class="coin"></span><b class="gold"></b></div></header>
+  <header><button class="back">◀ Map</button><h2>Gear</h2><div class="sparks" id="sparks" aria-label="Sparks to use"><i class="spark"></i><b id="pts">0</b></div><div class="wallet"><span class="coin"></span><b class="gold"></b></div></header>
   <div class="cols">
     <div class="stage gearstage">
       <div class="doll">
@@ -58,10 +58,16 @@
         <div class="portrait"><canvas id="gear-bg"></canvas><canvas id="gear-hero"></canvas></div>
         <div class="slotcol" id="gs-right"></div>
       </div>
-      <div class="plate"><b id="g-name"></b><span id="g-level"></span><div class="bar"><i id="g-xp"></i></div></div>
+      <!-- Fliken Powers (skillträdet): provscenen i stället för porträttet, rutan om valt steg, och trädet i väskans ruta -->
+      <div class="scene-row" id="pw-scene">
+        <div class="scene-wrap"><canvas id="pw-bg"></canvas><canvas id="pw-canvas"></canvas><div id="pw-tag" hidden>Trying</div><div id="pw-banner" class="banner"></div></div>
+        <div class="try"><button id="pw-attack" aria-label="Attack">⚔</button><button id="pw-super" aria-label="Super attack">★</button><button id="pw-win" aria-label="Win pose">🏆</button></div>
+      </div>
+      <div class="plate"><b id="g-name"></b><i id="g-title"></i><span id="g-level"></span><div class="bar"><i id="g-xp"></i></div><small id="pw-next"></small></div>
       <div id="gear-stats"></div>
+      <div id="pw-info"></div>
     </div>
-    <div class="bag"><div id="bag-tabs"></div><h3 id="bag-title"></h3><div id="gear-grid"></div><div id="gear-sheet" hidden></div></div>
+    <div class="bag"><div id="bag-tabs"></div><h3 id="bag-title"></h3><div id="gear-grid"></div><div id="gear-sheet" hidden></div><div id="tree-wrap"><div id="tree"></div></div></div>
   </div>
 </section>
 

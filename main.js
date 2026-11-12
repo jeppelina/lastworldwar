@@ -15,6 +15,10 @@ import { openGym } from './gym.js';
 import { MINI, miniFor } from './minigames/index.js';
 import { usable, esc } from './minigames/shared.js';
 import { makeBoss, bossFiles } from './boss/index.js';
+import * as SK from './skills.js';
+import * as SFX from './skillfx.js';
+import { nodeIcon, crestIcon } from './skill-icons.js';
+import { Stage, SW, SH, GROUND } from './skill-stage.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY = 'larovarlden-spel-v4';
@@ -42,6 +46,10 @@ const pid = (p) => 'p' + (S.profiles.indexOf(p) + 1);           // p1, p2, p3 i 
 //                äldre klient skriver prefs utan det
 //   open         bossar som föräldern har öppnat för hand (typen 'unlock', senaste per värld gäller)
 //   mini         kommer från sync.fold: per minispelsnod ('värld:nod') dagen den spelades klart första gången och senaste dagen den gav guld
+//   skills       skillträdet: händelser av typen 'skill' spelas upp i ordning av SK.foldSkills (skills.js). got = upplåsta steg,
+//                worn = nivå -> steget som bärs (högst ett per nivå). sparks = hur många sparks barnet har tjänat, och varifrån.
+//                Antalet sparks sparas aldrig: det räknas ur nivån, klarade världsbossar och boken (sparkSrc). En äldre klient
+//                känner inte typen och hoppar över den.
 const adopt = (p) => {
   const id = pid(p), evs = sync.eventsFor(id);
   Object.assign(p, sync.stateFor(id, today()));
@@ -60,8 +68,17 @@ const adopt = (p) => {
   if (look && look.skin) p.look = look; p.reading = prefs ? prefs.reading !== false : true;
   if (prefs && prefs.name) p.name = prefs.name;                 // namnet följer med mellan enheter (ligger i hushållets skyddade data, inte i koden)
   levelKeep(p, evs);
+  p.sparks = SK.pointsBreakdown(SK.sparkSrc(p)); p.skills = SK.foldSkills(evs, p.sparks.earned);      // efter levelKeep, som kan höja nivån
   save();
 };
+// Sparks som inte är använda. Hur många som är tjänade räknas i skills.js (sparkSrc: nivån, slagna världsbossar, boken).
+const sparksFree = (p = P) => (p && p.skills && p.sparks ? Math.max(0, p.sparks.earned - SK.spent(p.skills)) : 0);
+// Utseendet som de burna stegen ger (läses av skillfx.js). Räknas en gång per tillstånd. null = inget bärs.
+const LKS = new WeakMap();
+const lookOf = (st) => { if (!st || !st.worn) return null; let lk = LKS.get(st); if (!lk) { lk = SK.looks(st); LKS.set(st, lk); } return lk.any ? lk : null; };
+// Titeln under namnet: slutdräktens väg (med stjärna), annars den väg som har minst tre burna steg.
+const titleOf = (st) => { const ti = st && st.worn ? SK.title(st) : null; return ti ? { text: (ti.star ? '★ ' : '') + ti.text, hex: SK.PATH[ti.path].hex } : null; };
+function putTitle(el, st) { const ti = titleOf(st); el.textContent = ti ? ti.text : ''; el.style.setProperty('--pc', ti ? ti.hex : ''); }
 // Balans version 2 bytte xp-kurva. Nivån räknas alltid fram ur summan av xp, så utan åtgärd hade barn på nivå 6 till 12
 // kunnat se nivån sjunka ett steg (den nya kurvan kräver upp till 41 xp mer för samma nivå där). Första gången en profil
 // med xp från före bytet öppnas i den nya versionen bokförs därför en engångsgåva: skillnaden mellan vad barnets
@@ -120,10 +137,10 @@ function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add
 
 // ---------- Hjälteporträtt som animeras på de skärmar som visar gubben ----------
 const STONE = ramp('#7c84a6'), stages = [];
-function stage(canvas, scale, getGear, getLook) { canvas.width = W; canvas.height = H; stages.push({ ctx: canvas.getContext('2d'), g: new G(W, H), getGear, getLook, canvas }); }
+function stage(canvas, scale, getGear, getLook, getSkills) { canvas.width = W; canvas.height = H; stages.push({ ctx: canvas.getContext('2d'), g: new G(W, H), getGear, getLook, getSkills, canvas, fx: SFX.newFxState() }); }
 setInterval(() => {
   const t = performance.now() / 1000;
-  for (const s of stages) { if (!s.canvas.offsetParent) continue; const look = s.getLook(); if (!look) continue; s.g.clear(); if (!s.noPed) { s.g.begin(); s.g.ell(38.5, 65.5, 23, 5.6, STONE, true); s.g.end(); } drawHero(s.g, look, s.getGear(), { t, blink: t % 3.7 < 0.14 }); s.g.paint(s.ctx); }
+  for (const s of stages) { if (!s.canvas.offsetParent) continue; const look = s.getLook(); if (!look) continue; s.g.clear(); if (!s.noPed) { s.g.begin(); s.g.ell(38.5, 65.5, 23, 5.6, STONE, true); s.g.end(); } SFX.drawHeroWithSkills(s.g, look, s.getGear(), { t, blink: t % 3.7 < 0.14 }, s.getSkills ? lookOf(s.getSkills()) : null, s.fx); s.g.paint(s.ctx); }
 }, 90);
 
 // ---------- Vem spelar ----------
@@ -131,9 +148,9 @@ function renderWho() {
   const list = $('who-list'); list.innerHTML = ''; stages.length = 0; initStages();
   S.profiles.forEach((p) => {
     const b = document.createElement('button'), c = document.createElement('canvas');
-    stage(c, 2, () => gearOf(p), () => p.look);
+    stage(c, 2, () => gearOf(p), () => p.look, () => p.skills);
     b.append(c, p.name); const sm = document.createElement('small'); sm.textContent = `Level ${p.level}`; b.appendChild(sm);
-    b.onclick = () => { unlock(); P = p; adopt(P); sync.sync(); enterMap(true); };
+    b.onclick = () => { unlock(); P = p; adopt(P); sync.sync(); enterMap(true); greetSparks(); };
     list.appendChild(b);
   });
 }
@@ -156,7 +173,7 @@ function afterMapChange() { P.done = JSON.parse(JSON.stringify(MAP.state.done));
 // Barnets egen gubbe i sin utrustning som markör på kartan (halv storlek).
 function mapHero() {
   if (!MAP || !MAP.setHero || !P) return;
-  const g = new G(40, 38); g.push(0, 0, 0, 0.5); drawHero(g, P.look, gearOf(P), { t: 0, noShadow: true, noPet: true, noFx: true }); g.pop();
+  const g = new G(40, 38); g.push(0, 0, 0, 0.5); SFX.drawHeroWithSkills(g, P.look, gearOf(P), { t: 0.9, noShadow: true, noPet: true, noFx: true, busy: true }, lookOf(P.skills), null); g.pop();   // stillbild med de burna stegen
   const c = document.createElement('canvas'); c.width = 40; c.height = 38; g.paint(c.getContext('2d')); MAP.setHero(c, 19, 31);
 }
 // En minispelsnod i stigen spärrar aldrig: så fort barnet står vid den bokförs den som passerad (en stage-händelse utan
@@ -246,11 +263,12 @@ function goPractice(k, i) { enterMap(false); if (MAP) { afterMapChange(); if (i 
 function renderBar() {
   $('me-name').textContent = P.name; $('me-level').textContent = P.level; $('me-xp').style.width = (100 * P.xp / xpToLevel(P.level)) + '%';
   $('shop-dot').hidden = P.seenShop === today();
-  const g = new G(W, H); drawHero(g, P.look, { helmet: P.eq.helmet && BY_ID[P.eq.helmet] }, { t: 0, noShadow: true });
+  $('gear-dot').hidden = sparksFree() <= 0; putTitle($('me-title'), P.skills);      // en oanvänd spark syns som en gnista på Gear-knappen
+  const g = new G(W, H); SFX.drawHeroWithSkills(g, P.look, { helmet: P.eq.helmet && BY_ID[P.eq.helmet] }, { t: 0.9, noShadow: true, busy: true }, lookOf(P.skills), null);
   const full = document.createElement('canvas'); full.width = W; full.height = H; g.paint(full.getContext('2d'));
   const ctx = $('b-gear-c').getContext('2d'); ctx.clearRect(0, 0, 24, 24); ctx.drawImage(full, 27, 12, 24, 24, 0, 0, 24, 24);
   // Players: familjens tre hjältar bredvid varandra. Shop: ett marknadsstånd med randig markis och guldmynt.
-  const pg = new G(40, 24); S.profiles.forEach((p, i) => { pg.push(i * 12 - 15, 2, 0, 0.55); drawHero(pg, p.look, gearOf(p), { t: 0, noShadow: true, noPet: true, noFx: true }); pg.pop(); });
+  const pg = new G(40, 24); S.profiles.forEach((p, i) => { pg.push(i * 12 - 15, 2, 0, 0.55); SFX.drawHeroWithSkills(pg, p.look, gearOf(p), { t: 0.9, noShadow: true, noPet: true, noFx: true, busy: true }, lookOf(p.skills), null); pg.pop(); });
   pg.paint($('b-who-c').getContext('2d'));
   const sg = new G(24, 24), RED = ramp('#d8433b'), CREAM = ramp('#f4ead0'), WOOD = ramp('#9a6b3f'), GOLD = ramp('#f2b632');
   sg.begin(); sg.rect(3, 9, 2, 13, WOOD, 2); sg.rect(19, 9, 2, 13, WOOD, 2); sg.end();
@@ -277,7 +295,7 @@ function startBattle(k, i, node, w) {
   show('battle');
   P.words = P.words || {};
   node = { ...node, ...R.nodeInfo(w.id, i) };                // banans rekommenderade nivå och lättnad (balance.js)
-  run = { level: P.level, stats: heroStats(P), words: 0, wordXp: 0 };
+  run = { level: P.level, stats: heroStats(P), words: 0, wordXp: 0, sparks: P.sparks ? P.sparks.earned : 0 };
   const C = contentFor(k);                                   // världar med innehållsfil har byggd pedagogik, övriga kör enkla frågor tills vidare
   const quiz = C ? new Quiz({ sfx, newCap: P.young ? K.newPerRunYoung : K.newPerRun, content: C, prior: Object.keys(CONTENT).filter((j) => +j < k).flatMap((j) => contentFor(+j).items), nodeIdx: i, book: P.words, day: dayNum(), reading: P.reading !== false, play, save,
     onAnswer: (t, right, up) => { sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.ex || t.type, correct: right, stage: w.id + ':' + i, ms: t.ms, chosen: right ? null : t.chosen }); if (up && up.up) wordUp(t.item, up); } }) : null;      // t.ex = bossuppgiftens eget namn
@@ -314,6 +332,8 @@ function endBattle(r, k, i, node, w) {
   const lkey = w.id + ':' + i; if (r.win) delete LOSSES[lkey]; else if (!r.gaveUp) LOSSES[lkey] = (LOSSES[lkey] || 0) + 1;
   rec('stage', { world: w.id, node: i, kind: 'battle', win: r.win, stars: r.stars, gold: rw.gold, xp: rw.xp, bv: BV, lv: st.level, gaveUp: r.gaveUp ? true : undefined, kills: r.kills });
   const ups = P.level - st.level, before = st.stats; run = null;
+  const newSparks = st.sparks != null && P.sparks ? Math.max(0, P.sparks.earned - st.sparks) : 0;      // nivå, slagen världsboss eller ord i boken gav en spark
+  if (newSparks) P.sparkTold = P.sparks.earned;
   const el = $('result'); el.hidden = false; el.className = (r.win ? 'win' : 'lose') + (bs && r.win ? ' boss' : '');
   const nW = node.type === 'level' ? nodeWords(k, i).length : 0, ws = nW ? wordStars(k, i, r.stars) : r.stars;      // stjärnorna visar ordens nivå på banan
   el.querySelector('.stars').innerHTML = r.win ? [0, 1, 2].map((s) => (s < ws ? '★' : '<i>★</i>')).join('') : '';
@@ -328,6 +348,7 @@ function endBattle(r, k, i, node, w) {
     (st.words ? `\n<b class="grow">${st.words} ${st.words === 1 ? 'word' : 'words'} got stronger</b>   <b>+${fmt(st.wordXp)} XP</b>` + (st.wordGold ? `   <b>+${fmt(st.wordGold)} gold</b>` : '') : '') +
     (rw.factor < 1 ? '\nToo easy now: small reward.' : '') +
     (ups ? `\n<b>Level ${P.level}!</b> You are stronger now.` : '') +
+    (newSparks ? `\n<span class="newspark"><i class="spark"></i>${newSparks > 1 ? newSparks + ' new sparks!' : 'New spark!'}</span>` : '') +
     (under ? `\n<b class="warn">This level is Lv ${node.rec}. You are Lv ${P.level}.</b>` : '') +
     (missed.length ? `\nPractice these words:<span class="rmiss">${missed.map((it, j) => `<button data-i="${j}">${pic(it)}<span>${esc(it.en)}</span></button>`).join('')}</span>` : '') +
     (r.win ? '' : canPractice ? '\nMake your words stronger to level up.' : '\nYou keep your gold and XP.');
@@ -335,10 +356,14 @@ function endBattle(r, k, i, node, w) {
   el.querySelector('h2').textContent = r.win ? (bs ? bs.cheer[0] : 'Good job!') : pushy ? 'Get stronger first!' : 'Try again!';      // bs: en hjälpt boss har sin egen rubrik
   el.querySelector('.sv').textContent = r.win ? (bs ? bs.cheer[1] : sv('good-job', 'Bra jobbat!').trim()) : pushy ? '(Träna ord på en lättare bana först!)' : sv('try-again', 'Försök igen!').trim();
   const acts = el.querySelector('.acts'); acts.innerHTML = '';
-  const btn = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = label; b.onclick = () => { el.hidden = true; if (battle) battle.destroy(); battle = null; if (ups) levelUp(before, fn); else fn(); }; acts.appendChild(b); };
+  // Till kartan, och därifrån till fliken Powers när en ny spark ska användas (kartan måste få veta att banan är klarad först).
+  const toMap = () => { enterMap(false); if (r.win) { MAP.state.gold = P.gold; MAP.finish(k, i, node.type === 'level' ? wordStars(k, i, r.stars) : r.stars); } afterMapChange(); };
+  const choose = () => { toMap(); openGear('powers'); };
+  const btn = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = label; b.onclick = () => { el.hidden = true; if (battle) battle.destroy(); battle = null; if (ups) levelUp(before, fn, newSparks, fn === choose ? null : choose); else fn(); }; acts.appendChild(b); };
+  if (newSparks) btn('Choose power', 'big', choose);
   if (canPractice) btn('Practice words', pushy ? 'big' : 'alt big', () => goPractice(target[0], target[1]));
   if (!r.win) btn('Try again', pushy ? 'alt' : '', () => startBattle(k, i, node, w));
-  btn('Map', r.win ? '' : 'alt', () => { enterMap(false); if (r.win) { MAP.state.gold = P.gold; MAP.finish(k, i, node.type === 'level' ? wordStars(k, i, r.stars) : r.stars); } afterMapChange(); });
+  btn('Map', r.win && !newSparks ? '' : 'alt', toMap);
   if (bs && r.win) sfx('level');                              // en boss som är hjälpt är värd en fanfar
   play(r.win ? 'audio/en-good-job.mp3' : 'audio/en-try-again.mp3');
 }
@@ -437,13 +462,18 @@ function miniDone(res) {
 function leaveMini() { stopMini(); mini = null; enterMap(false); }
 
 // ---------- Level up: en egen skärm med fanfar som visar vad som blev bättre ----------
-function levelUp(before, then) {
+// sparks = så många sparks nivån (eller omgången) gav. choose = funktion som går till fliken Powers. Finns den får barnet
+// välja mellan "Choose power" och "Later" (then). Utan den finns en knapp, som kör then.
+function levelUp(before, then, sparks = 0, choose = null) {
   const el = $('result'), now = heroStats(P); el.hidden = false; el.className = 'level';
   el.querySelector('h2').textContent = 'Level up!'; el.querySelector('.sv').textContent = sv('level-up', 'Ny nivå!').trim();
   el.querySelector('.stars').innerHTML = `<span class="lvnum">${P.level}</span>`;
-  el.querySelector('.lines').innerHTML = `<span class="gain">⚔ Attack <b>${before.atk}</b> → <b class="up">${now.atk}</b></span>\n<span class="gain">♥ Health <b>${before.maxHp}</b> → <b class="up">${now.maxHp}</b></span>\nYou are stronger now!`;
+  el.querySelector('.lines').innerHTML = `<span class="gain">⚔ Attack <b>${before.atk}</b> → <b class="up">${now.atk}</b></span>\n<span class="gain">♥ Health <b>${before.maxHp}</b> → <b class="up">${now.maxHp}</b></span>\n` +
+    (sparks ? `<span class="newspark"><i class="spark"></i>${sparks > 1 ? sparks + ' new sparks!' : 'New spark!'}</span>` : `You are stronger now!\n${nextSparkText()}`);
   const acts = el.querySelector('.acts'); acts.innerHTML = '';
-  const b = document.createElement('button'); b.className = 'btn'; b.textContent = 'Yes!'; b.onclick = () => { el.hidden = true; then(); }; acts.appendChild(b);
+  const add = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = label; b.onclick = () => { el.hidden = true; fn(); }; acts.appendChild(b); };
+  if (sparks && choose) { add('Choose power', 'big', choose); add('Later', 'alt', then); }
+  else add(sparks ? 'Choose power' : 'Yes!', '', then);
   sfx('level'); setTimeout(() => play('audio/en-level-up.mp3'), 500);
 }
 
@@ -455,7 +485,7 @@ const HAIR_COL = ['#17171d', '#2a2a33', '#3d2817', '#5a3a22', '#6b4426', '#8a5a3
   '#e56aa8', '#ff3f8e', '#d8262e', '#ff7a1f', '#ffd83a', '#8fd63a', '#3fae6a', '#1fb8a6', '#5ac8f0', '#4a8ad8', '#2b3f8f', '#8a4fd8', '#c39bf0'];
 const SKIN_COL = ['#fbe0c8', '#f3c7a2', '#e9b48c', '#d49a6a', '#b97a50', '#8a5a3a', '#6a4028'];
 const SLOT_SIDE = { L: ['helmet', 'armor', 'back'], R: ['weapon', 'shield', 'pet'] };
-function openGear() { gSel = null; show('gear'); paintGearBg(); renderGear(); }
+function openGear(tab) { gSel = null; pSel = null; pConfirm = false; if (typeof tab === 'string') gTab = tab; show('gear'); paintGearBg(); renderGear(); }
 async function paintGearBg() {
   const c = $('gear-bg'); c.width = W; c.height = H; const ctx = c.getContext('2d');
   try {
@@ -468,6 +498,8 @@ async function paintGearBg() {
 function renderGear() {
   document.querySelectorAll('.gold').forEach((e) => (e.textContent = fmt(P.gold)));
   $('g-name').textContent = P.name; $('g-level').textContent = `Level ${P.level}`; $('g-xp').style.width = (100 * P.xp / xpToLevel(P.level)) + '%';
+  const free = sparksFree(); $('gear').classList.toggle('powers', gTab === 'powers'); $('pts').textContent = free; $('sparks').classList.toggle('has', free > 0);
+  putTitle($('g-title'), gTab === 'powers' ? powersView() : P.skills);
   const cur = heroStats(P), tmp = gSel ? heroStats({ ...P, eq: { ...P.eq, [gSel.slot]: gSel.id } }) : cur;
   const diff = (a, b) => (a === b ? '' : `<em class="${b > a ? 'up' : 'down'}">${b > a ? '+' : ''}${b - a}</em>`);
   $('gear-stats').innerHTML =
@@ -483,7 +515,8 @@ function renderGear() {
       b.onclick = () => { gFilter = sid; gSel = null; gTab = 'items'; renderGear(); }; col.appendChild(b);
     }
   }
-  $('bag-tabs').innerHTML = ''; for (const [id, label] of [['items', 'Items'], ['outfit', 'Outfit']]) { const b = document.createElement('button'); b.textContent = label; b.className = gTab === id ? 'on' : ''; b.onclick = () => { gTab = id; gSel = null; renderGear(); }; $('bag-tabs').appendChild(b); }
+  $('bag-tabs').innerHTML = ''; for (const [id, label] of [['items', 'Items'], ['outfit', 'Outfit'], ['powers', 'Powers']]) { const b = document.createElement('button'); b.textContent = label; b.className = gTab === id ? 'on' : ''; if (id === 'powers' && free > 0) b.insertAdjacentHTML('beforeend', '<i class="spark"></i>'); b.onclick = () => { gTab = id; gSel = null; pSel = null; pConfirm = false; renderGear(); }; $('bag-tabs').appendChild(b); }
+  if (gTab === 'powers') return renderPowers();
   if (gTab === 'outfit') {            // hår, hårfärg och hudfärg. Ändringen syns direkt på gubben och sparas.
     $('bag-title').textContent = ''; $('gear-sheet').hidden = true;
     const grid = $('gear-grid'); grid.innerHTML = '';
@@ -515,6 +548,121 @@ function renderGear() {
     const b = document.createElement('button'); b.className = 'btn'; b.textContent = eq ? 'Take off' : 'Put on';
     b.onclick = () => { rec('equip', { slot: it.slot, item: eq ? null : it.id }); gSel = null; renderGear(); }; sh.appendChild(b);
   }
+}
+
+// ---------- Powers: skillträdet som tredje flik på Gear (docs/research/skilltree.md) ----------
+// Ett steg låses upp med en spark, i ordning inom en väg. Varje upplåst steg sätts på och stängs av med ett tryck, och
+// högst ett steg per nivå (1 till 6) är på. Reglerna står i skills.js, ritningen i skillfx.js. Här finns bara knapparna.
+// Varje tryck skrivs som en händelse av typen 'skill' (rec), och tillståndet räknas fram ur loggen i adopt.
+let pSel = null, pConfirm = false, pStage = null, pFixed = null, pIconKey = '', P_ICON = {}, P_CREST = null, pBannerT = 0;
+const pClock = () => (pFixed !== null ? pFixed : performance.now() / 1000);      // går att frysa från testkroken, för skärmbilder
+const powersView = () => (pSel && P.skills && !SK.has(P.skills, pSel) ? SK.preview(P.skills, pSel) : P.skills || SK.fresh());   // ett steg man inte har provas på hjälten
+const nextSparkText = () => (P.sparks && P.sparks.earned >= SK.TOTAL ? 'You have every spark!' : `Next spark at Level ${SK.nextPointLevel(P.level)}`);
+function powersStage() {
+  if (pStage) return pStage;
+  pStage = new Stage($('pw-canvas'));
+  pStage.onBanner = (text) => { const b = $('pw-banner'); b.textContent = text; b.className = 'banner on'; clearTimeout(pBannerT); pBannerT = setTimeout(() => (b.className = 'banner'), 900); };
+  setInterval(() => { if ($('pw-canvas').offsetParent) pStage.frame(pClock()); }, 45);
+  $('pw-attack').onclick = () => pStage.attack(pClock(), false);
+  $('pw-super').onclick = () => pStage.attack(pClock(), true);
+  $('pw-win').onclick = () => pStage.cheer(pClock());
+  return pStage;
+}
+async function paintPowersBg() {
+  const c = $('pw-bg'); if (c.width !== SW) { c.width = SW; c.height = SH; } const ctx = c.getContext('2d'), k = MAP ? Math.max(0, MAP.curWorld()) : 0;
+  if (c.dataset.k === String(k)) return; c.dataset.k = String(k);
+  try { const BD = await import('./backdrops.js'), b = new G(SW, SH); BD.drawBackdrop(b, ['forest', 'desert', 'swamp', 'ice', 'volcano', 'cloud'][k] || 'forest', SW, SH, GROUND, 3 + k * 100); b.paint(ctx); }
+  catch (e) { ctx.fillStyle = '#343b6b'; ctx.fillRect(0, 0, SW, SH); ctx.fillStyle = '#2a4a3a'; ctx.fillRect(0, GROUND - 3, SW, SH); }
+}
+// Stegens ikoner ritas på barnets egen hjälte (skill-icons.js), en gång per utseende.
+function powersIcons() {
+  const key = JSON.stringify(P.look);
+  if (key !== pIconKey) { pIconKey = key; P_ICON = {}; for (const n of Object.values(SK.NODES)) P_ICON[n.id] = nodeIcon(n, P.look); }
+  if (!P_CREST) { P_CREST = {}; for (const p of SK.PATHS) P_CREST[p.id] = crestIcon(p.id); }
+}
+const PERK_TEXT = { atkPct: (v) => `⚔ Attack +${v}%`, superAdd: (v) => `★ Super x${K.superMult + v}`, dodge: () => '↷ 1 hit halved', healPct: (v) => `♥ Heal +${v}%` };
+const PERK_BADGE = { atkPct: '⚔', superAdd: '★', dodge: '↷', healPct: '♥' };
+function renderPowers() {
+  const st = P.skills || SK.fresh(), e = P.sparks ? P.sparks.earned : 0, fr = sparksFree(), view = powersView(), perks = SK.perksOn();   // förmånerna visas bara när de är påslagna i balance.js
+  if (pSel && !SK.NODES[pSel]) pSel = null;
+  powersIcons(); paintPowersBg();
+  $('pw-tag').hidden = !(pSel && !SK.has(st, pSel));
+  $('pw-next').innerHTML = `<i class="spark"></i>${nextSparkText()}`;
+  powersStage().set(P.look, gearOf(P), SK.looks(view));
+  // trädet: ett rutnät med vägarna åt ena hållet och de sex nivåerna åt andra. Varje nivå är ett band, tänt när något är på där.
+  const box = $('tree'); box.innerHTML = '';
+  SK.LEVELS.forEach((name, i) => {
+    const b = document.createElement('div'), id = view.worn[i + 1]; b.className = 'band' + (id ? ' lit' : ''); b.style.setProperty('--l', i + 1);
+    if (id) b.style.setProperty('--pc', SK.PATH[SK.NODES[id].path].hex);
+    b.innerHTML = `<b>${i + 1}</b>`; b.setAttribute('aria-label', `Level ${i + 1}: ${name}`); box.appendChild(b);
+  });
+  SK.PATHS.forEach((p, pi) => {
+    const c = document.createElement('div'); c.className = 'crest'; c.style.setProperty('--pc', p.hex); c.style.setProperty('--p', pi + 1); c.innerHTML = `<img src="${P_CREST[p.id]}" alt="${p.name}">`; box.appendChild(c);
+    for (const n of p.nodes) {
+      const got = SK.has(st, n.id), on = SK.isWorn(st, n.id), r = SK.canPick(st, n.id, e), b = document.createElement('button');
+      b.className = 'node ' + (on ? 'got on' : got ? 'got' : r.ok ? 'open' : r.why === 'points' ? 'need' : 'lock') + (pSel === n.id ? ' sel' : '');
+      b.style.setProperty('--pc', p.hex); b.style.setProperty('--p', pi + 1); b.style.setProperty('--l', n.step);
+      b.dataset.id = n.id; b.setAttribute('aria-label', n.name + (on ? ', on' : got ? ', off' : '')); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.innerHTML = `<img src="${P_ICON[n.id]}" alt="">` + (perks && n.perk ? `<span class="perk">${PERK_BADGE[Object.keys(n.perk)[0]]}</span>` : '');
+      b.onclick = () => tapPower(n);
+      box.appendChild(b);
+    }
+  });
+  // rutan under scenen: vad steget är, och knappen som säger samma sak som trycket (Pick, Put on, Take off)
+  const info = $('pw-info'); info.innerHTML = ''; info.className = pSel ? '' : 'idle'; info.style.setProperty('--pc', pSel ? SK.PATH[SK.NODES[pSel].path].hex : '');
+  if (pSel) {
+    const n = SK.NODES[pSel], got = SK.has(st, pSel), on = SK.isWorn(st, pSel), r = SK.canPick(st, pSel, e);
+    info.innerHTML = `<img src="${P_ICON[pSel]}" alt=""><div class="txt"><b>${n.name}</b><small>${n.line}</small>` + (perks && n.perk ? `<span class="chip2">${Object.entries(n.perk).map(([k, v]) => PERK_TEXT[k](v)).join(' ')}</span>` : '') + '</div>';
+    const b = document.createElement('button'); b.className = 'btn';
+    if (got) { if (on) b.classList.add('alt'); b.textContent = on ? 'Take off' : 'Put on'; b.onclick = () => wearPower(n, !on); }
+    else if (r.ok) { b.innerHTML = 'Pick <i class="spark"></i>'; b.onclick = () => pickPower(pSel); }
+    else if (r.why === 'points') { b.innerHTML = `<i class="spark"></i>Level ${SK.nextPointLevel(P.level)}`; b.disabled = true; b.setAttribute('aria-label', nextSparkText()); }
+    else { b.textContent = '🔒'; b.disabled = true; b.setAttribute('aria-label', 'Locked'); }
+    info.appendChild(b);
+  } else {
+    info.innerHTML = `<div class="txt hint">${fr > 0 ? `You have ${fr} ${fr === 1 ? 'spark' : 'sparks'}. Tap a power to try it.` : SK.spent(st) ? 'Tap your powers to turn them on and off.' : 'Tap a power to try it.'}</div>`;
+    if (SK.spent(st)) {      // börja om: två tryck, alla sparks kommer tillbaka
+      const b = document.createElement('button'); b.className = 'btn alt'; b.textContent = pConfirm ? 'Sure?' : 'Start over';
+      b.onclick = () => { if (!pConfirm) { pConfirm = true; renderGear(); return; } pConfirm = false; pSel = null; rec('skill', { op: 'respec' }); renderGear(); renderBar(); toast('All sparks are back.'); };
+      info.appendChild(b);
+    }
+  }
+}
+// Ett tryck på ett steg man har slår av eller på det direkt. Ett tryck på ett steg man inte har provar det på hjälten.
+function tapPower(n) {
+  pConfirm = false;
+  if (SK.has(P.skills, n.id)) { pSel = n.id; return wearPower(n, !SK.isWorn(P.skills, n.id)); }
+  pSel = pSel === n.id ? null : n.id; sfx('tap'); renderGear(); if (pSel) demoPower(n);
+}
+function wearPower(n, on) {
+  rec('skill', on ? { op: 'wear', node: n.id } : { op: 'unwear', level: n.step });
+  renderGear(); renderBar(); sfx(on ? 'flip' : 'turn'); if (on) demoPower(n);
+}
+const demoPower = (n) => { if (n.look.trail || n.look.sup) powersStage().attack(pClock(), !!n.look.sup); };   // steg som hör till striden visar sig själva direkt
+function pickPower(id) {
+  if (!SK.canPick(P.skills, id, P.sparks.earned).ok) return;
+  rec('skill', { op: 'pick', node: id });
+  if (!SK.has(P.skills, id)) return toast('That power was not picked.');      // ska inte hända: kontrollen ovan är samma som uppspelningens
+  renderGear(); renderBar(); sfx('win'); powersStage().onBanner('NEW POWER!');
+  const n = SK.NODES[id]; if (n.look.sup || n.look.trail) demoPower(n); else powersStage().cheer(pClock());
+  const el = document.querySelector(`.node[data-id="${id}"]`); if (el) el.classList.add('pop');
+}
+// Första gången ett barn som redan har sparks kommer in (trädet är nytt, och barnen är redan på nivå 5 till 8), och när
+// en spark har kommit utan att barnet har fått veta det: en ruta som säger det, med knappen till fliken Powers.
+// P.sparkTold = så många sparks barnet har fått besked om på den här enheten (sparas bara här, som P.heard).
+function greetSparks() {
+  if (!P || !P.sparks || sparksFree() <= 0 || (P.sparkTold || 0) >= P.sparks.earned) return;
+  const fr = sparksFree(), first = !(P.skills && SK.spent(P.skills)) && !P.sparkTold, el = $('result');
+  P.sparkTold = P.sparks.earned; save();
+  el.hidden = false; el.className = 'sparkbox';
+  el.querySelector('h2').textContent = first ? 'New: Powers!' : fr === 1 ? 'New spark!' : 'New sparks!';
+  el.querySelector('.sv').textContent = first ? sv('powers-new', 'Nytt: krafter!').trim() : '';
+  el.querySelector('.stars').innerHTML = `<span class="bigsparks">${'<i class="spark"></i>'.repeat(Math.min(fr, 5))}</span>`;
+  el.querySelector('.lines').innerHTML = `<b>You have ${fr} ${fr === 1 ? 'spark' : 'sparks'}.</b>\n` + (first ? 'A spark gives your hero a new power.' : 'Choose a new power for your hero.');
+  const acts = el.querySelector('.acts'); acts.innerHTML = '';
+  const add = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = label; b.onclick = () => { el.hidden = true; fn(); }; acts.appendChild(b); };
+  add('Choose power', 'big', () => openGear('powers')); add('Later', 'alt', () => {});
+  sfx('level');
 }
 
 // Vad ett föremål ger, skrivet så att det går att jämföra: "+5 ⚔" eller "+8 ♥", och skillnaden mot det man har på sig.
@@ -607,15 +755,18 @@ function renderShop() {
 }
 
 function initStages() {
-  stage($('gear-hero'), 0, () => gearOf(P, gSel), () => P && P.look); stages[stages.length - 1].noPed = true;
-  stage($('shop-hero'), 0, () => gearOf(P, sSel), () => P && P.look);
+  stage($('gear-hero'), 0, () => gearOf(P, gSel), () => P && P.look, () => P && P.skills); stages[stages.length - 1].noPed = true;
+  stage($('shop-hero'), 0, () => gearOf(P, sSel), () => P && P.look, () => P && P.skills);
 }
 
 // ---------- Synk: när något kommer från en annan enhet, och föräldraskärmen ----------
 function onSync(c) {
   if (c.reason === 'status') { renderCloud(); if (screen === 'parent') renderParent(); return; }
   if (c.reason !== 'remote') return;
+  const lost = new Set(P && P.skills ? (P.skills.rejected || []).map((r) => r.id) : []);
   S.profiles.forEach(adopt);
+  // Ett steg som valdes här men som förlorade mot ett tidigare val på en annan enhet (samma spark användes där).
+  if (P && P.skills && (P.skills.rejected || []).some((r) => !lost.has(r.id))) toast('That power was not picked. The spark was already used.');
   for (const r of c.rejected || []) if (P && r.profileId === pid(P)) toast(`${BY_ID[r.item] ? BY_ID[r.item].name : 'An item'} was not bought. The gold was already used.`);
   if (screen === 'who') renderWho();
   if (!P || screen === 'battle' || screen === 'mini') return;     // rita inte om mitt i en strid eller ett minispel
@@ -647,10 +798,13 @@ function namesForm() {
     S.profiles.map((p, i) => {
       const k = curWorldIdx(p), g = bossGate(k, p), wid = R.WORLD_IDS[k], forced = !!(p.open && p.open[wid]), bossDone = isDone(k, R.nodeCount(k) - 1, p);
       const gate = !g || bossDone ? '' : `<small>${worldTitle(k)}: ${g.have} av ${g.n} ord är ${g.tier} eller bättre, bossen öppnar vid ${g.need}.</small><button type="button" class="btn alt big" data-o="${i}">${forced ? 'Bossen är öppnad för hand. Stäng igen' : 'Öppna bossen för hand'}</button>`;
-      return `<div class="kid"><input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}"><label class="chk"><input type="checkbox" data-r="${i}" ${p.reading !== false ? 'checked' : ''}> Läser</label><label class="chk"><input type="checkbox" data-y="${i}" ${p.young ? 'checked' : ''}> Yngre barn</label>${gate}</div>`;
+      const sp = p.sparks || { earned: 0, level: 0, bosses: 0, book: 0 }, used = p.skills ? SK.spent(p.skills) : 0;
+      const powers = `<small>Krafter: ${sp.earned} sparks tjänade (nivå ${sp.level}, bossar ${sp.bosses}, boken ${sp.book}), ${used} använda, ${Object.keys((p.skills || {}).worn || {}).length} steg på.</small>`;
+      return `<div class="kid"><input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}"><label class="chk"><input type="checkbox" data-r="${i}" ${p.reading !== false ? 'checked' : ''}> Läser</label><label class="chk"><input type="checkbox" data-y="${i}" ${p.young ? 'checked' : ''}> Yngre barn</label>${gate}${powers}</div>`;
     }).join('') + `</div><p class="dim">Utan "Läser" får barnet nästan bara bilduppgifter, och högst två val när något ska läsas.</p>
     <p class="dim">"Yngre barn": ${pct(K.young.thin)} procent av orden på varje bana, bossen öppnar när ${pct(K.young.bossShare)} procent av världens ord är Steel (annars ${pct(K.gate.boss.share)}), och varje ord som blir starkare ger ${K.young.learnMult} gånger så mycket xp.</p>
-    <p class="dim">"Öppna bossen för hand" släpper barnet förbi ordmätaren i den värld det står i. Använd den om barnet har fastnat.</p>`;
+    <p class="dim">"Öppna bossen för hand" släpper barnet förbi ordmätaren i den värld det står i. Använd den om barnet har fastnat.</p>
+    <p class="dim">Krafter (fliken Powers på Gear) ändrar bara hur hjälten ser ut. En spark på nivå ${K.skill.levelFirst} och sedan var ${K.skill.levelEvery}:e nivå, en per slagen världsboss och en per ${K.skill.bookStep} ord som nått Steel i boken (högst ${K.skill.bookMax}).</p>`;
 }
 function bindNames() {
   document.querySelectorAll('#names input[data-r]').forEach((el) => (el.onchange = () => { savePrefs(S.profiles[+el.dataset.r], { reading: el.checked }); renderParent(); }));
@@ -726,5 +880,7 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
     const go = () => { S.seenIntro = true; save(); renderWho(); show('who'); };
     if (S.seenIntro) go(); else playIntro(root, { play, look: looks[0], onDone: go });
   } });
-  window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, gate: (k) => bossGate(k), practice: (k) => practiceTarget(k), openBook, mapInfo: pushMapInfo, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, levelUp, mini: () => mini, openMini: (k, slot) => { const w = MAP.worlds[k], nd = typeof slot === 'number' ? w.nodes[slot] : w.side.find((x) => x.slot === slot); openMini(k, slot, nd); }, miniWords, pick: (n) => { P = S.profiles[n]; enterMap(true); }, tempo: (x) => (TEMPO = x), bossData: () => BOSSDATA };
+  window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, gate: (k) => bossGate(k), practice: (k) => practiceTarget(k), openBook, mapInfo: pushMapInfo, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, levelUp, mini: () => mini, openMini: (k, slot) => { const w = MAP.worlds[k], nd = typeof slot === 'number' ? w.nodes[slot] : w.side.find((x) => x.slot === slot); openMini(k, slot, nd); }, miniWords, pick: (n) => { P = S.profiles[n]; enterMap(true); }, tempo: (x) => (TEMPO = x), bossData: () => BOSSDATA,
+    // skillträdet: reglerna, fliken, provscenen (step fryser klockan vid t sekunder och ritar en bildruta, run släpper den)
+    SK, greetSparks, powers: { open: () => openGear('powers'), tap: (id) => tapPower(SK.NODES[id]), pick: pickPower, select: (id) => { pSel = id; renderGear(); }, stage: () => powersStage(), step: (t) => { pFixed = t; powersStage().frame(t); }, run: () => { pFixed = null; } } };
 })();

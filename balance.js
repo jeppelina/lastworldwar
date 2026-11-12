@@ -53,10 +53,14 @@
 //                   poäng och svagare avtagande för rätta svar samma dag (1 + 0,25 * antal i stället för 1 + antal). Barnen stod vid
 //                   bossen med 37 och 48 ord på Iron och inget på Steel, och inget de gjorde samma dag kunde ändra det.
 //                   Kartans stjärnor visar nu ordens nivå på banan (1 = klarad, 2 = hälften Steel, 3 = nästan alla Steel). Inte simulerat.
-//   v9  2026-11-12  Ordgymmet (gym.js, K.gym): träna alla mötta ord utan fiende. Mer guld för nivåerna över Steel
+//   v9  2026-11-12  Skillträdet (K.skill, game/skills.js, docs/research/skilltree.md): sparks som låser upp utseendesteg.
+//                   En spark på nivå 4 och sedan var tredje nivå (7, 10, 13 ...), en per slagen världsboss och en per 20 ord
+//                   som nått Steel i boken (högst fyra). Trädet är BARA utseende: förmånerna på nivå 4 (K.skill.perks) är
+//                   avstängda och inga regler läser dem. Inga andra tal är ändrade, och ingen strid räknas annorlunda.
+//   v10  2026-11-12  Ordgymmet (gym.js, K.gym): träna alla mötta ord utan fiende. Mer guld för nivåerna över Steel
 //                   (K.learn.gold Gold 5 -> 8, Emerald 6 -> 12, Crystal 7 -> 16, Star 7 -> 20, Neutron Star 7 -> 25) och en dagsbonus
 //                   för första passet varje dag. Inte simulerat.
-export const version = 9;
+export const version = 10;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -135,6 +139,23 @@ export const K = {
   },
   // Ung-läge (bocken "Yngre barn" per barn på föräldraskärmen). bossStones: antal ordstenar i en bossfight.
   young: { thin: 0.5, bossShare: 0.35, learnMult: 3, bossStones: 6 },
+  // Skillträdet (game/skills.js): sparks låser upp steg som ändrar hur hjälten ser ut. Antalet sparks sparas aldrig, det
+  // räknas fram ur nivån, klarade världsbossar och boken, minus de steg som är upplåsta. Talen får bara ändras åt det
+  // generösa hållet: blir en spark dyrare kan ett barn ha fler upplåsta steg än sparks, och då faller de senast
+  // upplåsta stegen bort ur uppspelningen (foldSkills hoppar över dem) tills barnet har tjänat ikapp.
+  skill: {
+    levelFirst: 4, levelEvery: 3,          // första sparken på hjältenivå 4, sedan var tredje nivå (7, 10, 13 ...)
+    perBoss: 1,                            // en spark första gången varje världs slutboss besegras
+    bookStep: 20, bookTier: 2, bookMax: 4, // en spark per 20 ord som nått Steel (2) eller bättre i boken, högst fyra sådana
+    // FÖRMÅNERNA ÄR AVSTÄNGDA (on: false). De fyra stegen på nivå 4 (Champ Belt, Rune Ring, Smoke Step, Wolf Spirit) var
+    // tänkta att ge en liten förmån var. Talen nedan är förslagen ur docs/research/skilltree.md avsnitt 3, mätta med
+    // påhittade omgångar FÖRE balans v4 till v8 (xp-kurvan, guldet, bossfighterna med ordstenar, Steel samma dag). De
+    // måste mätas om mot den nuvarande balansen innan de slås på: se "Vad som måste mätas om" i designnoten, och lägg
+    // till de två spelarna "bär alltid starkaste förmånen" och "bär aldrig någon" i simulatorn. Att sätta on: true
+    // räcker inte: reglerna (rules.js, catalog.js, battle.js) läser inte förmånerna ännu, det är steg 7 i designnoten
+    // och inte byggt. Så länge on är falsk visar trädet inga förmåner och perks() i skills.js ger bara nollor.
+    perks: { on: false, atkPct: 3, superAdd: 0.1, dodge: 0.5, healPct: 2 },
+  },
 };
 
 // ---------- Hjälten, föremålen och nivåerna (formlerna står i catalog.js) ----------

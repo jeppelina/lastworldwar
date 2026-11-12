@@ -239,6 +239,98 @@ header .back, #parent-back { min-height:46px; min-width:96px; padding:10px 18px;
 .quiz.ok::after, .quiz.bad::after { width:72px; height:72px; font-size:46px; }
 .tile.wrong { background:#e03a3a; color:#fff; }
 
+/* ---------- Skillträdet (2026-11-12): fliken Powers på Gear, sparks, ny spark i resultatrutan ---------- */
+/* Flyttat ur prototypes/skilltree/skilltree.css. Allt som hör till fliken gäller bara när #gear har klassen powers. */
+.spark { display:inline-block; width:18px; height:18px; background:linear-gradient(135deg, #fff8c0, #ffc83d 55%, #f08a20); clip-path:polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+.sparks { display:flex; align-items:center; gap:6px; min-height:38px; padding:0 12px; border-radius:14px; background:#12142499; border:2px solid #6b5a2a; color:var(--gold); font-size:20px; }
+.sparks.has { border-color:var(--gold); animation:sparkglow 1.2s infinite alternate; }
+@keyframes sparkglow { to { box-shadow:0 0 14px #ffc83daa; } }
+#gear-dot { position:absolute; top:-6px; right:-6px; width:18px; height:18px; background:linear-gradient(135deg, #fff8c0, #ffc83d 55%, #f08a20); clip-path:polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation:pulse .6s infinite alternate; }
+#gear-dot[hidden] { display:none; }
+#me-title, #g-title { font-style:normal; color:var(--pc, var(--gold)); font-size:12px; } #me-title:empty, #g-title:empty { display:none; }
+#g-title { font-size:14px; }
+#bag-tabs button { min-height:56px; min-width:72px; display:inline-flex; align-items:center; justify-content:center; gap:6px; } #bag-tabs .spark { width:14px; height:14px; } #bag-tabs button.on .spark { background:#3a2600; }
+#gear:not(.powers) :is(#pw-scene, #pw-info, #tree-wrap, #pw-next) { display:none; }
+#gear.powers :is(.doll, #gear-stats, #bag-title, #gear-grid, #gear-sheet, .plate .bar) { display:none; }
+
+/* Scenen: hjälten och träningsdockan, med provknapparna i en kolumn bredvid */
+#gear.powers .gearstage { --k:2; gap:6px; padding:8px; flex-wrap:nowrap; }
+.scene-row { display:flex; gap:6px; align-items:stretch; justify-content:center; }
+.scene-wrap { position:relative; width:calc(152px * var(--k)); height:calc(84px * var(--k)); border-radius:16px; overflow:hidden; box-shadow:0 0 0 3px #0f1120, 0 0 0 5px #6b5a2a; flex:none; }
+#gear.powers .scene-wrap canvas { position:absolute; inset:0; width:100%; height:100%; border-radius:0; background:none; }
+#pw-tag { position:absolute; left:8px; top:8px; background:#ffc83d; color:#3a2600; border-radius:8px; padding:1px 8px; font-size:12px; }
+#pw-tag[hidden] { display:none; }
+#pw-banner { top:30%; font-size:clamp(18px, 4vw, 34px); color:#ffe14d; }
+.try { display:flex; flex-direction:column; gap:0; border-radius:14px; overflow:hidden; box-shadow:0 0 0 2px #0f1120; }
+.try button { flex:1; width:56px; min-height:56px; font-size:24px; background:linear-gradient(#7c6cff, #4b3bd6); border-bottom:2px solid #2c2190; }
+.try button:nth-child(2) { background:linear-gradient(#ffd66b, #f0a020); color:#3a2500; border-color:#9a6200; } .try button:last-child { background:linear-gradient(#3b4263, #2a3050); border:0; }
+.try button:active { filter:brightness(1.3); }
+#gear.powers .plate { width:auto; align-self:stretch; margin:0 6px; align-items:baseline; }
+#pw-next { flex-basis:100%; display:flex; align-items:center; gap:6px; color:var(--gold); font-size:13px; font-weight:600; } #pw-next .spark { width:13px; height:13px; flex:none; }
+
+/* Trädet: ett rutnät. Stor skärm och stående telefon: vägarna är kolumner och nivåerna rader. Liggande telefon: tvärtom.
+   Varje nivå är ett band. Högst ett steg per band är på, och bandet tänds i det stegets färg. */
+#tree-wrap { flex:1; min-height:0; overflow:auto; display:grid; place-items:safe center; padding:6px 10px; }
+#tree { --n:56px; position:relative; display:grid; gap:6px; grid-template-columns:20px repeat(4, var(--n)); grid-auto-rows:var(--n); }
+.crest, .node { position:relative; width:var(--n); height:var(--n); padding:0; display:grid; place-items:center; z-index:1; }
+.crest { grid-row:1; grid-column:calc(var(--p) + 1); border-radius:50%; background:radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--pc) 55%, #fff), color-mix(in srgb, var(--pc) 60%, #141622) 70%); border:3px solid #0f1120; transform:scale(.8); }
+.crest img { width:32px; height:32px; }
+.node { grid-column:calc(var(--p) + 1); grid-row:calc(var(--l) + 1); border-radius:14px; background:linear-gradient(#262a45, #171a2d); border:3px solid #3a3f60; box-shadow:0 3px 0 #0b0c16; }
+.band { grid-column:1 / -1; grid-row:calc(var(--l) + 1); margin:-3px -4px; border-radius:16px; background:#ffffff0a; display:flex; align-items:center; }
+.band b { width:22px; text-align:center; color:#6a7096; font-size:14px; }
+.band.lit { background:color-mix(in srgb, var(--pc) 16%, transparent); box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--pc) 55%, transparent); } .band.lit b { color:#fff; }
+.node img { width:44px; height:44px; }
+.node.lock img { filter:grayscale(1) brightness(.7); } .node.lock { border-style:dashed; }
+.node.need img { filter:grayscale(.5) brightness(.85); }
+.node.open { border-color:var(--gold); border-style:dashed; animation:nodeglow .9s infinite alternate; }
+@keyframes nodeglow { to { box-shadow:0 0 0 3px #ffc83d66, 0 3px 0 #0b0c16; } }
+/* upplåst men av: färgad ram, nedtonad bild. På: fylld i vägens färg, vit ram, lyser. */
+.node.got { border-color:color-mix(in srgb, var(--pc) 60%, #171a2d); } .node.got img { filter:saturate(.55) brightness(.75); }
+.node.got.on { border-color:#fff; background:linear-gradient(color-mix(in srgb, var(--pc) 75%, #fff), color-mix(in srgb, var(--pc) 70%, #1c2036)); box-shadow:0 0 0 3px var(--pc), 0 0 14px var(--pc); } .node.got.on img { filter:none; }
+.node.got.on::after { content:"✓"; position:absolute; right:-5px; bottom:-6px; width:18px; height:18px; border-radius:50%; background:#fff; color:#141622; font-size:12px; line-height:18px; text-align:center; font-weight:900; }
+.node.sel { outline:3px solid #fff; outline-offset:2px; }
+.node .perk { position:absolute; left:-4px; top:-6px; min-width:18px; height:18px; border-radius:9px; background:#0f1120; border:2px solid var(--gold); color:var(--gold); font-size:11px; line-height:14px; text-align:center; }
+.node.pop { animation:nodepop .5s cubic-bezier(.2, 1.9, .4, 1); }
+@keyframes nodepop { from { transform:scale(1.6); } }
+
+/* Rutan med vad steget är och knappen som väljer det */
+#pw-info { display:flex; gap:8px; align-items:center; align-self:stretch; margin:0; padding:6px 8px; height:72px; min-width:0; overflow:hidden; border-radius:16px; background:#0f1120f2; border:2px solid var(--pc, var(--line)); }
+#pw-info img { width:48px; height:48px; flex:none; } #pw-info .txt { flex:1; min-width:0; } #pw-info b { font-size:16px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } #pw-info small { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; color:var(--dim); font-weight:500; font-size:13px; line-height:1.25; }
+#pw-info .chip2 { display:inline-block; white-space:nowrap; margin-top:2px; padding:0 8px; border-radius:999px; background:#2f2a14; border:1px solid var(--gold); color:var(--gold); font-size:12px; }
+#pw-info .btn { min-height:56px; min-width:92px; padding:8px 14px; white-space:nowrap; flex:none; }
+#pw-info .hint { color:var(--dim); font-weight:500; } #pw-info .btn .spark { vertical-align:-3px; margin-left:4px; background:#3a2500; } #pw-info .btn:disabled .spark { background:#8087a8; margin:0 4px 0 0; }
+
+/* Ny spark i resultatrutan, på Level up och första gången trädet visas för ett barn som redan har sparks */
+#result .newspark { display:inline-flex; align-items:center; gap:8px; font-size:22px; color:var(--gold); font-weight:800; }
+#result.sparkbox .box { border-color:var(--gold); box-shadow:0 0 60px #ffc83d88; animation:pop .35s cubic-bezier(.2, 1.7, .4, 1); }
+#result.sparkbox h2 { color:var(--gold); font-size:34px; }
+#result .bigsparks { display:flex; gap:10px; justify-content:center; padding:6px 0; } #result .bigsparks .spark { width:54px; height:54px; animation:spinin .6s ease-out backwards; }
+#result .acts .btn { min-height:56px; min-width:110px; }
+
+/* Liggande läge: scenen till vänster, trädet till höger */
+@media (orientation: landscape), (min-width: 820px) {
+  #gear.powers .gearstage { width:calc(152px * var(--k) + 78px); flex:none; justify-content:center; align-items:stretch; }
+}
+/* Låg skärm (mobil i liggande läge): nivåerna blir kolumner */
+@media (max-height: 500px) {
+  #gear.powers #bag-tabs { padding-top:4px; } #tree-wrap { padding:2px 4px; } #gear.powers .gearstage { padding:6px; }
+  #tree { grid-template-columns:repeat(7, var(--n)); grid-template-rows:14px repeat(4, var(--n)); grid-auto-rows:auto; gap:4px; }
+  .crest { grid-column:1; grid-row:calc(var(--p) + 1); } .node { grid-column:calc(var(--l) + 1); grid-row:calc(var(--p) + 1); }
+  .band { grid-row:1 / -1; grid-column:calc(var(--l) + 1); margin:-2px -2px; flex-direction:column; align-items:center; } .band b { width:auto; font-size:11px; line-height:14px; }
+  #result .bigsparks .spark { width:36px; height:36px; } #result.sparkbox h2 { font-size:26px; }
+}
+/* Stor skärm (iPad): större scen och större steg */
+@media (min-width: 900px) and (min-height: 600px) {
+  #gear.powers .gearstage { --k:3; } #tree { --n:66px; gap:8px; grid-template-columns:24px repeat(4, var(--n)); } .try button { width:64px; }
+  .node img { width:52px; height:52px; } #pw-info { height:88px; } .sparks { min-height:46px; }
+}
+/* Stående läge: tätare, och vägarnas märken i en lägre rad */
+@media (orientation: portrait) and (max-width: 819.98px) {
+  #gear.powers #bag-tabs { padding-top:6px; }
+  #gear.powers .gearstage { padding:6px; gap:4px; } #tree-wrap { padding:4px 10px 2px; }
+  #tree { gap:4px; grid-template-rows:38px repeat(6, var(--n)); grid-auto-rows:auto; } .crest { height:38px; width:38px; justify-self:center; transform:none; } .crest img { width:24px; height:24px; }
+}
+
 /* Ordgymmet (gym.js) */
 #gym { background:#171a2c; }
 #gym .gym-stage { flex:1; min-height:0; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:10px 10px 56px; background:linear-gradient(#232a4a, #171a2c); }
