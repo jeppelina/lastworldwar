@@ -140,7 +140,6 @@ header h2 { flex:1; margin:0; font-size:18px; } header .back { background:var(--
 /* Bilder till orden */
 .pimg { width:1.15em; height:1.15em; vertical-align:middle; pointer-events:none; }
 .card .pimg { width:clamp(46px, 17vmin, 124px); height:clamp(46px, 17vmin, 124px); object-fit:contain; } .wtile .pimg { width:34px; height:34px; } #book-sheet .pimg, .teach .pimg { width:60px; height:60px; }
-}
 
 /* Övningar i frågepanelen */
 .word.sv { background:#e8f0ff; } .word.long { font-size:clamp(16px, 3.4vw, 28px); white-space:nowrap; max-width:96%; }
