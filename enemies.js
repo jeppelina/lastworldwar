@@ -4,6 +4,7 @@
 import { ramp as R } from './pixel.js';
 import { ROSTER_NEW } from './enemies-new.js';
 import { ROSTER_BOSSES } from './bosses.js';
+import { ROSTER_BLOBS } from './blobs.js';
 
 const C = {
   dark: R('#2b2740'), white: R('#ffffff'), bone: R('#ece4cf'), gold: R('#f2b632'), red: R('#d8433b'),
@@ -1592,4 +1593,6 @@ for (const e of ROSTER_NEW) if (NEW_IN.includes(e.id)) ROSTER.push(e);
 for (const id of ['magmus', 'skuggriddaren']) { const i = ROSTER.findIndex((e) => e.id === id); if (i >= 0) ROSTER.splice(i, 1); }
 // Omritade bossar (bosses.js): samma id, värld och typ som förut, ny bild, storlek och namn.
 for (const b of ROSTER_BOSSES) { const old = ROSTER.find((e) => e.id === b.id); if (old) Object.assign(old, { draw: b.draw, h: b.h, w: b.w, name: b.name }); }
+// Omritade klumpfiender (blobs.js, 2026-11-12): samma id, värld och typ, ny bild och storlek.
+for (const b of ROSTER_BLOBS) { const old = ROSTER.find((e) => e.id === b.id); if (old) Object.assign(old, { draw: b.draw, h: b.h, w: b.w, name: b.name }); }
 export const BY_ID = Object.fromEntries(ROSTER.map((e) => [e.id, e]));

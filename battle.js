@@ -32,7 +32,8 @@ export async function loadArt() {
 export const roster = () => ROSTER;
 
 // ---------- Banans strider (reglerna står i rules.js) ----------
-export const buildRun = (worldIdx, nodeIdx, node) => R.buildRun(worldIdx, nodeIdx, node, ROSTER);
+// army (valfri): kejsarens armé ur berättelsen, se armyFor i story.js och buildRun i rules.js. Utan den är allt som förut.
+export const buildRun = (worldIdx, nodeIdx, node, army = null) => R.buildRun(worldIdx, nodeIdx, node, ROSTER, Math.random, army);
 
 // ---------- Attacker: en per vapentyp. pose(p, D) ger hjältens läge, events avfyras när p passerar "at".
 // hit = vilken av vapnets träffar i WEAPON_RULES (rules.js) som landar. Skadan och hur många som träffas står där. ----------
@@ -60,7 +61,7 @@ export class Battle {
     Object.assign(this, o); this.el = el;
     this.gear = Object.fromEntries(Object.entries(o.profile.eq).filter(([, id]) => id).map(([k, id]) => [k, BY_ID[id]]));
     // run = regeltillståndet (liv, strid, rad, guld, xp). Scenen lägger bara till det som behövs för att rita.
-    this.run = R.newRun(heroStats(o.profile), buildRun(o.worldIdx, o.nodeIdx, o.node));
+    this.run = R.newRun(heroStats(o.profile), buildRun(o.worldIdx, o.nodeIdx, o.node, o.army || null));
     this.hero = Object.assign(this.run.hero, { flashUntil: 0, hurtAt: -9 });
     this.fx = []; this.anim = null; this.phase = 'intro'; this.shake = 0;
     this.q = R.newQuiz(); this.target = null; this.over = false; this.bf = null;

@@ -451,6 +451,11 @@
   }
   function stars3(x, y, n) { for (let s = 0; s < 3; s++) img(s < n ? C.star : C.starOff, x - 10 + s * 7 + 3, y + 6 - (s === 1 ? 2 : 0)); }
 
+  // Berättelsen på kartan (map/story.js): det som ligger kvar efter en stund och de korta stunderna ovanpå kartan.
+  // Saknas filen ritas inget. Ett fel i den får aldrig stoppa kartan.
+  const STORY = window.MAP_STORY ? window.MAP_STORY({ ctx, view, rect, getWorld, worlds, heroPos, now, size: () => ({ vw, vh }) }) : null;
+  const story = (fn, t) => { if (!STORY) return; try { STORY[fn](t); } catch (e) { if (!story.err) { story.err = 1; console.error('story', e); } } };
+
   let lastT = now();
   function frame() {
     const t = now(), dt = Math.min(0.2, t - lastT); lastT = t;
@@ -523,6 +528,7 @@
     for (let s = 0; s < upto; s++) for (let j = 0; j < m.segs[s].length; j += 5, q++) {
       const p = m.segs[s][j]; ctx.fillStyle = (q - ((t * 7) | 0)) % 7 === 0 ? '#ffffff' : '#fff3a8'; rect(p.x, p.y, 1, 1);
     }
+    story('ground', t);
     w.side.forEach((sd, j) => (sd.mini && sd.mini.game === 'gym' ? drawArena(m.sides[j], !done[sd.after], t) : drawTent(m.sides[j], !done[sd.after], t, 5 + j)));
     const order = m.pts.map((p, i) => i).sort((a, b) => m.pts[a].y - m.pts[b].y);
     for (const i of order) {
@@ -558,6 +564,7 @@
     if (!walking && ci >= 0) img(C.arrow, hp.x + 2, hp.y - (heroSprite ? 30 : 21) - ((t * 3) | 0) % 2 * 2);
     drawParts(m, t, dt);
     drawClouds(m, t, dt, w.biome === 'volcano');
+    story('sky', t);
   }
 
   // ---------- HUD, kort, demo ----------
@@ -748,6 +755,6 @@
   // setInterval i stället för requestAnimationFrame: tickar även när rutan är dold.
   setInterval(frame, 50);
   frame();
-  window.__map = { state, view, setView, completeCurrent, worlds, unlocked, load, finish, curWorld, curNode, updateHud, setHero, setInfo, focus, openCard, closeCard, world: (k) => getWorld(k), scale: () => S };
+  window.__map = { state, view, setView, completeCurrent, worlds, unlocked, load, finish, curWorld, curNode, updateHud, setHero, setInfo, focus, openCard, closeCard, world: (k) => getWorld(k), scale: () => S, story: STORY };
   if (window.parent && window.parent.GAME && window.parent.GAME.mapReady) window.parent.GAME.mapReady(window.__map);
 })();

@@ -222,6 +222,10 @@ header .back, #parent-back { min-height:46px; min-width:96px; padding:10px 18px;
 #names .kid { flex:1; min-width:150px; display:flex; flex-direction:column; gap:4px; } #names .kid > input { flex:none; }
 #names .chk { min-height:56px; font-size:15px; color:var(--text); display:flex; align-items:center; gap:10px; cursor:pointer; } #names .chk input { width:26px; height:26px; }
 #names .kid small { color:var(--dim); font-size:12px; line-height:1.35; } #names .kid .btn { font-size:14px; padding:8px 10px; }
+/* Föräldraskärmen: raden "Berättelsen" per barn (fälls ut), en knapp per stund och nollställning. */
+#names details.story { display:flex; flex-direction:column; } #names details.story summary { min-height:56px; display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--text); list-style:none; }
+#names details.story summary::-webkit-details-marker { display:none; } #names details.story summary::before { content:"▸"; color:var(--gold); } #names details.story[open] summary::before { content:"▾"; }
+#names details.story .btn { display:block; width:100%; min-height:56px; margin:0 0 6px; text-align:left; } #names details.story .btn.seen { border-color:#49d17d; }
 @media (max-height: 500px) {
   #result .box { padding:8px 16px; } #result .lines { margin:6px 0 10px; font-size:14px; } #result .stars { font-size:26px; line-height:1.1; }
   #book-meter { padding:4px 12px 6px; }

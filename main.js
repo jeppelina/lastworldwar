@@ -19,6 +19,8 @@ import * as SK from './skills.js';
 import * as SFX from './skillfx.js';
 import { nodeIcon, crestIcon } from './skill-icons.js';
 import { Stage, SW, SH, GROUND } from './skill-stage.js';
+import * as ST from './story.js';
+import { playFull, mapCaption, armyPool } from './story-scenes.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY = 'larovarlden-spel-v4';
@@ -50,6 +52,8 @@ const pid = (p) => 'p' + (S.profiles.indexOf(p) + 1);           // p1, p2, p3 i 
 //                worn = nivå -> steget som bärs (högst ett per nivå). sparks = hur många sparks barnet har tjänat, och varifrån.
 //                Antalet sparks sparas aldrig: det räknas ur nivån, klarade världsbossar och boken (sparkSrc). En äldre klient
 //                känner inte typen och hoppar över den.
+//   story        berättelsen: händelser av typen 'story' (stunder barnet har sett, och förälderns nollställning) räknas ihop
+//                av ST.foldStory (story.js). En äldre klient känner inte typen och hoppar över den.
 const adopt = (p) => {
   const id = pid(p), evs = sync.eventsFor(id);
   Object.assign(p, sync.stateFor(id, today()));
@@ -69,6 +73,7 @@ const adopt = (p) => {
   if (prefs && prefs.name) p.name = prefs.name;                 // namnet följer med mellan enheter (ligger i hushållets skyddade data, inte i koden)
   levelKeep(p, evs);
   p.sparks = SK.pointsBreakdown(SK.sparkSrc(p)); p.skills = SK.foldSkills(evs, p.sparks.earned);      // efter levelKeep, som kan höja nivån
+  p.story = ST.foldStory(evs);
   save();
 };
 // Sparks som inte är använda. Hur många som är tjänade räknas i skills.js (sparkSrc: nivån, slagna världsbossar, boken).
@@ -150,7 +155,7 @@ function renderWho() {
     const b = document.createElement('button'), c = document.createElement('canvas');
     stage(c, 2, () => gearOf(p), () => p.look, () => p.skills);
     b.append(c, p.name); const sm = document.createElement('small'); sm.textContent = `Level ${p.level}`; b.appendChild(sm);
-    b.onclick = () => { unlock(); P = p; adopt(P); sync.sync(); enterMap(true); greetSparks(); };
+    b.onclick = () => { unlock(); P = p; adopt(P); sync.sync(); enterMap(true); greetSparks(); storyEnter(); };
     list.appendChild(b);
   });
 }
@@ -192,7 +197,7 @@ function passMinis() {
   }
   if (any) adopt(P);
 }
-function syncMap(jump) { passMinis(); mapHero(); MAP.load(starDone(), P.gold); pushMapInfo(); if (jump) { const cw = MAP.curWorld(); MAP.setView('world', cw < 0 ? MAP.worlds.length - 1 : cw, true); } }
+function syncMap(jump) { passMinis(); mapHero(); MAP.load(starDone(), P.gold); pushMapInfo(); pushStory(); if (jump) { const cw = MAP.curWorld(); MAP.setView('world', cw < 0 ? MAP.worlds.length - 1 : cw, true); } }
 function enterMap(jump) {
   show('map'); renderBar();
   if (!$('map-frame').src) $('map-frame').src = 'map/index.html?v=6'; else if (MAP) syncMap(jump);
@@ -302,7 +307,7 @@ function startBattle(k, i, node, w) {
   // Bossar med egen mekanik (boss/index.js, K.boss.on i balance.js). kept = ordstenar som står kvar från förra försöket:
   // de sparas bara på den här enheten (P.bossKeep), inte i händelseloggen.
   const bossFor = quiz && node.type === 'boss' ? (bt, def) => makeBoss(bt, def, { kept: (P.bossKeep || {})[w.id] || 0, young: !!P.young, data: BOSSDATA, svShow: heardFew, tempo: TEMPO }) : null;
-  battle = new Battle($('battle-root'), { profile: P, worldIdx: k, nodeIdx: i, node, words: wordsFor(k, i), quiz, bossFor, rewardMult: R.rewardFactor(P.level, node.rec), play, sfx, voiceIdle, onEnd: (r) => endBattle(r, k, i, node, w) });
+  battle = new Battle($('battle-root'), { profile: P, worldIdx: k, nodeIdx: i, node, words: wordsFor(k, i), quiz, bossFor, rewardMult: R.rewardFactor(P.level, node.rec), play, sfx, voiceIdle, army: ST.armyFor(P.story, ARMY, ARMY_TEST), onEnd: (r) => endBattle(r, k, i, node, w) });
   if ((P.runs || 0) < 3) { play('audio/en-listen.mp3'); toast('Listen, and choose the picture.' + sv('listen', 'Lyssna och välj bilden.')); }
 }
 // Ett ord har nått en ny högsta nivå i boken: xp bokförs direkt som en egen händelse, så att den finns kvar även om
@@ -363,7 +368,7 @@ function endBattle(r, k, i, node, w) {
   if (newSparks) btn('Choose power', 'big', choose);
   if (canPractice) btn('Practice words', pushy ? 'big' : 'alt big', () => goPractice(target[0], target[1]));
   if (!r.win) btn('Try again', pushy ? 'alt' : '', () => startBattle(k, i, node, w));
-  btn('Map', r.win && !newSparks ? '' : 'alt', toMap);
+  btn('Map', r.win && !newSparks ? '' : 'alt', r.win ? () => storyAfter(toMap) : toMap);      // efter en seger kan en stund ur berättelsen komma på vägen till kartan
   if (bs && r.win) sfx('level');                              // en boss som är hjälpt är värd en fanfar
   play(r.win ? 'audio/en-good-job.mp3' : 'audio/en-try-again.mp3');
 }
@@ -665,6 +670,56 @@ function greetSparks() {
   sfx('level');
 }
 
+// ---------- Berättelsen: korta stunder där kejsaren visar sig ----------
+// Tabellen och reglerna står i story.js, bilderna i story-scenes.js (helskärm) och map/story.js (på kartan).
+// P.story räknas ur händelserna i adopt. En stund bokförs som sedd i samma ögonblick som den börjar, med en engångsnyckel,
+// så att den inte spelas igen på en annan enhet eller efter en omstart. Den ger och tar ingenting: inget guld, ingen xp.
+// Uppspelning från föräldraskärmen (replay) bokför ingenting.
+let ARMY = [], ARMY_TEST = null, storyOn = null, storyT = 0, storyFixed;      // ARMY_TEST och storyFixed sätts bara av testkroken
+const strongWords = (p = P) => Object.values(p.words || {}).filter((r) => tierOf(r) >= STEEL).length;
+const storyDue = (on) => (P && P.story ? ST.due(P.story, { on, done: P.done || {}, strong: strongWords(), gateOpen: (k) => { const g = bossGate(k); return !g || g.open; } }) : null);
+// Det som ligger kvar på kartan efter sedda stunder (brännmärket, flaggan, ballongen i trädet).
+function pushStory() { if (MAP && MAP.story && P) MAP.story.set(ST.decor(P.story)); }
+function storySeen(m) { sync.record(pid(P), 'story', { op: 'seen', id: m.id }, { once: ST.onceKey(P.story, m.id) }); adopt(P); }
+// En helskärmsstund. then körs när den är slut eller förbitryckt. p = barnet vars hjälte syns i bilden.
+function storyFull(m, replay, then, p = P) {
+  if (storyOn) { if (then) then(); return; }
+  if (!replay) storySeen(m);
+  storyOn = { id: m.id, where: 'full' };
+  storyOn.stop = playFull(m, { play, look: p.look, gear: gearOf(p), t: storyFixed, onDone: () => { storyOn = null; pushStory(); if (then) then(); } });
+}
+// En stund på kartan. Spelas bara om barnet står på kartan inne i en värld och inget annat är uppe, annars väntar den
+// till nästa tillfälle (inget bokförs). Ett tryck var som helst avslutar den.
+function storyMap(m, replay) {
+  if (storyOn || !P || screen !== 'map' || !MAP || !MAP.story || MAP.view.mode !== 'world' || !$('result').hidden) return false;
+  if (!replay && P.story.seen[m.id]) return true;
+  if (!MAP.story.play(m.scene, { dur: m.dur + 0.5 })) return false;
+  MAP.closeCard();
+  if (!replay) storySeen(m);
+  const me = { id: m.id, where: 'map' };
+  const end = () => { if (storyOn !== me) return; clearTimeout(me.timer); me.close(); storyOn = null; pushStory(); if (MAP && MAP.story) MAP.story.stop(); };
+  me.stop = end; me.timer = setTimeout(end, m.dur * 1000);
+  me.close = mapCaption(m, { play, low: MAP.story.heroY() < 0.45, onTap: () => { if (storyOn !== me) return; clearTimeout(me.timer); me.timer = setTimeout(end, MAP.story.poke()); } });
+  storyOn = me;
+  return true;
+}
+// Försöker spela en kartstund om en liten stund (hjälten ska hinna gå klart, kartan hinna laddas), högst fyra försök.
+function storyLater(m, ms, replay) {
+  clearTimeout(storyT); const who = P; let tries = 0;
+  const go = () => { if (P !== who || screen !== 'map' || storyMap(m, replay) || ++tries > 3) return; storyT = setTimeout(go, 1500); };
+  storyT = setTimeout(go, ms);
+}
+// Barnet har valts på profilväljaren. Visas en annan ruta (nya sparks) får berättelsen vänta.
+function storyEnter() { const m = storyDue('enter'); if (!m || !$('result').hidden) return; if (m.where === 'full') storyFull(m, false, null); else storyLater(m, 1500); }
+// Efter en vunnen bana eller boss, på väg till kartan (fn tar barnet dit).
+function storyAfter(fn) { const m = storyDue('win'); if (!m) return fn(); if (m.where === 'full') return storyFull(m, false, fn); fn(); storyLater(m, 2600); }
+// Föräldern spelar upp en stund igen. En kartstund behöver kartan: då väljs barnet och kartan öppnas.
+function storyReplay(p, id) {
+  const m = ST.BY_ID[id]; if (!m || storyOn) return;
+  if (m.where === 'full') return storyFull(m, true, null, p);
+  P = p; adopt(P); enterMap(true); storyLater(m, 1500, true);
+}
+
 // Vad ett föremål ger, skrivet så att det går att jämföra: "+5 ⚔" eller "+8 ♥", och skillnaden mot det man har på sig.
 const statTag = (it) => `+${it.power} ${it.stat === 'atk' ? '⚔' : '♥'}`;
 function statLine(it) {
@@ -792,6 +847,7 @@ async function signUp(email, password) {
 // Inställningar per barn sparas som en händelse av typen 'prefs' (senaste gäller), så att de följer med mellan enheter.
 const savePrefs = (p, patch = {}) => { sync.record(pid(p), 'prefs', { reading: p.reading !== false, name: p.name, young: !!p.young, ...patch }); adopt(p); };
 const worldTitle = (k) => (CONTENT[k] && CONTENT[k].title) || `värld ${k + 1}`;
+const storyOpen = new Set();      // vilka barns rad "Berättelsen" som är utfälld på föräldraskärmen (den ritas om ofta)
 function namesForm() {
   const pct = (x) => Math.round(x * 100);
   return '<h3>Spelarna</h3><p class="dim">Namnen och inställningarna sparas i hushållets konto och syns på alla enheter som är inloggade.</p><div id="names">' +
@@ -800,13 +856,23 @@ function namesForm() {
       const gate = !g || bossDone ? '' : `<small>${worldTitle(k)}: ${g.have} av ${g.n} ord är ${g.tier} eller bättre, bossen öppnar vid ${g.need}.</small><button type="button" class="btn alt big" data-o="${i}">${forced ? 'Bossen är öppnad för hand. Stäng igen' : 'Öppna bossen för hand'}</button>`;
       const sp = p.sparks || { earned: 0, level: 0, bosses: 0, book: 0 }, used = p.skills ? SK.spent(p.skills) : 0;
       const powers = `<small>Krafter: ${sp.earned} sparks tjänade (nivå ${sp.level}, bossar ${sp.bosses}, boken ${sp.book}), ${used} använda, ${Object.keys((p.skills || {}).worn || {}).length} steg på.</small>` + (used ? `<button type="button" class="btn alt big" data-k="${i}">Nollställ krafter (alla sparks tillbaka)</button>` : '');
-      return `<div class="kid"><input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}"><label class="chk"><input type="checkbox" data-r="${i}" ${p.reading !== false ? 'checked' : ''}> Läser</label><label class="chk"><input type="checkbox" data-y="${i}" ${p.young ? 'checked' : ''}> Yngre barn</label>${gate}${powers}</div>`;
+      // Berättelsen: vilka stunder barnet har sett. Ett tryck på en stund spelar upp den igen (utan att bokföra något).
+      const sts = p.story || ST.fresh(), nSeen = ST.MOMENTS.filter((m) => sts.seen[m.id]).length;
+      const story = `<details class="story" data-s="${i}"${storyOpen.has(i) ? ' open' : ''}><summary>Berättelsen: ${nSeen} av ${ST.MOMENTS.length} stunder sedda</summary>` +
+        ST.MOMENTS.map((m) => `<button type="button" class="btn alt${sts.seen[m.id] ? ' seen' : ''}" data-m="${i}:${m.id}" aria-label="Spela upp ${m.sv}${sts.seen[m.id] ? ' (sedd)' : ''}">${sts.seen[m.id] ? '✓' : '▶'} ${m.sv}</button>`).join('') +
+        (sts.count ? `<button type="button" class="btn alt big" data-sr="${i}">Nollställ berättelsen</button>` : '') + '</details>';
+      return `<div class="kid"><input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}"><label class="chk"><input type="checkbox" data-r="${i}" ${p.reading !== false ? 'checked' : ''}> Läser</label><label class="chk"><input type="checkbox" data-y="${i}" ${p.young ? 'checked' : ''}> Yngre barn</label>${gate}${powers}${story}</div>`;
     }).join('') + `</div><p class="dim">Utan "Läser" får barnet nästan bara bilduppgifter, och högst två val när något ska läsas.</p>
     <p class="dim">"Yngre barn": ${pct(K.young.thin)} procent av orden på varje bana, bossen öppnar när ${pct(K.young.bossShare)} procent av världens ord är Steel (annars ${pct(K.gate.boss.share)}), och varje ord som blir starkare ger ${K.young.learnMult} gånger så mycket xp.</p>
     <p class="dim">"Öppna bossen för hand" släpper barnet förbi ordmätaren i den värld det står i. Använd den om barnet har fastnat.</p>
+    <p class="dim">Berättelsen: korta stunder där kejsaren visar sig, efter verkliga framsteg och med minst ${K.story.gap} vunna strider emellan. De ger och tar ingenting. Tryck på en stund för att spela upp den igen. "Nollställ berättelsen" gör att barnet får se dem på nytt, och det som stunderna har ändrat på kartan försvinner tills dess.</p>
     <p class="dim">Krafter (fliken Powers på Gear) ändrar bara hur hjälten ser ut. En spark på nivå ${K.skill.levelFirst} och sedan var ${K.skill.levelEvery}:e nivå, en per slagen världsboss och en per ${K.skill.bookStep} ord som nått Steel i boken (högst ${K.skill.bookMax}).</p>`;
 }
 function bindNames() {
+  // Berättelsen: fäll ut raden, spela upp en stund igen, eller nollställ (en händelse, så att det gäller på alla enheter).
+  document.querySelectorAll('#names details.story').forEach((el) => (el.ontoggle = () => { if (el.open) storyOpen.add(+el.dataset.s); else storyOpen.delete(+el.dataset.s); }));
+  document.querySelectorAll('#names button[data-m]').forEach((el) => (el.onclick = () => { const at = el.dataset.m.indexOf(':'); unlock(); storyReplay(S.profiles[+el.dataset.m.slice(0, at)], el.dataset.m.slice(at + 1)); }));
+  document.querySelectorAll('#names button[data-sr]').forEach((el) => (el.onclick = () => { const p = S.profiles[+el.dataset.sr]; if (!confirm(`Nollställa berättelsen för ${p.name}? Barnet får se stunderna igen, i takt med framstegen. Inget guld och inga ord påverkas.`)) return; sync.record(pid(p), 'story', { op: 'reset' }); adopt(p); sync.sync(); renderParent(); }));
   // Nollställ ett barns krafter: alla valda steg tas bort och alla sparks kommer tillbaka. Synkas som en vanlig händelse.
   document.querySelectorAll('#names button[data-k]').forEach((el) => (el.onclick = () => { const p = S.profiles[+el.dataset.k]; if (!confirm(`Nollställa krafterna för ${p.name}? Alla sparks kommer tillbaka och barnet får välja om.`)) return; sync.record(pid(p), 'skill', { op: 'respec' }); adopt(p); sync.sync(); renderParent(); if (P) renderBar(); }));
   document.querySelectorAll('#names input[data-r]').forEach((el) => (el.onchange = () => { savePrefs(S.profiles[+el.dataset.r], { reading: el.checked }); renderParent(); }));
@@ -870,6 +936,7 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
   for (const n of [1, 2, 3]) try { const c = await (await fetch(`content/world${n}.json`)).json(); c.items = c.items.filter((it) => it.isolated !== false); CONTENT[n - 1] = c; } catch (e) { console.error(`world${n}.json`, e); }
   for (const f of bossFiles()) try { BOSSDATA[f] = await (await fetch(f)).json(); } catch (e) { console.error(f, e); }      // saknas filen klarar sig bossen utan (se boss/sphinx.js)
   checkUpdate(); preloadPics();
+  armyPool().then((a) => { ARMY = a; });                              // kejsarens armé (berättelsen): släpps in i banorna av ST.armyFor
   for (const g of Object.values(MINI)) g.load().catch(() => {});     // minispelens kod hämtas i förväg, så att de går att öppna utan nät
   await sync.init({ ...SYNC_CONFIG, xpToLevel });
   S.profiles.forEach(adopt);
@@ -883,6 +950,8 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
     if (S.seenIntro) go(); else playIntro(root, { play, look: looks[0], onDone: go });
   } });
   window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, gate: (k) => bossGate(k), practice: (k) => practiceTarget(k), openBook, mapInfo: pushMapInfo, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, levelUp, mini: () => mini, openMini: (k, slot) => { const w = MAP.worlds[k], nd = typeof slot === 'number' ? w.nodes[slot] : w.side.find((x) => x.slot === slot); openMini(k, slot, nd); }, miniWords, pick: (n) => { P = S.profiles[n]; enterMap(true); }, tempo: (x) => (TEMPO = x), bossData: () => BOSSDATA,
+    // berättelsen: tabellen, barnets tillstånd, vad som står på tur, och krokar för att spela upp, frysa tiden (fix) och tvinga fram armén (army = sannolikhet)
+    story: { ST, state: () => P && P.story, due: storyDue, on: () => (storyOn ? storyOn.id : null), enter: storyEnter, after: storyAfter, replay: (id, p = P) => storyReplay(p, id), stop: () => { if (storyOn) storyOn.stop(); }, fix: (t) => (storyFixed = t), army: (x) => (ARMY_TEST = x), pool: () => ARMY },
     // skillträdet: reglerna, fliken, provscenen (step fryser klockan vid t sekunder och ritar en bildruta, run släpper den)
     SK, greetSparks, powers: { open: () => openGear('powers'), tap: (id) => tapPower(SK.NODES[id]), pick: pickPower, select: (id) => { pSel = id; renderGear(); }, stage: () => powersStage(), step: (t) => { pFixed = t; powersStage().frame(t); }, run: () => { pFixed = null; } } };
 })();

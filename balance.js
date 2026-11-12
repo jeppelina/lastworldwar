@@ -62,7 +62,12 @@
 //                   för första passet varje dag. Inte simulerat.
 //   v11  2026-11-12  Försprånget K.knownStart 4 -> 2,5: ett ord barnet kan första gången behöver nu fyra till fem rätta svar
 //                   för Steel (förut räckte två). Gäller bara nya svar: försprånget står sparat per svar i loggen.
-export const version = 11;
+//   v12  2026-11-12  Berättelsen (K.story, game/story.js): korta stunder med kejsaren, minst K.story.gap vunna strider emellan.
+//                   Efter stunden "w2-march" kan EN fiende i en vanlig bana bytas mot en ur kejsarens armé av samma typ
+//                   (K.story.army.chance per bana, högst K.story.army.max per bana, aldrig i en bossbana). Fiendens liv, skada,
+//                   guld och xp räknas som förut ur banans rek och typ, så inga andra tal är ändrade. Inte simulerat:
+//                   simulatorn skickar inte in någon armé och drar därför exakt samma slumptal som före ändringen.
+export const version = 12;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -139,6 +144,10 @@ export const K = {
     review: 0.3,                 // andel av uppgifterna som hämtar sitt ord ur tidigare världar (repetition)
     talkMs: 2600,                // så länge står en replik från bossen kvar (går att trycka bort)
   },
+  // Berättelsen (game/story.js). gap: så många vunna strider (banor eller bossar, omspel räknas) måste ligga mellan två
+  // stunder, om stunden inte har ett eget tal i tabellen. army: när kejsarens trupper har visat sig (stunden w2-march) kan
+  // en fiende i en vanlig bana bytas mot en ur armén av samma typ. chance = sannolikhet per bana, max = högst så många per bana.
+  story: { gap: 3, army: { chance: 0.2, max: 1 } },
   // Ung-läge (bocken "Yngre barn" per barn på föräldraskärmen). bossStones: antal ordstenar i en bossfight.
   young: { thin: 0.5, bossShare: 0.35, learnMult: 3, bossStones: 6 },
   // Skillträdet (game/skills.js): sparks låser upp steg som ändrar hur hjälten ser ut. Antalet sparks sparas aldrig, det

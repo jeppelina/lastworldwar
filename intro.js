@@ -171,7 +171,8 @@ function shard(g, cx, cy, r, rp, lv, rot = 0) {
 // pose: { menace: 0..1   höjer stjärnskärvan, ögonen lyser starkare och manteln fladdrar mer
 //         hand: [x, y]   valfritt: exakt var den främre handen ska vara (styr över menace)
 //         sil: true      ren silhuett (bara ögon och skärva lyser), för att skymta långt borta
-//         shard: false   utan stjärnskärva }
+//         shard: false   utan stjärnskärva
+//         fist: 0..1     den bakre armen höjs och näven skakar (arg). Utan fältet hänger armen som förut. }
 // Efteråt finns g.anchor.shard och g.anchor.eyes (skärmkoordinater) för den som vill lägga sken ovanpå.
 export function drawEmperor(g, t = 0, pose = {}) {
   const m = clamp(pose.menace ?? 0), sil = !!pose.sil;
@@ -245,8 +246,14 @@ export function drawEmperor(g, t = 0, pose = {}) {
   g.end();
   // Bakre armen: knuten näve längs sidan
   g.begin();
-  g.thick(13, -80 + b, 17, -65 + b, 7, A, 3); g.thick(17, -65 + b, 15, -52 + b, 6.5, A, 3); g.thick(16.4, -61 + b, 15.6, -56 + b, 9, A, 4); g.thick(15.6, -56 + b, 15.4, -54.5 + b, 9, TR, 3);
-  g.ell(15, -49 + b, 4.2, 4, A2);
+  if (pose.fist) {                                           // höjd, skakande näve
+    const fk = clamp(pose.fist), shk = sin(t * 18) * 1.5 * fk, ex = lerp(17, 24, fk), ey = lerp(-65, -88, fk) + b, hx = lerp(15, 21, fk) + shk, hy = lerp(-52, -103, fk) + b;
+    g.thick(13, -80 + b, ex, ey, 7, A, 3); g.thick(ex, ey, hx, hy, 6.5, A, 3); g.thick(lerp(ex, hx, 0.55), lerp(ey, hy, 0.55), lerp(ex, hx, 0.8), lerp(ey, hy, 0.8), 9, TR, 3);
+    g.ell(hx, hy - 3, 4.8, 4.6, A2);
+  } else {
+    g.thick(13, -80 + b, 17, -65 + b, 7, A, 3); g.thick(17, -65 + b, 15, -52 + b, 6.5, A, 3); g.thick(16.4, -61 + b, 15.6, -56 + b, 9, A, 4); g.thick(15.6, -56 + b, 15.4, -54.5 + b, 9, TR, 3);
+    g.ell(15, -49 + b, 4.2, 4, A2);
+  }
   g.end();
   // Axelskydd med taggar
   g.begin();
@@ -723,7 +730,9 @@ const sceneStar = {
     g.begin(); shard(g, tx, sy, 10.5, C.star, 4, sin(t * 1.1) * 0.12); g.end();
     g.begin(); shard(g, tx, sy, 5.5, C.white, 5, sin(t * 1.1) * 0.12); g.end({ outline: false, edge: false });
     // Kejsaren överst på tornet, liten och långt borta, sträcker sig mot stjärnan
-    g.push(tx + 1, by - 65, 0, 0.23); drawEmperor(g, t, { shard: false, hand: [-17, -109 + sin(t * 1.5) * 2] }); g.pop();
+    // st.emp (valfritt, sätts av berättelsens scener i story-scenes.js): { dy: pixlar upp, pose: extra fält till drawEmperor }
+    const emp = st.emp || {};
+    g.push(tx + 1, by - 65 - (emp.dy || 0), 0, 0.23); drawEmperor(g, t, { shard: false, hand: [-17, -109 + sin(t * 1.5) * 2], ...(emp.pose || {}) }); g.pop();
     st.ey = g.anchor.eyes;
     g.begin();
     g.set(round(st.ey[0]) - 1, round(st.ey[1]), C.fire, 5); g.set(round(st.ey[0]), round(st.ey[1]), C.spark, 5);
@@ -890,3 +899,6 @@ export function playIntro(el, { play, onDone, look, base = 'audio/intro/', scene
   const tick = setInterval(() => { if (t === undefined && !busy && stage.time() > LINES[i].dur) next(); }, 100);
   return cleanup;
 }
+
+// Byggstenar som berättelsens scener (story-scenes.js) återanvänder: scenen med rot och bildslinga, figurerna och småverktygen.
+export { makeRoot, makeStage, drawPage, drawFarTower, shard, spark, halo, glow, cloud, disc, box, sceneStar, C as PAL, hash, ease, clamp, lerp };

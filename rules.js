@@ -67,15 +67,23 @@ export function enemyStats(rec, ease, t, def) {
 }
 // roster: listan med fiender (world, tier, count). Väljer en fiende per strid, helst olika.
 // Banans nivå och lättnad läses ur node.rec och node.ease. Saknas de slås de upp i balance.js.
-export function buildRun(worldIdx, nodeIdx, node, roster, rnd = Math.random) {
+// army (valfri): { pool, chance, max } = kejsarens armé ur berättelsen (talen står under story.army i balance.js). Med sannolikheten chance byts högst
+// max av banans fiender mot en ur pool av SAMMA typ, aldrig i en bossbana. Värdena räknas som för den fiende som byttes ut,
+// så balansen är densamma. Utan army dras inga extra slumptal: simulatorn och gamla anrop ger samma följd som förut.
+export function buildRun(worldIdx, nodeIdx, node, roster, rnd = Math.random, army = null) {
   const info = node.rec != null ? node : nodeInfo(worldIdx, nodeIdx), rec = info.rec, ease = info.ease ?? 1;
   const inWorld = roster.filter((e) => e.world === worldIdx || e.world === -1);
   const byTier = (t) => { const c = inWorld.filter((e) => e.tier === t); return c.length ? c : roster.filter((e) => e.tier === t); };
-  const used = new Set();
-  return wavesFor(nodeIdx, node).map((t) => {
+  const used = new Set(), tiers = wavesFor(nodeIdx, node);
+  const defs = tiers.map((t) => {
     let def = pick(byTier(t), rnd); for (let i = 0; i < 6 && used.has(def.id); i++) def = pick(byTier(t), rnd); used.add(def.id);
-    return enemyStats(rec, ease, t, def);
+    return def;
   });
+  if (army && army.pool && army.chance > 0 && node.type !== 'boss' && rnd() < army.chance) {
+    const slots = tiers.map((t, i) => i).filter((i) => army.pool.some((e) => e.tier === tiers[i]));
+    for (let n = 0; n < (army.max || 1) && slots.length; n++) { const i = slots.splice(Math.floor(rnd() * slots.length), 1)[0]; defs[i] = pick(army.pool.filter((e) => e.tier === tiers[i]), rnd); }
+  }
+  return tiers.map((t, i) => enemyStats(rec, ease, t, defs[i]));
 }
 
 // ---------- En omgång (en bana): tillstånd och turordning ----------
