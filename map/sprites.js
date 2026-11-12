@@ -317,15 +317,17 @@
     p.outline(O);
     return PX.spr(p, { ax: 12, ay: 21, eyes: [[8, 10], [15, 10]] });
   }
-  function shop() {
-    const p = new Pix(19, 16), r = '#f04a38', w = '#fff6e0';
-    for (let j = 0; j < 5; j++) { const hw = 4 + j; for (let x = -hw; x <= hw; x++) p.set(9 + x, 1 + j, ((x + 16) >> 1) & 1 ? r : w); }
-    for (let x = -8; x <= 8; x++) p.set(9 + x, 6, ((x + 16) >> 1) & 1 ? '#a82a20' : '#cdbfa0');
-    p.rect(3, 7, 13, 7, '#f4dca4'); p.rect(12, 7, 4, 7, '#c8a870');
-    p.rect(5, 9, 3, 5, '#5a3a22'); p.set(7, 11, '#ffd84a');
-    p.rect(10, 9, 4, 3, '#3a2a44'); p.set(10, 10, '#ffd84a'); p.set(11, 10, '#58c060'); p.set(12, 10, '#ff8ad8'); p.set(13, 10, '#6ac8ff');
+  // Minispelets skylt på kartan: ett randigt tält med en stjärna på toppen och en gnista i öppningen.
+  function tent() {
+    const p = new Pix(21, 20), a = '#7a4cf0', b = '#ffd84a';
+    p.set(10, 1, '#fff3a8'); p.rect(9, 2, 3, 1, '#ffd84a'); p.set(10, 2, '#ffffff'); p.set(10, 3, '#ffd84a'); p.set(10, 4, '#f4e3b0');
+    for (let j = 0; j < 6; j++) { const hw = Math.floor(1 + j * 1.4); for (let x = -hw; x <= hw; x++) p.set(10 + x, 5 + j, ((Math.abs(x) + 1) >> 1) & 1 ? b : a); }
+    for (let x = -8; x <= 8; x++) p.set(10 + x, 11, ((Math.abs(x) + 1) >> 1) & 1 ? '#c8861c' : '#4f2fb0');
+    p.rect(4, 12, 13, 6, '#f4ead0'); p.rect(13, 12, 4, 6, '#d4c4a0');
+    p.rect(8, 13, 5, 5, '#2a2046');
+    p.set(10, 14, '#fff3a8'); p.set(9, 15, '#ffd84a'); p.set(10, 15, '#ffffff'); p.set(11, 15, '#ffd84a'); p.set(10, 16, '#fff3a8');
     p.outline(O);
-    return PX.spr(p, { ax: 9, ay: 12 });
+    return PX.spr(p, { ax: 10, ay: 16 });
   }
   PX.buildCommon = function () {
     const C = {};
@@ -339,8 +341,8 @@
     C.chest = PX.spr(PX.ascii(['.ooooooooo.', 'oWWWWWWWWDo', 'oyyyyyyyyYo', 'oWWWWWWWWDo', 'ooooyYooooo', 'oWWWyYWWWDo', 'oWWWWWWWWDo', 'oDDDDDDDDDo', '.ooooooooo.'], chestPal), { ay: 6 });
     C.chestOpen = PX.spr(PX.ascii(['.ooooooooo.', 'oWWWWWWWWDo', 'ooooooooooo', 'okyYyyyYyko', 'ooooooooooo', 'oWWWyYWWWDo', 'oWWWWWWWWDo', 'oDDDDDDDDDo', '.ooooooooo.'], chestPal), { ay: 6 });
     C.chestDark = Object.assign({}, C.chest, { cv: PX.tint(C.chest.cv, '#14102a', 0.6) });
-    C.shop = shop();
-    C.shopDark = Object.assign({}, C.shop, { cv: PX.tint(C.shop.cv, '#14102a', 0.6) });
+    C.tent = tent();
+    C.tentDark = Object.assign({}, C.tent, { cv: PX.tint(C.tent.cv, '#14102a', 0.6) });
     C.lock = PX.spr(PX.ascii(['..ooo..', '.oyyyo.', '.oy.yo.', 'ooooooo', 'oyyyyyo', 'oyyoyyo', 'oyyyyyo', 'ooooooo'], { o: O, y: '#c9c9de' }), { ay: 4 });
     C.star = PX.spr(PX.ascii(['..y..', '.yyy.', 'yyYyy', '.yYy.', '.y.y.'], { y: '#ffd84a', Y: '#fff3a8' }, true).outline(O));
     C.starOff = PX.spr(PX.ascii(['..y..', '.yyy.', 'yyyyy', '.yyy.', '.y.y.'], { y: '#4a4660' }, true).outline(O));

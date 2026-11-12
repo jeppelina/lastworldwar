@@ -26,7 +26,12 @@
 //                   Mätaren längs vägen (K.gate.node) är INTE påslagen. Första mötet med ett ord har fyra kort
 //                   (K.firstOptions), annars ger en gissning försprånget varannan gång.
 //                   Simulering: sim/out/learn-R.txt (raderna "spelet" = den här filen, "rekommenderat" = balans3 som simulerat).
-export const version = 2;
+//   v3  2026-11-12  Minispel på kartan (K.mini): lite guld första gången en minispelsnod spelas klart, några mynt en gång
+//                   per dag därefter, sedan inget. Ingen xp, ingen utrustning, inga ändringar i ordboken. Inga andra tal
+//                   är ändrade: fiender, xp, priser och rek per bana är som i v2. Butiksnoden på kartan är nu en
+//                   minispelsnod på samma plats i listan (rek null som förut). Simuleringen (learn.mjs --exp R) ger
+//                   samma tal som före ändringen: simulatorn spelar inte minispel och räknar inte deras guld.
+export const version = 3;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -77,6 +82,11 @@ export const K = {
   knownStart: 4,       // rätt svar första gången barnet möter ett ord ger ordet minst så här många poäng (försprång)
   firstOptions: 4,     // antal kort vid första mötet (skrivna val för barn som inte läser är alltid två, och ger då inget försprång)
   wordShare: 1,        // andel av varje banas ord som används (introduce och phrases, de första i listan). 1 = alla.
+  // Minispel (noderna av typen 'mini' i map/data.js och sidostoppen). Guldet räknas som fiendeguld på nodens rek, så att det
+  // växer med världarna: first = så många fienders guld första gången noden spelas klart (vinst eller inte), daily = första
+  // omgången per dag därefter. Fler omgångar samma dag ger inget. Jämför: en bana ger ungefär 5 till 7 fienders guld plus
+  // banbonusen 4 första gången, en kista 12. youngLevel: så många storlekar mindre spelar ett barn i ung-läget (lägst 1).
+  mini: { first: 5, daily: 1.5, youngLevel: -1 },
   // Ung-läge (bocken "Yngre barn" per barn på föräldraskärmen).
   young: { thin: 0.5, bossShare: 0.35, learnMult: 3 },
 };
@@ -93,7 +103,8 @@ export const TUNE = {
 };
 
 // ---------- Banorna: rekommenderad nivå (rek) och lättnad per nod ----------
-// Ordningen följer map/data.js (nod för nod). null = kista eller butik (de räknas efter närmast föregående bana).
+// Ordningen följer map/data.js (nod för nod). null = kista eller minispel (de räknas efter närmast föregående bana).
+// Listorna får aldrig bli längre eller kortare på mitten: nodindex är det som sparas i barnens framsteg.
 // ease: andel av fiendens liv och skada (1 om inget anges). En boss som visar sig för hård lappas här, inte i kurvorna.
 export const nodes = {
   rec: {

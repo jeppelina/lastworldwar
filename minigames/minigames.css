@@ -1,0 +1,114 @@
+/* Minispelen i spelet. Bygger på style.css (färger, .btn, header, .screen). Reglerna för spelen är kopierade från
+   prototypes/minigames/minigames.css och gäller bara inne i #mini-root, så att de inte krockar med resten av spelet. */
+#mini { background:#141622; }
+#mini header .back { min-height:56px; min-width:104px; }
+#mini header h2 { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+#mini-root { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; padding:8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); background:radial-gradient(circle at 50% 30%, #2b3157, #171a2c); overflow:hidden; touch-action:manipulation; -webkit-user-select:none; user-select:none; }
+#mini-root img.px, #mini-root canvas.px { image-rendering:pixelated; }
+
+/* Val mellan två spel (noden i Cloud Castle) */
+#mini-root .mg-choose { flex:1; min-height:0; display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap; align-content:center; }
+#mini-root .mg-choose button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-width:min(300px, 42vw); min-height:120px; padding:14px 18px; border-radius:20px; background:var(--panel); border:3px solid var(--gold); box-shadow:0 5px 0 #0d0e17; font-size:22px; }
+#mini-root .mg-choose button:active { transform:translateY(3px); box-shadow:0 2px 0 #0d0e17; }
+#mini-root .mg-choose small { color:var(--dim); font-weight:500; font-size:15px; }
+@media (orientation:portrait) { #mini-root .mg-choose { flex-direction:column; } #mini-root .mg-choose button { min-width:min(300px, 86vw); } }
+
+#mini-root .mg { flex:1; min-height:0; min-width:0; display:flex; flex-direction:column; gap:8px; }
+#mini-root .mg-status { flex:none; display:flex; align-items:center; gap:10px; min-height:30px; color:var(--dim); font-size:14px; }
+#mini-root .mg-say { color:var(--text); font-size:17px; flex:1; min-width:0; }
+#mini-root .dots { display:flex; gap:5px; flex:none; } #mini-root .dots i { width:12px; height:12px; border-radius:50%; background:#0f1120; border:2px solid #555c80; } #mini-root .dots i.on { background:#ffe14d; border-color:#fff; } #mini-root .dots i.now { border-color:var(--gold); }
+#mini-root .mg-row { flex:1; min-height:0; min-width:0; display:flex; gap:10px; }
+@media (orientation:portrait) { #mini-root .mg-row { flex-direction:column; } }
+
+/* A board that always fits: the cell size comes from the container, never from the content. */
+#mini-root .fit { flex:1; min-height:0; min-width:0; container-type:size; display:grid; place-items:center; }
+#mini-root .grid { --gap:8px; --cell:min(calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols)), calc((100cqh - (var(--rows) - 1) * var(--gap)) / var(--rows)), var(--max, 190px)); display:grid; grid-template-columns:repeat(var(--cols), var(--cell)); grid-auto-rows:var(--cell); gap:var(--gap); position:relative; }
+#mini-root .mtile { position:relative; display:grid; place-items:center; padding:0; overflow:hidden; border-radius:16px; border:3px solid #fff3; background:linear-gradient(#f7f1e3, #e3d8bf); box-shadow:0 5px 0 #8f8266; color:#1d1b2e; font-size:calc(var(--cell, 80px) * .5); line-height:1; min-width:0; min-height:0; }
+#mini-root .mtile:active { transform:translateY(3px); box-shadow:0 2px 0 #8f8266; }
+#mini-root .mtile .mpic { width:76%; height:76%; object-fit:contain; pointer-events:none; }
+#mini-root .mtile.txt, #mini-root .mtile .wtxt { font-size:clamp(15px, calc(var(--cell, 80px) * .22), 30px); font-weight:800; padding:2px; overflow-wrap:anywhere; text-align:center; }
+#mini-root .mtile.right { border-color:#49d17d; background:linear-gradient(#d9ffe6, #9fe8b9); }
+#mini-root .mtile.dim { opacity:.45; }
+#mini-root .mtile.shake, #mini-root .shake { animation:shake .35s; }
+#mini-root .mtile.glow { border-color:var(--gold); box-shadow:0 5px 0 #8f8266, 0 0 0 4px #ffc83d88; }
+#mini-root .mtile.dark { background:linear-gradient(#3b4263, #2a3050); box-shadow:0 5px 0 #171b30; color:var(--text); border-color:#fff2; }
+#mini-root .mtile.dark:active { box-shadow:0 2px 0 #171b30; }
+#mini-root .px { display:block; }
+#mini-root .rbtn { min-width:56px; min-height:56px; border-radius:16px; font-size:26px; background:linear-gradient(#7c6cff, #4b3bd6); box-shadow:0 4px 0 #2c2190; display:grid; place-items:center; padding:0 10px; }
+#mini-root .rbtn:active { transform:translateY(3px); box-shadow:0 1px 0 #2c2190; }
+#mini-root .rbtn.slow { background:linear-gradient(#3b4263, #2a3050); box-shadow:0 4px 0 #171b30; }
+#mini-root .rbtn.ok { background:linear-gradient(#7fe3a2, #35b866); box-shadow:0 4px 0 #1c7a40; color:#06301a; }
+#mini-root .rbtn.blink, #mini-root .mtile.blink { animation:mg-blink .35s 4 alternate; }
+@keyframes mg-blink { to { box-shadow:0 0 0 5px var(--gold); border-color:var(--gold); } }
+@keyframes mg-pop { from { transform:scale(.7); } to { transform:scale(1); } }
+
+/* result panel */
+#mini-root .mg-result { position:absolute; inset:0; z-index:20; display:grid; place-items:center; background:#0d0e17cc; padding:10px; }
+#mini-root .mg-result-box { max-width:560px; width:100%; max-height:100%; overflow-y:auto; background:var(--panel); border:3px solid var(--line); border-radius:22px; padding:14px 16px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; }
+#mini-root .mg-result-box h2 { margin:0; font-size:24px; } #mini-root .mg-result-box p { margin:0; color:var(--dim); font-weight:500; }
+#mini-root .mg-stars { font-size:38px; line-height:1; letter-spacing:6px; } #mini-root .mg-stars i { font-style:normal; color:#3a3f60; } #mini-root .mg-stars i.on { color:var(--gold); text-shadow:0 2px 0 #9a6200; }
+#mini-root .mg-learned { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+#mini-root .mg-chip { display:flex; align-items:center; gap:6px; min-height:44px; padding:4px 10px; border-radius:12px; background:var(--panel2); font-size:15px; } #mini-root .mg-chip .mpic { width:30px; height:30px; }
+#mini-root .mg-result-btns { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:4px; } #mini-root .mg-result-btns .btn { min-height:56px; min-width:130px; font-size:18px; }
+
+/* Spark Pairs */
+#mini-root .pairs .mtile.down { background:linear-gradient(#4a4f86, #2f3360); box-shadow:0 5px 0 #171b30; border-color:#fff2; }
+#mini-root .pairs .mtile.down .face { display:none; } #mini-root .pairs .mtile:not(.down) .backface { display:none; }
+#mini-root .pairs .backface { width:40%; } #mini-root .pairs .backface .px { width:100%; }
+#mini-root .pairs .mtile .face { display:grid; place-items:center; width:100%; height:100%; animation:mg-pop .15s; }
+#mini-root .pairs .mtile.gone { opacity:.28; box-shadow:none; transform:translateY(5px); pointer-events:none; }
+
+/* Light the Lanterns */
+#mini-root .lamps { display:flex; gap:4px; flex:none; } #mini-root .lamps .px { width:27px; height:auto; } #mini-root .lamps .off { opacity:.55; }
+#mini-root .lan-mid { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap; }
+#mini-root .lan-clue { display:flex; gap:8px; align-items:center; }
+#mini-root .lan-pic { width:clamp(64px, 22vmin, 150px); height:clamp(64px, 22vmin, 150px); border-radius:18px; background:linear-gradient(#f7f1e3, #e3d8bf); box-shadow:0 5px 0 #8f8266; display:grid; place-items:center; font-size:40px; padding:0; }
+#mini-root .lan-pic .mpic { width:80%; height:80%; object-fit:contain; } #mini-root .lan-pic.hidden .mpic { visibility:hidden; } #mini-root .lan-pic.hidden::after { content:'?'; position:absolute; color:#8f8266; font-size:44px; font-weight:900; } #mini-root .lan-pic { position:relative; }
+#mini-root .lan-clue .col { display:flex; flex-direction:column; gap:8px; }
+#mini-root .lslots { display:flex; gap:6px; justify-content:center; }
+#mini-root .lslots i { font-style:normal; width:clamp(34px, 9vw, 56px); height:clamp(44px, 11vw, 66px); border-radius:10px; background:#0f1120; border:3px solid #555c80; display:grid; place-items:center; font-size:clamp(24px, 6vw, 40px); font-weight:800; color:#fff; }
+#mini-root .lslots i.on { border-color:var(--gold); background:#2a2440; animation:mg-pop .15s; } #mini-root .lslots i.shown { border-color:#9fe8ff; color:#9fe8ff; }
+#mini-root .tray { flex:none; display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+#mini-root .tray button { width:56px; height:56px; border-radius:14px; font-size:28px; font-weight:800; color:#1d1b2e; background:linear-gradient(#f7f1e3, #e3d8bf); box-shadow:0 4px 0 #8f8266; border:3px solid #fff3; padding:0; }
+#mini-root .tray button:active { transform:translateY(3px); }
+#mini-root .tray button.hit { opacity:.55; border-color:#49d17d; box-shadow:none; pointer-events:none; } #mini-root .tray button.miss { opacity:.3; border-color:#8087a8; box-shadow:none; pointer-events:none; }
+
+/* Foggy Window */
+#mini-root .fogwrap { flex:1.4; min-height:0; min-width:0; display:flex; }
+#mini-root .fog { --gap:0px; border-radius:18px; overflow:hidden; background-color:#f7f1e3; background-size:82%; background-position:center; background-repeat:no-repeat; box-shadow:0 5px 0 #8f8266; }
+#mini-root .fog button { background:linear-gradient(135deg, #aeb8d6, #7d87ab); border:1px solid #c9d0e6; padding:0; }
+#mini-root .fog button.clear { opacity:0; pointer-events:none; }
+#mini-root .answers { flex:1; min-height:0; min-width:0; display:flex; flex-direction:column; gap:8px; justify-content:center; }
+@media (orientation:portrait) { #mini-root .answers { flex:none; flex-direction:row; } #mini-root .answers > * { flex:1; } }
+#mini-root .answers .opt { display:flex; gap:8px; align-items:stretch; min-width:0; }
+@media (orientation:portrait) { #mini-root .answers .opt { flex-direction:column; } }
+#mini-root .answers .wordbtn { flex:1; min-height:60px; border-radius:16px; background:linear-gradient(#f7f1e3, #e3d8bf); box-shadow:0 5px 0 #8f8266; color:#1d1b2e; font-size:clamp(18px, 3.4vmin, 30px); font-weight:800; text-align:center; display:grid; place-items:center; cursor:pointer; padding:4px 8px; }
+#mini-root .answers .rbtn { flex:1; min-height:60px; }
+#mini-root .answers.wait .wordbtn, #mini-root .answers.wait .ok { opacity:.4; }
+#mini-root .answers .right { outline:4px solid #49d17d; } #mini-root .answers .wrong { opacity:.35; }
+
+/* Mend the Path */
+#mini-root .pathboard { --gap:0px; }
+#mini-root .pathboard canvas { position:absolute; inset:0; width:100%; height:100%; image-rendering:pixelated; border-radius:14px; }
+#mini-root .pathboard .cells { position:absolute; top:0; bottom:0; left:var(--cell); right:var(--cell); display:grid; grid-template-columns:repeat(var(--pc), 1fr); grid-template-rows:repeat(var(--rows), 1fr); }
+#mini-root .pathboard .cells button { background:none; padding:0; border-radius:10px; } #mini-root .pathboard .cells button:active { background:#ffffff22; }
+
+/* Owl's Echo */
+#mini-root .owlbox { display:flex; align-items:center; gap:8px; flex:none; } #mini-root .owlbox .px { width:36px; height:36px; }
+#mini-root .echo .mtile.lit { border-color:var(--gold); background:linear-gradient(#fff6c9, #ffd66b); box-shadow:0 5px 0 #9a6200, 0 0 0 5px #ffc83daa; transform:scale(1.04); }
+#mini-root .echo.listen .mtile { pointer-events:none; }
+
+/* Word Bingo */
+#mini-root .bingo .mtile.marked { border-color:var(--gold); background:linear-gradient(#fff6c9, #ffd66b); }
+#mini-root .bingo .mtile.marked::after { content:''; position:absolute; right:6%; top:6%; width:22%; height:22%; border-radius:50%; background:radial-gradient(circle, #fff, #ffc83d 60%, #f08a1c); box-shadow:0 0 6px #ffc83d; }
+#mini-root .bingo .mtile.line { border-color:#49d17d; background:linear-gradient(#d9ffe6, #9fe8b9); }
+#mini-root .bside { flex:none; display:flex; flex-direction:column; gap:10px; justify-content:center; align-items:stretch; min-width:150px; }
+@media (orientation:portrait) { #mini-root .bside { flex-direction:row; } #mini-root .bside > * { flex:1; } }
+#mini-root .bside .calls { display:flex; gap:8px; } #mini-root .bside .calls .rbtn { flex:1; }
+#mini-root .bside .nothere { min-height:64px; font-size:18px; }
+
+/* Resultatrutan i spelet: belöningen, och knappar som är minst 56 punkter höga */
+#mini-root .mg-result-box .mg-gold { color:var(--gold); font-size:20px; font-weight:800; margin:0; }
+#mini-root .mg-gold small { display:block; color:var(--dim); font-weight:500; font-size:14px; }
+#mini-root .mg-chip { min-height:56px; } #mini-root .mg-chip .pimg { width:30px; height:30px; }
+@media (max-height:500px) { #mini-root .mg-result-box { padding:8px 14px; gap:5px; } #mini-root .mg-result-box h2 { font-size:20px; } #mini-root .mg-stars { font-size:28px; } }

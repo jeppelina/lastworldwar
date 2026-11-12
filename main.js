@@ -11,6 +11,8 @@ import * as R from './rules.js';
 import { K, version as BV } from './balance.js';
 import * as sync from './sync.js';
 import { SYNC_CONFIG } from './sync-config.js';
+import { MINI, miniFor } from './minigames/index.js';
+import { usable, esc } from './minigames/shared.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY = 'larovarlden-spel-v4';
@@ -35,6 +37,7 @@ const pid = (p) => 'p' + (S.profiles.indexOf(p) + 1);           // p1, p2, p3 i 
 //   look, prefs  senaste händelsen av typen gäller. young (ung-läge) läses ur den senaste prefs som har fältet, eftersom en
 //                äldre klient skriver prefs utan det
 //   open         bossar som föräldern har öppnat för hand (typen 'unlock', senaste per värld gäller)
+//   mini         kommer från sync.fold: per minispelsnod ('värld:nod') dagen den spelades klart första gången och senaste dagen den gav guld
 const adopt = (p) => {
   const id = pid(p), evs = sync.eventsFor(id);
   Object.assign(p, sync.stateFor(id, today()));
@@ -90,6 +93,8 @@ function playNow(url) {
 function play(url) { if (waiting >= 2) return voice; waiting++; voice = voice.then(() => playNow(url)).then(() => new Promise((r) => setTimeout(r, 180))).then(() => { waiting--; }); return voice; }
 const voiceIdle = () => voice;
 // Korta ljudeffekter som skapas direkt i webbläsaren: ett ljust pling för rätt, ett mörkt dunk för fel.
+// BLIP är minispelens små ljud (tryck, vänd kort, vrid, rätt, mjukt fel, klart): [frekvens, start, längd].
+const BLIP = { tap: [[520, 0, 0.05]], flip: [[660, 0, 0.05]], turn: [[440, 0, 0.04]], good: [[660, 0, 0.09], [990, 0.09, 0.14]], soft: [[300, 0, 0.12], [240, 0.1, 0.16]], win: [[523, 0, 0.1], [659, 0.1, 0.1], [784, 0.2, 0.1], [1047, 0.3, 0.25]] };
 function sfx(kind) {
   try {
     unlock(); const t = actx.currentTime, tone = (f0, f1, at, dur, type, vol) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t + at); o.frequency.exponentialRampToValueAtTime(f1, t + at + dur);
@@ -97,6 +102,7 @@ function sfx(kind) {
     if (kind === 'right') { tone(784, 784, 0, 0.11, 'triangle', 0.22); tone(1175, 1175, 0.1, 0.2, 'triangle', 0.22); }
     else if (kind === 'level') { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, f, i * 0.11, i === 4 ? 0.5 : 0.14, 'triangle', 0.24)); tone(262, 262, 0.44, 0.5, 'sine', 0.2); }
     else if (kind === 'wrong') { tone(220, 150, 0, 0.28, 'sawtooth', 0.12); tone(110, 80, 0, 0.3, 'sine', 0.2); }
+    else if (BLIP[kind]) for (const [f, at, len] of BLIP[kind]) tone(f, f, at, len + 0.02, 'triangle', 0.13);
   } catch (e) {}
 }
 
@@ -104,7 +110,7 @@ function sfx(kind) {
 const ICON = {};
 { const c = document.createElement('canvas'); c.width = c.height = 32; const ctx = c.getContext('2d'), g = new G(32, 32); for (const it of ITEMS) { g.clear(); drawIcon(g, it); ctx.clearRect(0, 0, 32, 32); g.paint(ctx); ICON[it.id] = c.toDataURL(); } }
 
-function show(id) { document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id)); screen = id; if (stale && id !== 'battle') location.reload(); }
+function show(id) { document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id)); screen = id; if (stale && id !== 'battle' && id !== 'mini') location.reload(); }
 let screen = 'who', toastT;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2200); }
 
@@ -133,8 +139,8 @@ window.GAME = {
   mapReady(m) { MAP = m; if (P) syncMap(true); },
   play(k, i, node, done) {
     const w = MAP.worlds[k];
+    if (node.type === 'mini') return openMini(k, node.slot != null ? node.slot : i, node);      // i = nodindex, eller sidostoppets id
     if (node.type === 'chest') { if (done) return toast('The chest is empty.'); const gold = R.chestGold(R.nodeInfo(w.id, i).rec); rec('stage', { world: w.id, node: i, kind: 'chest', win: true, stars: 1, gold, xp: 0, bv: BV }); toast(`You found ${gold} gold!`); MAP.finish(k, i, 1); return afterMapChange(); }
-    if (node.type === 'shop') { if (!done) { rec('stage', { world: w.id, node: i, kind: 'shop', win: true, stars: 1, gold: 0, xp: 0, bv: BV }); MAP.finish(k, i, 1); afterMapChange(); } return openShop(); }
     // Bossens ordmätare: bossen går att utmana först när tillräckligt många av världens ord är inlärda (eller föräldern har öppnat den).
     if (node.type === 'boss' && !done) { const g = bossGate(k); if (g && !g.open) { toast(meterText(g)); return goPractice(k, g.best); } }
     startBattle(k, i, node, w);
@@ -142,17 +148,33 @@ window.GAME = {
   // Kartans knapp "Practice words": till banan där flest ord kan växa.
   practice(k) { const t = practiceTarget(k); if (t) goPractice(t[0], t[1]); },
 };
-function afterMapChange() { P.done = JSON.parse(JSON.stringify(MAP.state.done)); MAP.state.gold = P.gold; pushMapInfo(); MAP.updateHud(); save(); renderBar(); }
+function afterMapChange() { P.done = JSON.parse(JSON.stringify(MAP.state.done)); passMinis(); MAP.state.gold = P.gold; pushMapInfo(); MAP.updateHud(); save(); renderBar(); }
 // Barnets egen gubbe i sin utrustning som markör på kartan (halv storlek).
 function mapHero() {
   if (!MAP || !MAP.setHero || !P) return;
   const g = new G(40, 38); g.push(0, 0, 0, 0.5); drawHero(g, P.look, gearOf(P), { t: 0, noShadow: true, noPet: true, noFx: true }); g.pop();
   const c = document.createElement('canvas'); c.width = 40; c.height = 38; g.paint(c.getContext('2d')); MAP.setHero(c, 19, 31);
 }
-function syncMap(jump) { mapHero(); MAP.load(P.done, P.gold); pushMapInfo(); if (jump) { const cw = MAP.curWorld(); MAP.setView('world', cw < 0 ? MAP.worlds.length - 1 : cw, true); } }
+// En minispelsnod i stigen spärrar aldrig: så fort barnet står vid den bokförs den som passerad (en stage-händelse utan
+// guld och xp, av samma slag som butiksnoden skrev förut), spelad eller inte. Regeln läser loggens tillstånd, inte
+// kartans, och nyckeln gör att två enheter skriver samma rad. En äldre klient ser händelsen som en klarad nod.
+function passMinis() {
+  if (!MAP || !P) return;
+  const done = sync.stateFor(pid(P), today()).done; let any = false;
+  for (const w of MAP.worlds) {
+    const d = done[w.id] || [];
+    for (let i = 0; i < w.nodes.length; i++) {
+      if (d[i]) continue;
+      if (i === 0 || w.nodes[i].type !== 'mini') break;
+      sync.record(pid(P), 'stage', { world: w.id, node: i, kind: 'mini', win: true, stars: 1, gold: 0, xp: 0, bv: BV }, { once: `pass:${w.id}:${i}` }); any = true;
+    }
+  }
+  if (any) adopt(P);
+}
+function syncMap(jump) { passMinis(); mapHero(); MAP.load(P.done, P.gold); pushMapInfo(); if (jump) { const cw = MAP.curWorld(); MAP.setView('world', cw < 0 ? MAP.worlds.length - 1 : cw, true); } }
 function enterMap(jump) {
   show('map'); renderBar();
-  if (!$('map-frame').src) $('map-frame').src = 'map/index.html?v=5'; else if (MAP) syncMap(jump);
+  if (!$('map-frame').src) $('map-frame').src = 'map/index.html?v=6'; else if (MAP) syncMap(jump);
 }
 
 // ---------- Orden per värld: vad som räknas, mätaren på bossen och var det lönar sig att öva ----------
@@ -191,15 +213,22 @@ function pushMapInfo() {
     worlds[w.id] = {
       best: hasC ? practiceNode(k) : -1,
       gate: bossI >= 0 && !done[bossI] ? withText(bossGate(k)) : null,
+      side: (w.side || []).map((nd) => miniInfo(w, nd, nd.after)),
       nodes: w.nodes.map((nd, i) => {
         const info = R.nodeInfo(w.id, i);
         if (nd.type === 'chest') return { gold: R.chestGold(info.rec) };
-        if (nd.type === 'shop') return {};
+        if (nd.type === 'mini') return miniInfo(w, nd, i);
         return { rec: info.rec, f: R.rewardFactor(P.level, info.rec), bonus: done[i] ? 0 : R.levelBonus({ type: nd.type, rec: info.rec }, true, true), left: hasC && nd.type === 'level' ? unlearned(k, i) : null };
       }),
     };
   });
   MAP.setInfo({ level: P.level, free: (K.falloff && K.falloff.free) || 0, worlds });
+}
+// Det kartan visar i rutan för ett minispel: spelets namn och en rad om vad man gör, guldet, och om dagens guld är hämtat.
+// anchor = nodindex som guldet räknas efter (nodens eget, eller noden som sidostoppet ligger efter).
+function miniInfo(w, nd, anchor) {
+  const gs = [].concat(nd.mini.game).filter((id) => MINI[id]).map((id) => MINI[miniFor(id, P.reading !== false)]), st = (P.mini || {})[w.id + ':' + nd.slot], rec = R.nodeInfo(w.id, anchor).rec, day = today();
+  return { mini: { name: gs.map((g) => g.name).join(' or '), desc: gs.length > 1 ? 'You choose.' : gs.length ? gs[0].desc : '', first: R.miniGold(rec, true), daily: R.miniGold(rec, false), played: !!(st && st.first), got: !!(st && (st.first === day || st.last === day)) } };
 }
 // Till kartan med rutan för en viss bana öppen.
 function goPractice(k, i) { enterMap(false); if (MAP) { afterMapChange(); if (i >= 0 && MAP.focus) MAP.focus(k, i); } }
@@ -226,6 +255,7 @@ function renderBar() {
 }
 $('b-book').onclick = () => openBook(); $('b-gear').onclick = () => openGear(); $('b-shop').onclick = () => openShop(); $('b-who').onclick = () => { P = null; renderWho(); show('who'); };
 document.querySelectorAll('.back').forEach((b) => (b.onclick = () => enterMap(false)));
+$('mini-back').onclick = () => leaveMini();
 
 // ---------- Strid ----------
 function wordsFor(k, i) { const n = words.length, off = (k * 6 + Math.floor(i / 3) * 3) % n; return Array.from({ length: 12 }, (_, j) => words[(off + j) % n]); }
@@ -284,6 +314,98 @@ function endBattle(r, k, i, node, w) {
   btn('Map', r.win ? '' : 'alt', () => { enterMap(false); if (r.win) { MAP.state.gold = P.gold; MAP.finish(k, i, r.stars); } afterMapChange(); });
   play(r.win ? 'audio/en-good-job.mp3' : 'audio/en-try-again.mp3');
 }
+
+// ---------- Minispel: en paus mellan striderna (noderna av typen 'mini' på kartan och sidostoppen) ----------
+// Spelen ligger i minigames/ och är kopior av prototyperna. Skalet ger dem ord, ljud och en resultatruta, och bokför guldet.
+// De ger aldrig xp eller utrustning och ändrar inte ordboken: svaren sparas bara under egna övningsnamn (mg_pairs och så vidare).
+let mini = null;                                             // det som pågår: { k, slot, nd, w, ids, id, level, mod, stop }
+const miniPlay = (it, o = {}) => play(typeof it === 'string' ? it : o.sv ? `audio/sv/${it.id}.mp3` : `audio/${it.audio}${o.slow ? '.slow' : ''}.mp3`);
+// Orden till ett minispel i värld k. need = { n, spell, minLen, maxLen } (se minigames/index.js). Bara ord med bild.
+// Ordning: ord barnet har mött i världen (de som vill repeteras först, sedan från svagast till starkast), sedan världens
+// övriga ord i den ordning banorna inför dem, och räcker inte det fylls det på från tidigare världar på samma sätt.
+// En värld utan innehållsfil (värld 4 till 6 i dag) lånar orden från närmast föregående värld som har en.
+// Ung-läget och K.wordShare gäller här också (contentFor), så ett bortgallrat ord dyker aldrig upp.
+function miniWords(k, need) {
+  const day = dayNum(), book = P.words || {}, out = [], seen = new Set();
+  let src = k; while (src > 0 && !CONTENT[src]) src--;
+  for (let j = src; j >= 0 && out.length < need.n; j--) {
+    const c = contentFor(j); if (!c) continue;
+    const rank = (it) => { const r = book[it.id]; return !r ? 99 : isDue(r, day) ? 0 : 1 + Math.max(0, tierOf(r)); };
+    const list = usable(c.items, { pic: true, spell: !!need.spell, minLen: need.minLen, maxLen: need.maxLen }).filter((it) => !seen.has(it.id) && !seen.has('en:' + it.en))
+      .map((it) => [rank(it), book[it.id] ? book[it.id].s : it.node || 0, Math.random(), it]).sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+    for (const x of list) { if (out.length >= need.n) break; out.push(x[3]); seen.add(x[3].id); seen.add('en:' + x[3].en); }
+  }
+  return out;
+}
+// Kartan anropar den här när barnet trycker Play på ett minispel. slot = nodindex, eller sidostoppets id ('s1').
+function openMini(k, slot, nd) {
+  const ids = [].concat(nd.mini && nd.mini.game).filter((id) => MINI[id]);
+  if (!ids.length) return toast('This game is not ready yet.');
+  if (battle) { battle.destroy(); battle = null; }
+  stopMini();
+  mini = { k, slot, nd, w: MAP.worlds[k], ids, id: null, level: 1, mod: null, stop: null };
+  $('result').hidden = true; show('mini'); $('mini-title').textContent = nd.name;
+  if (ids.length > 1) chooseMini(); else startMini(ids[0]);
+}
+// Noden med två spel: barnet väljer med två stora knappar.
+function chooseMini() {
+  const m = mini, root = $('mini-root'); stopMini(); $('mini-title').textContent = m.nd.name;
+  root.innerHTML = `<div class="mg-choose">${m.ids.map((id) => { const g = MINI[miniFor(id, P.reading !== false)]; return `<button data-id="${id}"><b>${g.name}</b><small>${g.desc}</small></button>`; }).join('')}</div>`;
+  root.querySelectorAll('button').forEach((b) => (b.onclick = () => { sfx('tap'); startMini(b.dataset.id); }));
+}
+async function startMini(id) {
+  const m = mini; if (!m) return;
+  // Den som inte läser får spelets läge utan läsning (Foggy Window i stället för Light the Lanterns). Ung-läget ger en storlek mindre.
+  m.id = miniFor(id, P.reading !== false); const g = MINI[m.id];
+  m.level = Math.max(1, Math.min(g.levels, (m.nd.mini.level || 1) + (P.young && K.mini ? K.mini.youngLevel || 0 : 0)));
+  $('mini-title').textContent = g.name;
+  try { m.mod = await g.load(); } catch (e) { console.error(e); toast('The game could not start.'); return leaveMini(); }
+  if (mini === m) runMini();                                 // annars hann barnet gå tillbaka medan spelet laddades
+}
+function stopMini() { if (mini && mini.stop) { try { mini.stop(); } catch (e) { console.error(e); } mini.stop = null; } $('mini-root').innerHTML = ''; }
+function runMini() {
+  const m = mini, g = MINI[m.id], root = $('mini-root'); stopMini();
+  const need = g.pool ? g.pool(m.level) : null, list = need ? miniWords(m.k, need) : [];
+  if (need && list.length < need.least) { toast('Meet more words in battle first.'); return leaveMini(); }
+  const stage = m.w.id + ':' + m.slot;
+  m.stop = m.mod.start(root, {
+    words: list, sentences: [], reading: P.reading !== false, level: m.level, world: m.k + 1, play: miniPlay, sfx,
+    // Varje svar sparas under spelets eget övningsnamn. Ordboken rörs inte (adopt läser bara händelser av typen 'words').
+    log: (it, right, chosen) => { if (mini === m && it && it.id) sync.record(pid(P), 'answer', { word: 'en:' + it.id, exercise: g.ex, correct: !!right, chosen: chosen != null ? String(chosen) : null, stage }); },
+    onDone: (res) => { if (mini !== m) return; if (m.stop) { try { m.stop(); } catch (e) {} m.stop = null; } miniDone(res || {}); },
+  }) || null;
+}
+// Guldet för en spelad omgång (vinst eller inte): första gången noden spelas klart, sedan dagens första omgång, sedan inget.
+// Nyckeln (once) ger händelsen samma id på alla enheter och fold räknar varje nyckel en gång, så två enheter kan inte
+// få guldet två gånger. Omgångar utan guld sparas också (utan nyckel), så att det går att se hur mycket spelen används.
+function miniPay(m, res) {
+  const key = m.w.id + ':' + m.slot, st = (P.mini || {})[key], day = today(), rec = R.nodeInfo(m.w.id, typeof m.slot === 'number' ? m.slot : m.nd.after).rec;
+  const kind = !st || !st.first ? 'first' : st.first !== day && st.last !== day ? 'daily' : 'play';
+  let gold = kind === 'play' ? 0 : R.miniGold(rec, kind === 'first');
+  const row = sync.record(pid(P), 'mini', { world: m.w.id, node: m.slot, game: m.id, level: m.level, won: !!res.won, stars: res.stars || 0, gold, day, kind, bv: BV }, kind === 'play' ? null : { once: `m:${key}:${kind === 'first' ? 'first' : day}` });
+  if (!row) gold = 0;                                        // nyckeln fanns redan i loggen
+  adopt(P);
+  return { gold, kind: gold ? kind : 'play' };
+}
+function miniDone(res) {
+  const m = mini, pay = miniPay(m, res), root = $('mini-root');
+  const stars = Math.max(0, Math.min(3, res.stars == null ? (res.won ? 3 : 1) : res.stars));
+  const met = (res.words || []).filter((w, i, a) => w && a.findIndex((x) => x.id === w.id) === i).slice(0, 12);
+  const el = document.createElement('div'); el.className = 'mg-result';
+  el.innerHTML = `<div class="mg-result-box"><h2>${res.won ? 'Well done!' : 'Nice try!'}</h2>
+    <div class="mg-stars">${[0, 1, 2].map((i) => `<i class="${i < stars ? 'on' : ''}">★</i>`).join('')}</div>
+    ${res.note ? `<p>${esc(res.note)}</p>` : ''}
+    <p class="mg-gold">${pay.gold ? `<span class="coin"></span>+${fmt(pay.gold)} gold<small>${pay.kind === 'first' ? 'First time here!' : "Today's gold."}</small>` : '<small>No more gold here today. Play for fun!</small>'}</p>
+    ${met.length ? `<div class="mg-learned">${met.map((w, i) => `<button data-i="${i}" class="mg-chip">${pic(w)}<span>${esc(w.en)}</span></button>`).join('')}</div>` : ''}
+    <div class="mg-result-btns"><button class="btn again">Play again</button>${m.ids.length > 1 ? '<button class="btn alt other">Other game</button>' : ''}<button class="btn alt map">Map</button></div></div>`;
+  el.querySelectorAll('.mg-chip').forEach((b) => (b.onclick = () => miniPlay(met[+b.dataset.i])));
+  el.querySelector('.again').onclick = () => runMini();
+  if (m.ids.length > 1) el.querySelector('.other').onclick = () => chooseMini();
+  el.querySelector('.map').onclick = () => leaveMini();
+  root.appendChild(el); sfx(res.won ? 'win' : 'good');
+  renderBar();
+}
+function leaveMini() { stopMini(); mini = null; enterMap(false); }
 
 // ---------- Level up: en egen skärm med fanfar som visar vad som blev bättre ----------
 function levelUp(before, then) {
@@ -440,7 +562,7 @@ function onSync(c) {
   S.profiles.forEach(adopt);
   for (const r of c.rejected || []) if (P && r.profileId === pid(P)) toast(`${BY_ID[r.item] ? BY_ID[r.item].name : 'An item'} was not bought. The gold was already used.`);
   if (screen === 'who') renderWho();
-  if (!P || screen === 'battle') return;                          // rita inte om mitt i en strid
+  if (!P || screen === 'battle' || screen === 'mini') return;     // rita inte om mitt i en strid eller ett minispel
   renderBar();
   if (screen === 'map' && MAP) syncMap(false);
   if (screen === 'gear') renderGear();
@@ -517,13 +639,13 @@ function goFullscreen() {
 
 // ---------- Uppdateringar ----------
 // En app på hemskärmen kan ligga öppen i dagar utan att laddas om. Därför jämförs versionen med servern vid start,
-// varje gång appen kommer fram igen och en gång i halvtimmen. Finns en nyare version laddas sidan om, men aldrig mitt i en strid.
+// varje gång appen kommer fram igen och en gång i halvtimmen. Finns en nyare version laddas sidan om, men aldrig mitt i en strid eller ett minispel.
 let BUILD = null, stale = false;
 const fetchBuild = async () => { try { const r = await fetch('version.json?' + Date.now(), { cache: 'no-store' }); return r.ok ? (await r.json()).build : null; } catch (e) { return null; } };
 async function checkUpdate() {
   const b = await fetchBuild(); if (!b) return;
   if (!BUILD) { BUILD = b; return; }
-  if (b !== BUILD) { stale = true; if (screen !== 'battle') location.reload(); }
+  if (b !== BUILD) { stale = true; if (screen !== 'battle' && screen !== 'mini') location.reload(); }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
 setInterval(checkUpdate, 30 * 60 * 1000);
@@ -535,6 +657,7 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
   words = (await (await fetch('audio/words.json')).json()).words;
   for (const n of [1, 2, 3]) try { CONTENT[n - 1] = await (await fetch(`content/world${n}.json`)).json(); } catch (e) { console.error(`world${n}.json`, e); }
   checkUpdate(); preloadPics();
+  for (const g of Object.values(MINI)) g.load().catch(() => {});     // minispelens kod hämtas i förväg, så att de går att öppna utan nät
   await sync.init({ ...SYNC_CONFIG, xpToLevel });
   S.profiles.forEach(adopt);
   sync.subscribe(onSync);
@@ -546,5 +669,5 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
     const go = () => { S.seenIntro = true; save(); renderWho(); show('who'); };
     if (S.seenIntro) go(); else playIntro(root, { play, look: looks[0], onDone: go });
   } });
-  window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, gate: (k) => bossGate(k), practice: (k) => practiceTarget(k), openBook, mapInfo: pushMapInfo, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, levelUp, pick: (n) => { P = S.profiles[n]; enterMap(true); } };
+  window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, gate: (k) => bossGate(k), practice: (k) => practiceTarget(k), openBook, mapInfo: pushMapInfo, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, levelUp, mini: () => mini, openMini: (k, slot) => { const w = MAP.worlds[k], nd = typeof slot === 'number' ? w.nodes[slot] : w.side.find((x) => x.slot === slot); openMini(k, slot, nd); }, miniWords, pick: (n) => { P = S.profiles[n]; enterMap(true); } };
 })();

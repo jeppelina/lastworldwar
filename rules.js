@@ -21,7 +21,7 @@ export function setConstants(patch, into = K) {
 // ---------- Banornas rekommenderade nivå ----------
 export const WORLD_IDS = Object.keys(NODES.rec);     // världarna i kartans ordning
 export const nodeCount = (world) => (NODES.rec[typeof world === 'number' ? WORLD_IDS[world] : world] || []).length;
-// world: index eller id. Returnerar { rec, ease, own }. Kistor och butiker saknar egen nivå (own = false)
+// world: index eller id. Returnerar { rec, ease, own }. Kistor och minispel saknar egen nivå (own = false)
 // och räknas efter närmast föregående bana.
 export function nodeInfo(world, i, src = NODES) {
   const id = typeof world === 'number' ? Object.keys(src.rec)[world] : world, recs = src.rec[id] || [], eases = (src.ease || {})[id] || [];
@@ -163,6 +163,8 @@ export function levelBonus(node, first, win) {
   return Math.round((first ? (node.type === 'boss' ? K.bossBonus : K.firstBonus) : K.replayBonus || 0) * enemyGold(node.rec));
 }
 export const chestGold = (rec) => Math.round(K.chestBonus * enemyGold(rec));
+// Guld för ett minispel på en nod med rekommenderad nivå rec: första gången noden spelas klart, eller dagens första omgång.
+export const miniGold = (rec, first) => (K.mini ? Math.max(1, Math.round((first ? K.mini.first : K.mini.daily) * enemyGold(rec))) : 0);
 // Xp när ett ord når en ny högsta nivå (tier) i ordboken: en andel av xp-kravet för hjältens nivå. mult: se learnMult.
 export function learnXp(tier, level, xpToLevel, mult = 1) {
   const L = K.learn, share = L ? L.share[Math.min(tier, L.share.length - 1)] : 0;

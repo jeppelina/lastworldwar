@@ -7,7 +7,13 @@
   const cv = document.getElementById('map'), ctx = cv.getContext('2d');
   const $ = (s) => document.querySelector(s);
   const C = PX.buildCommon();
-  const worlds = D.worlds.map((w) => Object.assign({}, w, { nodes: w.nodes.map(([type, name, trains, gold]) => ({ type, name, trains, gold })) }));
+  // En minispelsnod har ett femte fält (mini: { game, level }) och en plats (slot) som belöningen bokförs på: nodindex för
+  // noden i stigen, stoppets id för ett sidostopp (w.side). Sidostoppen tar ingen plats i nodlistan, se data.js.
+  const mk = ([type, name, trains, gold, mini]) => ({ type, name, trains, gold, mini });
+  const worlds = D.worlds.map((w) => Object.assign({}, w, {
+    nodes: w.nodes.map((n, i) => { const nd = mk(n); if (nd.type === 'mini') nd.slot = i; return nd; }),
+    side: (w.side || []).map((sd) => Object.assign(mk(sd.node), { slot: sd.id, after: sd.after }))
+  }));
   const qs = new URLSearchParams(location.search);
 
   let S = 2, vw = 0, vh = 0;
@@ -34,6 +40,9 @@
     });
   }
   const curNode = (w) => state.done[w.id].indexOf(0);
+  // En minispelsnod i stigen spärrar aldrig: den räknas som passerad så fort barnet står vid den, spelad eller inte.
+  // Spelets skal bokför samma sak med samma regel (passMinis i main.js).
+  function passMinis(w) { let c; while ((c = curNode(w)) > 0 && w.nodes[c].type === 'mini') state.done[w.id][c] = 1; }
   const worldDone = (w) => curNode(w) < 0;
   const unlocked = (i) => i === 0 || worldDone(worlds[i - 1]);
   const curWorld = () => worlds.findIndex((w) => !worldDone(w));
@@ -301,11 +310,26 @@
     });
     const segs = spline(pts), samples = [];
     segs.forEach((seg) => { for (let s = 0; s < seg.length; s += 2) samples.push(seg[s]); });
+    // Sidostopp: en kort stickväg från stigen mellan nod `after` och nästa, ut till ett tält vid sidan. Platsen väljs bland
+    // några lägen på båda sidor om stigen: den som ligger längst från andra noder, deras skyltar (under) och stjärnor (över).
+    const sides = w.side.map((sd) => {
+      const seg = segs[Math.min(sd.after, segs.length - 1)], free = (q) => Math.min(...pts.map((p) => Math.min(Math.hypot(q.x - p.x, q.y - p.y), Math.hypot(q.x - p.x, q.y - p.y - 16) + 4, Math.hypot(q.x - p.x, q.y - p.y + 16) + 6)));
+      let best = null;
+      for (const f of [0.5, 0.36, 0.64]) for (const sg of [-1, 1]) for (const dist of [26, 32]) {
+        const mi = Math.round((seg.length - 1) * f), a = seg[Math.max(0, mi - 2)], b = seg[Math.min(seg.length - 1, mi + 2)], c = seg[mi], dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+        const q = { x: Math.round(c.x - sg * dy / L * dist), y: Math.round(c.y + sg * dx / L * dist), cx: c.x, cy: c.y }, inside = q.x >= 24 && q.x <= W - 24 && q.y >= 54 && q.y <= H - 48;
+        q.score = free(q) - Math.abs(f - 0.5) * 30 - (dist - 26) * 0.5 - (inside ? 0 : 60);
+        if (!best || q.score > best.score) best = q;
+      }
+      const p = { x: PX.clamp(best.x, 24, W - 24), y: PX.clamp(best.y, 54, H - 48) };
+      for (let s = 0; s <= 1; s += 0.08) samples.push({ x: best.cx + (p.x - best.cx) * s, y: best.cy + (p.y - best.cy) * s });
+      return p;
+    });
     const seed = 100 + k * 13;
     const ter = buildTerrain({
       W, H, seed, mode: 'world', names: [w.biome], samples,
-      plazas: pts.map((p, i) => ({ x: p.x, y: p.y + 1, r: w.nodes[i].type === 'boss' ? 13 : w.nodes[i].type === 'level' ? 8 : 9 })),
-      clear: pts.map((p, i) => ({ x: p.x, y: p.y - 6, r: w.nodes[i].type === 'boss' ? 17 : 11 })),
+      plazas: pts.map((p, i) => ({ x: p.x, y: p.y + 1, r: w.nodes[i].type === 'boss' ? 13 : w.nodes[i].type === 'level' ? 8 : 9 })).concat(sides.map((p) => ({ x: p.x, y: p.y + 1, r: 9 }))),
+      clear: pts.map((p, i) => ({ x: p.x, y: p.y - 6, r: w.nodes[i].type === 'boss' ? 17 : 11 })).concat(sides.map((p) => ({ x: p.x, y: p.y - 6, r: 12 }))),
       height: (x, y) => {
         const e = Math.min(x, y, W - 1 - x, H - 1 - y);
         let h = 0.5 + Math.min((e - 8) / 14, 0.4) + (PX.fbm(x / 24, y / 24, seed, 3) - 0.5) * 1.2;
@@ -318,7 +342,7 @@
     const clouds = Array.from({ length: Math.max(2, Math.round((W * H) / 40000)) }, (_, i) => ({ x: r() * W, y: 30 + r() * (H - 60), k: i % 3, v: 2 + r() * 2.5 }));
     const dens = { snow: 700, ember: 1500, leaf: 3200, firefly: 2200, sand: 2600, sparkle: 1000 }[B.particle] || 1e9;
     const parts = Array.from({ length: Math.round((W * H) / dens) }, () => ({ x: r() * W, y: r() * H, p: r() * 6.28, s: 0.5 + r() }));
-    return { W, H, ter, pts, segs, clouds, parts, kind: B.particle };
+    return { W, H, ter, pts, segs, sides, clouds, parts, kind: B.particle };
   }
   const getWorld = (k) => WV[k] || (WV[k] = buildWorld(k));
 
@@ -402,6 +426,16 @@
     ctx.fillStyle = gold ? '#ffd84a' : '#c3d0de'; rect(x + 1, y + 1, 3, 4); rect(x + 4, y + 1, 3, 4);
     ctx.fillStyle = '#1b1630'; rect(x + 4, y + 1, 1, 4);
   }
+  // Minispelets tält. Ett öppet tält glittrar, ett som inte är nått än är mörkt.
+  function drawTent(p, dark, t, seed) {
+    img(dark ? C.tentDark : C.tent, p.x, p.y);
+    if (dark) return;
+    const ph = ((t * 4 + seed * 1.7) | 0) % 7; ctx.fillStyle = '#fff6e0';
+    if (ph === 0) rect(p.x - 7, p.y - 12, 1, 1);
+    else if (ph === 1) { rect(p.x - 8, p.y - 12, 3, 1); rect(p.x - 7, p.y - 13, 1, 3); }
+    else if (ph === 3) rect(p.x + 7, p.y - 9, 1, 1);
+    else if (ph === 4) { rect(p.x + 6, p.y - 9, 3, 1); rect(p.x + 7, p.y - 10, 1, 3); }
+  }
   function stars3(x, y, n) { for (let s = 0; s < 3; s++) img(s < n ? C.star : C.starOff, x - 10 + s * 7 + 3, y + 6 - (s === 1 ? 2 : 0)); }
 
   let lastT = now();
@@ -463,7 +497,11 @@
   }
   function drawWorld(t, dt) {
     const k = view.world, w = worlds[k], m = getWorld(k), done = state.done[w.id], ci = curNode(w);
-    if (walk && (t - walk.t0) / walk.dur >= 1) { walk = null; busy = false; updateHud(); }
+    if (walk && (t - walk.t0) / walk.dur >= 1) {
+      // Framme vid nästa nod. Var den ett minispel är den redan passerad, och hjälten går vidare till noden efter.
+      const nx = walk.from + 1;
+      if (ci >= 0 && nx < ci) walk = { from: nx, t0: t, dur: 1.5 }; else { walk = null; busy = false; updateHud(); }
+    }
     const hp = heroPos(), walking = !!walk;
     if (view.follow) centerOn(hp, false);
     // lysande spår längs den avklarade stigen
@@ -472,6 +510,7 @@
     for (let s = 0; s < upto; s++) for (let j = 0; j < m.segs[s].length; j += 5, q++) {
       const p = m.segs[s][j]; ctx.fillStyle = (q - ((t * 7) | 0)) % 7 === 0 ? '#ffffff' : '#fff3a8'; rect(p.x, p.y, 1, 1);
     }
+    w.side.forEach((sd, j) => drawTent(m.sides[j], !done[sd.after], t, 5 + j));
     const order = m.pts.map((p, i) => i).sort((a, b) => m.pts[a].y - m.pts[b].y);
     for (const i of order) {
       const p = m.pts[i], nd = w.nodes[i], st = done[i] ? 'done' : i === ci && !walking ? 'cur' : (i === ci && walking) ? 'lock' : 'lock';
@@ -483,7 +522,7 @@
         if (st === 'done') stars3(p.x, p.y - 34, done[i]);
         else if (st === 'lock') img(C.lock, p.x + 11, p.y + 1);
       } else if (nd.type === 'chest') img(st === 'done' ? C.chestOpen : st === 'lock' ? C.chestDark : C.chest, p.x, p.y - (st === 'cur' ? ((t * 3) | 0) % 2 : 0));
-      else if (nd.type === 'shop') img(st === 'lock' ? C.shopDark : C.shop, p.x, p.y);
+      else if (nd.type === 'mini') drawTent(p, st === 'lock', t, i);
       else { img(st === 'done' ? C.nodeDone : st === 'cur' ? C.nodeCur : C.nodeLock, p.x, p.y); if (st === 'done') stars3(p.x, p.y - 20, done[i]); }
       // Rekommenderad nivå under banan, och på klarade banor hur många av banans ord som inte är inlärda än.
       const inf = nodeInf(w, i), wi = worldInf(w);
@@ -530,11 +569,30 @@
   function setHero(cvs, ax, ay) { heroSprite = cvs ? { cv: cvs, ax, ay } : null; }
   let toastT = 0;
   function toast(msg) { const el = $('#toast'); el.textContent = msg; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2200); }
-  const KIND = { level: 'Level', boss: 'Boss', chest: 'Treasure chest', shop: 'Shop' };
-  let cardNode = -1;
-  function openCard(i) {
-    const w = worlds[view.world], nd = w.nodes[i], d = state.done[w.id][i], ci = curNode(w), locked = !d && i !== ci, el = $('#card');
-    cardNode = i;
+  const KIND = { level: 'Level', boss: 'Boss', chest: 'Treasure chest' };
+  let cardNode = -1, cardSide = -1;
+  // Rutan för ett minispel: spelets namn, en rad om vad man gör, belöningen och Play. inf.mini kommer från spelets skal:
+  // { name, desc, first, daily, played, got } där got = dagens guld är redan hämtat.
+  function miniCard(w, nd, locked, inf) {
+    const el = $('#card'), mi = inf && inf.mini, coin = (n) => icon('coin', 'coin') + n + ' gold';
+    el.classList.add('mini');                                 // större knappar: rutan är till för de minsta också
+    el.querySelector('.kind').textContent = 'Mini-game in ' + w.name;
+    el.querySelector('h2').textContent = nd.name;
+    el.querySelector('.row i').textContent = 'Game';
+    el.querySelector('.trains').textContent = mi ? mi.name + '. ' + mi.desc : nd.trains;
+    el.querySelector('.lvrow').hidden = true; el.querySelector('.starrow').hidden = true; el.querySelector('.meter').hidden = true;
+    el.querySelector('.reward').innerHTML = !mi ? 'A little gold' : mi.got ? 'Collected today' : mi.played ? coin(mi.daily) + ' today' : coin(mi.first) + ' the first time';
+    el.querySelector('.note').textContent = locked ? 'Locked. Finish the levels before this one.' : mi && mi.got ? 'More gold tomorrow. You can still play for fun.' : 'A little break. You cannot lose here.';
+    const play = el.querySelector('.play');
+    play.hidden = false; el.querySelector('.practice').hidden = true; play.disabled = locked; play.textContent = locked ? 'Locked' : 'Play';
+    el.classList.add('on');
+  }
+  // i = nodindex i stigen. sj = index i världens sidostopp (då gäller inte i).
+  function openCard(i, sj) {
+    const w = worlds[view.world], isSide = sj != null && sj >= 0, nd = isSide ? w.side[sj] : w.nodes[i], d = isSide ? 0 : state.done[w.id][i], ci = curNode(w), locked = isSide ? !state.done[w.id][nd.after] : !d && i !== ci, el = $('#card');
+    cardNode = isSide ? -1 : i; cardSide = isSide ? sj : -1;
+    if (nd.type === 'mini') return miniCard(w, nd, locked, isSide ? ((worldInf(w) || {}).side || [])[sj] : nodeInf(w, i));
+    el.querySelector('.starrow').hidden = false; el.classList.remove('mini');
     const no = w.nodes.slice(0, i + 1).filter((x) => x.type === 'level').length;
     el.querySelector('.kind').textContent = (nd.type === 'level' ? 'Level ' + no : KIND[nd.type]) + ' in ' + w.name;
     el.querySelector('h2').textContent = nd.name;
@@ -546,7 +604,7 @@
     if (!lvRow.hidden) el.querySelector('.lv').innerHTML = `<b style="color:${lvColor(inf)}">Lv ${inf.rec}</b> <span>(you are Lv ${INFO.level})</span>`;
     const coin = (n) => icon('coin', 'coin') + n + ' gold';
     el.querySelector('.reward').innerHTML = !inf ? (nd.gold ? coin(nd.gold) : 'None')
-      : nd.type === 'chest' ? coin(inf.gold) : nd.type === 'shop' ? 'None'
+      : nd.type === 'chest' ? coin(inf.gold)
       : inf.bonus ? coin(inf.bonus) + ' the first time' : inf.f < 1 ? 'Small (' + Math.round(inf.f * 100) + '%)' : 'Gold and XP';
     el.querySelector('.stars').innerHTML = isStar(nd) ? [0, 1, 2].map((s) => icon(s < d ? 'star' : 'starOff')).join('') : 'No stars here';
     const notes = [];
@@ -563,10 +621,10 @@
     if (gate) meter.firstElementChild.style.width = Math.min(100, Math.round(100 * gate.have / Math.max(1, gate.need))) + '%';
     const play = el.querySelector('.play'), practice = el.querySelector('.practice');
     play.hidden = shut; practice.hidden = !shut;
-    play.disabled = locked; play.textContent = locked ? 'Locked' : nd.type === 'shop' ? 'Enter' : nd.type === 'chest' ? 'Open' : d ? 'Play again' : 'Play';
+    play.disabled = locked; play.textContent = locked ? 'Locked' : nd.type === 'chest' ? 'Open' : d ? 'Play again' : 'Play';
     el.classList.add('on');
   }
-  function closeCard() { $('#card').classList.remove('on'); cardNode = -1; }
+  function closeCard() { $('#card').classList.remove('on'); cardNode = -1; cardSide = -1; }
   let demoCount = 0;
   function completeCurrent(stars) {
     if (busy || view.mode !== 'world') return;
@@ -574,6 +632,7 @@
     const nd = w.nodes[ci], m = getWorld(k), p = m.pts[ci];
     closeCard();
     state.done[w.id][ci] = isStar(nd) ? (stars || 1) : 1;
+    passMinis(w);
     view.follow = true;
     if (ci + 1 < w.nodes.length) { busy = true; walk = { from: ci, t0: now() + 0.35, dur: 1.5 }; }
     else {
@@ -617,9 +676,10 @@
       else setView('world', best);
     } else {
       const m = getWorld(view.world), w = worlds[view.world];
-      let best = -1, bd = 1e9;
-      m.pts.forEach((p, i) => { const big = w.nodes[i].type === 'boss', d = Math.hypot(x - p.x, y - (p.y - (big ? 8 : 2))); if (d < (big ? 18 : 13) && d < bd) { bd = d; best = i; } });
-      if (best >= 0) openCard(best); else closeCard();
+      let best = -1, side = -1, bd = 1e9;
+      m.pts.forEach((p, i) => { const tp = w.nodes[i].type, big = tp === 'boss', mini = tp === 'mini', d = Math.hypot(x - p.x, y - (p.y - (big ? 8 : mini ? 5 : 2))); if (d < (big ? 18 : mini ? 15 : 13) && d < bd) { bd = d; best = i; } });
+      m.sides.forEach((p, j) => { const d = Math.hypot(x - p.x, y - (p.y - 5)); if (d < 15 && d < bd) { bd = d; side = j; } });
+      if (side >= 0) openCard(-1, side); else if (best >= 0) openCard(best); else closeCard();
     }
   }
   $('#back').onclick = () => setView('overview');
@@ -628,7 +688,11 @@
   $('#card .close').onclick = closeCard;
   // Bossens ordmätare är stängd: knappen leder till banan där flest ord kan växa (spelets skal väljer banan).
   $('#card .practice').onclick = () => { const k = view.world; closeCard(); if (window.parent && window.parent.GAME && window.parent.GAME.practice) window.parent.GAME.practice(k); };
-  $('#card .play').onclick = () => { const k = view.world, i = cardNode; closeCard(); if (window.parent && window.parent.GAME) window.parent.GAME.play(k, i, worlds[k].nodes[i], !!state.done[worlds[k].id][i]); };
+  $('#card .play').onclick = () => {
+    const k = view.world, i = cardNode, sj = cardSide, w = worlds[k]; closeCard();
+    if (!window.parent || !window.parent.GAME) return;
+    if (sj >= 0) window.parent.GAME.play(k, w.side[sj].slot, w.side[sj], false); else window.parent.GAME.play(k, i, w.nodes[i], !!state.done[w.id][i]);
+  };
 
   // ---------- start ----------
   // Största av de två måtten: vissa webbläsarlägen rapporterar en för liten innerHeight.
@@ -649,15 +713,15 @@
   resetState();
   // Spelets skal (game/index.html) äger tillståndet och läser in det här.
   function load(done, gold) {
-    worlds.forEach((w) => { const d = (done && done[w.id]) || []; state.done[w.id] = w.nodes.map((nd, i) => d[i] || 0); });
+    worlds.forEach((w) => { const d = (done && done[w.id]) || []; state.done[w.id] = w.nodes.map((nd, i) => d[i] || 0); passMinis(w); });
     state.gold = gold || 0; unlockAnim = owalk = walk = null; busy = false; try { updateHud(); } catch (e) {}
   }
   function finish(k, i, stars) {
     const w = worlds[k];
     if (i === curNode(w)) { if (view.mode !== 'world' || view.world !== k) setView('world', k, true); completeCurrent(stars); }
-    else { state.done[w.id][i] = Math.max(state.done[w.id][i], stars || 1); updateHud(); }
+    else { state.done[w.id][i] = Math.max(state.done[w.id][i], stars || 1); passMinis(w); updateHud(); }
   }
-  function setInfo(info) { INFO = info || null; if (cardNode >= 0 && view.mode === 'world') openCard(cardNode); }
+  function setInfo(info) { INFO = info || null; if ((cardNode >= 0 || cardSide >= 0) && view.mode === 'world') openCard(cardNode, cardSide); }
   // Visar en viss bana: byter till världen, ställer kameran på noden och öppnar dess ruta.
   function focus(k, i) {
     setView('world', k, true);

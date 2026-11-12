@@ -46,13 +46,17 @@ const order = (a, b) => a.ts - b.ts || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 //            (ingen kostnad, inget föremål). Guldet kan därför aldrig bli negativt.
 //   equip  : senaste i ordningen vinner per plats. Föremål man inte äger går inte att ta på.
 //   shop   : första hyllan som skapats för en dag gäller för den dagen.
+//   mini   : guld för ett minispel. Räknas bara om händelsen har en nyckel (payload.once), och bara första gången nyckeln
+//            ses: 'm:<värld>:<nod>:first' för första gången noden spelas klart, 'm:<värld>:<nod>:<dag>' för dagens omgång.
+//            Två enheter som spelar samma nod samma dag ger alltså guldet en gång. Ingen xp. En äldre klient känner inte
+//            typen och hoppar över den (den ser då inte guldet förrän den är uppdaterad, men inget går sönder).
 //   Okända typer och okända fält hoppas över (en äldre klient ser nyare händelser utan att gå sönder).
 // Returnerar samma form som profilerna i main.js (utan name, look och heard som stannar på enheten).
 export function fold(events, opts = {}) {
   const xpToLevel = opts.xpToLevel || defaultXpToLevel, day = opts.day || dayKey();
   const evs = [...events].sort(order);
   let earned = 0, spent = 0, xpTotal = 0, runs = 0, defeats = 0, shop = null;
-  const owned = [], has = new Set(), eq = {}, done = {}, chests = new Set(), rejected = [], once = new Set();
+  const owned = [], has = new Set(), eq = {}, done = {}, chests = new Set(), rejected = [], once = new Set(), mini = {};
   for (const e of evs) {
     const p = e.payload || {};
     if (e.type === 'stage') {
@@ -80,11 +84,19 @@ export function fold(events, opts = {}) {
       if (!p.item) delete eq[slot]; else if (has.has(p.item)) eq[slot] = p.item;
     } else if (e.type === 'shop') {
       if (p.day === day && !shop && Array.isArray(p.ids)) shop = { day: p.day, ids: p.ids.slice(), dream: null };
+    } else if (e.type === 'mini') {
+      if (p.once == null) continue;                               // utan nyckel går det inte att veta om guldet redan är givet
+      const k = String(p.once); if (once.has(k)) continue; once.add(k);
+      earned += Math.max(0, int(p.gold));
+      // Per nod ('värld:nod'): dagen då noden spelades klart första gången, och senaste dagen som gav guld.
+      const key = String(p.world || '') + ':' + String(p.node), d = String(p.day || ''), m = mini[key] || (mini[key] = { first: '', last: '' });
+      if (p.kind === 'first' && !m.first) m.first = d || '?';
+      if (d > m.last) m.last = d;
     }
   }
   let level = 1, xp = Math.max(0, xpTotal);
   for (let i = 0; i < 10000 && xp >= xpToLevel(level); i++) { xp -= xpToLevel(level); level++; }
-  return { level, xp, gold: Math.max(0, earned - spent), owned, eq, done, shop, seenShop: shop ? shop.day : '', runs, defeats, rejected };
+  return { level, xp, gold: Math.max(0, earned - spent), owned, eq, done, shop, seenShop: shop ? shop.day : '', runs, defeats, rejected, mini };
 }
 
 // ---------- Lagring ----------

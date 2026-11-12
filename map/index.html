@@ -50,7 +50,7 @@
   #card .lv span { color: #cdbfe6; font-size: 12px; }
   #card .meter { height: 10px; margin-top: 8px; background: #1b1630; border: 2px solid #f4e3b0; }
   #card .meter i { display: block; height: 100%; background: #c3d0de; }
-  .btn.big { min-height: 56px; }
+  .btn.big, #card.mini .acts .btn { min-height: 56px; }
 
   #toast { position: absolute; left: 50%; top: 76px; transform: translateX(-50%); padding: 8px 14px; font-size: 14px; text-align: center; max-width: calc(100vw - 40px); opacity: 0; transition: opacity .25s; pointer-events: none; }
   #toast.on { opacity: 1; }
@@ -71,7 +71,7 @@
   <div class="row"><i>Tränar</i><em class="trains"></em></div>
   <div class="row lvrow" hidden><i>Level</i><em class="lv"></em></div>
   <div class="row"><i>Reward</i><em class="reward"></em></div>
-  <div class="row"><i>Stars</i><em class="stars"></em></div>
+  <div class="row starrow"><i>Stars</i><em class="stars"></em></div>
   <div class="note"></div>
   <div class="meter" hidden><i></i></div>
   <div class="acts"><button class="btn go play">Play</button><button class="btn go big practice" hidden>Practice words</button><button class="btn alt close">Close</button></div>
