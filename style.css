@@ -341,3 +341,6 @@ header .back, #parent-back { min-height:46px; min-width:96px; padding:10px 18px;
 #gym .gym-done .lines { white-space:pre-line; line-height:1.7; } #gym .gym-done .chip { display:inline-block; border-radius:8px; padding:1px 8px; font-weight:700; margin:2px; }
 #gym .gym-done .acts { display:flex; gap:10px; justify-content:center; margin-top:12px; } #gym .gym-done .btn { min-height:56px; padding:10px 22px; }
 .gymbtn { min-height:46px; padding:8px 16px; border-radius:14px; background:linear-gradient(#7fe3a3, #2fae62); color:#062a16; font-weight:800; box-shadow:0 3px 0 #17703a; }
+#gym .gym-pick { flex:1; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; align-content:center; overflow-y:auto; }
+#gym .gym-opt { min-height:64px; border-radius:14px; padding:8px 12px; background:#39446e; color:#fff; font-weight:800; font-size:17px; box-shadow:0 3px 0 rgba(0, 0, 0, .35); }
+#gym .gym-opt small { display:block; font-weight:600; opacity:.85; font-size:13px; }

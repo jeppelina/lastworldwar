@@ -16,7 +16,7 @@ class GymQuiz extends Quiz {
       const s = pickOf(this.sentences.filter((x) => x !== this.lastSentence).length ? this.sentences.filter((x) => x !== this.lastSentence) : this.sentences);
       this.lastSentence = s; return { sentence: s, type: s.gap && Math.random() < 0.3 ? 'sentence_gap' : 'build_sentence' };
     }
-    const pool = this.own.filter((i) => i !== this.last && !this.seen.has(i.id)), all = pool.length ? pool : this.own.filter((i) => i !== this.last);
+    const pool = this.own.filter((i) => i !== this.last && !this.seen.has(i.id)), rest = this.own.filter((i) => i !== this.last), all = pool.length ? pool : rest.length ? rest : this.own;
     // Kan ordet stiga en nivå i dag? Dagskravet räknar med att ett rätt svar i dag ger en ny dag om ordet inte redan fått det.
     const canRise = (i) => { const r = this.book[i.id], n = nextNeed(r); return !!n && n.days - (r.ld !== this.day ? 1 : 0) <= 0; };
     const key = (i) => { const r = this.book[i.id]; return (canRise(i) ? 0 : 100) + (isDue(r, this.day) ? 0 : 20) + tierOf(r) * 2 - Math.min(1.9, r.s / 30); };
@@ -38,7 +38,7 @@ function build() {
 // o: { items (mötta ord), sentences, book, day, reading, play, sfx, save, questions, onAnswer(task, right, up), onDone(log) -> { words, xp, gold, bonus }, onClose() }
 export function openGym(o) {
   if (!el) build();
-  const $ = (q) => el.querySelector(q), total = o.questions || 15;
+  const $ = (q) => el.querySelector(q); let total = o.questions || 15;
   const wordEl = $('.word'), quizEl = $('.quiz'), done = $('.gym-done');
   let asked = 0, right = 0, closed = false, quiz = null;
   const close = () => { closed = true; quizEl.innerHTML = ''; wordEl.innerHTML = ''; o.onClose(); };
@@ -49,10 +49,23 @@ export function openGym(o) {
     $('.gym-tip').textContent = 'Meet more words in battle first. Then come back to train them!'; $('.gym-dots').innerHTML = ''; $('.gym-count').textContent = '';
     wordEl.innerHTML = ''; quizEl.innerHTML = ''; return;
   }
-  const content = { items: o.items.map((it) => ({ ...it, node: 1 })), sentences: o.sentences || [], nodes: [{ n: 1, type: 'level', introduce: o.items.map((it) => it.id), phrases: [], sentences: (o.sentences || []).map((s) => s.id) }] };
+  // Välj vad som ska tränas: en nivå i taget (Wood till Iron, Iron till Steel ...) eller allt blandat.
+  if (o.tier === undefined) {
+    const groups = TIERS.map((t, i) => ({ t, i, n: o.items.filter((it) => tierOf(o.book[it.id]) === i).length })).filter((g) => g.n > 0 && g.i < TIERS.length - 1);
+    $('.gym-tip').innerHTML = 'What do you want to train? <small>(Vad vill du träna?)</small>'; $('.gym-dots').innerHTML = ''; $('.gym-count').textContent = ''; wordEl.innerHTML = '';
+    quizEl.innerHTML = '<div class="gym-pick"></div>'; const box = quizEl.querySelector('.gym-pick');
+    const add = (html, tier, style) => { const b = document.createElement('button'); b.className = 'gym-opt'; b.innerHTML = html; if (style) b.style.cssText = style; b.onclick = () => openGym({ ...o, tier, again: () => ({ ...o, tier: undefined }) }); box.appendChild(b); };
+    for (const g of groups) add(`<b>${g.t.name} → ${TIERS[g.i + 1].name}</b><small>${g.n} ${g.n === 1 ? 'word' : 'words'}</small>`, g.i, `background:linear-gradient(90deg, ${g.t.color}, ${TIERS[g.i + 1].color});color:${g.t.ink}`);
+    add(`<b>Mix</b><small>all ${o.items.length} words</small>`, -1, '');
+    return;
+  }
+  const mine = o.tier >= 0 ? o.items.filter((it) => tierOf(o.book[it.id]) === o.tier) : o.items;
+  if (o.tier >= 0) total = Math.min(total, Math.max(5, mine.length * 3));      // få ord på nivån: kortare pass, inte samma ord femton gånger
+  // Alla mötta ord finns med som felalternativ (reach), men frågorna gäller bara den valda nivåns ord (introduce).
+  const content = { items: o.items.map((it) => ({ ...it, node: 1 })), sentences: o.tier >= 0 ? [] : o.sentences || [], nodes: [{ n: 1, type: 'level', introduce: mine.map((it) => it.id), phrases: [], sentences: o.tier >= 0 ? [] : (o.sentences || []).map((s) => s.id) }] };
   quiz = new GymQuiz({ content, nodeIdx: 0, book: o.book, day: o.day, reading: o.reading, play: o.play, save: o.save, sfx: o.sfx, newCap: 0, onAnswer: o.onAnswer });
   quiz.seen = new Set();
-  $('.gym-tip').innerHTML = 'Train your words to make them stronger. <small>(Träna dina ord så blir de starkare.)</small>';
+  $('.gym-tip').innerHTML = (o.tier >= 0 ? `${TIERS[o.tier].name} → ${TIERS[o.tier + 1].name}: ` : '') + 'Train your words to make them stronger. <small>(Träna dina ord så blir de starkare.)</small>';
 
   const dots = () => { $('.gym-dots').innerHTML = Array.from({ length: total }, (_, i) => `<i class="${i < asked ? 'on' : ''}"></i>`).join(''); $('.gym-count').textContent = `${Math.min(asked + 1, total)} / ${total}`; };
   function ask() {
