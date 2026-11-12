@@ -63,8 +63,8 @@ export const BY_ID = Object.fromEntries(ITEMS.map((i) => [i.id, i]));
 // ---------- Dagens butik: bara några få val per dag, och ingen katalog att bläddra i ----------
 const hash = (str) => { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-export const SHOP_SIZE = 4;
-// Samma dag och samma barn ger samma hylla. Tre föremål som nivån räcker till (olika platser på kroppen om det går)
+export const SHOP_SIZE = 6;     // fem som nivån räcker till och ett drömföremål (var 4 till 2026-11-12)
+// Samma dag och samma barn ger samma hylla. Fem föremål som nivån räcker till (olika platser på kroppen om det går)
 // och ett "drömföremål" som är lite för dyrt eller kräver lite högre nivå, så att det finns något att spara mot.
 export function dailyShop(profile, day) {
   const r = rng(hash(profile.name + '|' + day)), owned = new Set(profile.owned);

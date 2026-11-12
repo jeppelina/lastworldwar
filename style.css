@@ -128,7 +128,7 @@ header h2 { flex:1; margin:0; font-size:18px; } header .back { background:var(--
   header { padding:4px 12px; } header h2 { font-size:16px; } header .back { padding:5px 10px; }
   .gearstage { gap:6px; padding:6px 8px; } .slot { width:52px; height:52px; } .slot img { width:36px; height:36px; } .slot small { font-size:9px; }
   .pill { padding:4px 10px; min-width:120px; } .pill b { font-size:18px; } .pill small { display:none; }
-  .offer { padding:6px; } .offer img { width:64px; height:64px; } #shop-list { grid-template-columns:repeat(4, 1fr); gap:6px; padding:6px; } .offer b { font-size:13px; }
+  .offer { padding:6px; } .offer img { width:64px; height:64px; } #shop-list { grid-template-columns:repeat(auto-fit, minmax(118px, 1fr)); gap:6px; padding:6px; } .offer b { font-size:13px; }
   #who h1 { font-size:22px; } #who { gap:10px; }
   #result .box { padding:12px 20px; } #result h2 { font-size:24px; } #result .stars { font-size:30px; }
   .teach .big { font-size:44px; } .teach b { font-size:26px; }
