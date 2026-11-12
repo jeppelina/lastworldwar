@@ -31,7 +31,11 @@
 //                   är ändrade: fiender, xp, priser och rek per bana är som i v2. Butiksnoden på kartan är nu en
 //                   minispelsnod på samma plats i listan (rek null som förut). Simuleringen (learn.mjs --exp R) ger
 //                   samma tal som före ändringen: simulatorn spelar inte minispel och räknar inte deras guld.
-export const version = 3;
+//   v4  2026-11-12  Barnen sprang igenom åtta banor på en kvart, kom till The Dark Path (rek 6) på nivå 3 och förlorade
+//                   16 gånger i rad utan att spela om något. xpBase 85 -> 42 (hälften så mycket xp per nivå, nivåerna stiger
+//                   direkt för alla eftersom nivån räknas ur summan) och guld per fiende 2 -> 2.6. Ordmätaren på bossen
+//                   är oförändrad, så orden måste fortfarande läras. Inte simulerat före lappen.
+export const version = 4;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -39,7 +43,7 @@ export const K = {
   // Fiendens värden räknas ur banans rekommenderade nivå (rek): tal * growth^(rek - 1) * banans lättnad * typfaktor.
   enemy: {
     hp: 60, atk: 4.4, growth: 1.10,     // liv och skada på rek 1, och tillväxten per rek-nivå (hör ihop med TUNE.heroGrowth)
-    gold: 2, goldGrowth: 1.065,         // guld per slagen fiende (hör ihop med TUNE.priceGrowth)
+    gold: 2.6, goldGrowth: 1.065,         // guld per slagen fiende (hör ihop med TUNE.priceGrowth)
     xp: 5, xpGrowth: 1.05,              // xp per slagen fiende (hör ihop med TUNE.xpGrowth)
   },
   // Fiendetyper: 1 = liten, 2 = mellan, 3 = stor, boss.
@@ -99,7 +103,7 @@ export const TUNE = {
   priceBase: 170, priceGrowth: 1.2155,         // pris = priceBase * priceGrowth^materialnivå * typens faktor * platsens faktor
   pricePet: 1.6, priceBack: 1.3,               // prisfaktor för följeslagare och ryggsaker (övriga platser använder sin styrkefaktor)
   levelPerTier: 4,                             // nivåkrav = 1 + materialnivå * levelPerTier + typens extra krav
-  xpBase: 85, xpGrowth: 1.05, xpRamp: 5,       // xp till nästa nivå = xpBase * min(nivå, xpRamp) / xpRamp * xpGrowth^(nivå - 1)
+  xpBase: 42, xpGrowth: 1.05, xpRamp: 5,       // xp till nästa nivå = xpBase * min(nivå, xpRamp) / xpRamp * xpGrowth^(nivå - 1)
 };
 
 // ---------- Banorna: rekommenderad nivå (rek) och lättnad per nod ----------

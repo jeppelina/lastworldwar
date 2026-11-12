@@ -32,7 +32,7 @@ export function dayKey(now = Date.now(), offsetDays = 0, timeZone = 'Europe/Stoc
 // ---------- Från händelser till tillstånd ----------
 // Samma kurva som catalog.js räknar ur balance.js (TUNE.xpBase 85, xpRamp 5, xpGrowth 1,05). Används bara om ingen kurva
 // skickas in. Modulen ska inte ha några beroenden, så talen står här också: sync.test.mjs kontrollerar att de stämmer.
-const defaultXpToLevel = (level) => Math.round(85 * Math.min(level, 5) / 5 * Math.pow(1.05, level - 1));
+const defaultXpToLevel = (level) => Math.round(42 * Math.min(level, 5) / 5 * Math.pow(1.05, level - 1));
 const int = (v) => (Number.isFinite(+v) ? Math.round(+v) : 0);
 const order = (a, b) => a.ts - b.ts || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
