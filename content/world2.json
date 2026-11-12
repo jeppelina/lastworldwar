@@ -83,6 +83,18 @@
    "foils": []
   },
   {
+   "id": "watch_tv",
+   "en": "watch TV",
+   "sv": "titta på tv",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "📺",
+   "say": "Watch TV.",
+   "audio": "watch_tv",
+   "node": 1,
+   "foils": []
+  },
+  {
    "id": "cheese",
    "en": "cheese",
    "sv": "ost",
@@ -164,6 +176,18 @@
    ]
   },
   {
+   "id": "play_football",
+   "en": "play football",
+   "sv": "spela fotboll",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "🥅",
+   "say": "Play football.",
+   "audio": "play_football",
+   "node": 2,
+   "foils": []
+  },
+  {
    "id": "hat",
    "en": "hat",
    "sv": "hatt",
@@ -201,16 +225,30 @@
   },
   {
    "id": "shirt",
-   "en": "shirt",
-   "sv": "tröja",
+   "en": "T-shirt",
+   "sv": "t-shirt",
    "pos": "noun",
    "cat": "clothes",
    "pic": "👕",
-   "say": "Shirt.",
+   "say": "T-shirt.",
    "audio": "shirt",
    "node": 3,
    "foils": [
     "hat"
+   ]
+  },
+  {
+   "id": "pants",
+   "en": "pants",
+   "sv": "byxor",
+   "pos": "noun",
+   "cat": "clothes",
+   "pic": "👖",
+   "say": "Pants.",
+   "audio": "pants",
+   "node": 3,
+   "foils": [
+    "sock"
    ]
   },
   {
@@ -380,6 +418,18 @@
    ]
   },
   {
+   "id": "play_video_games",
+   "en": "play video games",
+   "sv": "spela tv-spel",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "🎮",
+   "say": "Play video games.",
+   "audio": "play_video_games",
+   "node": 5,
+   "foils": []
+  },
+  {
    "id": "bed",
    "en": "bed",
    "sv": "säng",
@@ -479,6 +529,18 @@
    "accept": [
     "inn"
    ]
+  },
+  {
+   "id": "go_skiing",
+   "en": "go skiing",
+   "sv": "åka skidor",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "🎿",
+   "say": "Go skiing.",
+   "audio": "go_skiing",
+   "node": 6,
+   "foils": []
   },
   {
    "id": "plate",
@@ -1691,7 +1753,8 @@
     "bread",
     "banana",
     "cup",
-    "camel"
+    "camel",
+    "watch_tv"
    ],
    "phrases": [
     "ph_good_morning"
@@ -1708,7 +1771,8 @@
     "orange",
     "carrot",
     "hot",
-    "cold"
+    "cold",
+    "play_football"
    ],
    "phrases": [
     "ph_please"
@@ -1724,6 +1788,7 @@
     "shoe",
     "bag",
     "shirt",
+    "pants",
     "sock",
     "new",
     "old"
@@ -1760,7 +1825,8 @@
     "like",
     "want",
     "six",
-    "seven"
+    "seven",
+    "play_video_games"
    ],
    "phrases": [
     "ph_how_much"
@@ -1786,7 +1852,8 @@
     "clock",
     "my",
     "your",
-    "in"
+    "in",
+    "go_skiing"
    ],
    "phrases": [],
    "sentences": [

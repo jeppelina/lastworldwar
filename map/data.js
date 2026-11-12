@@ -52,16 +52,16 @@ window.GAME_DATA = {
       id: 'svamptrasket', name: 'Mushroom Swamp', biome: 'swamp',
       stage: 'Words', theme: 'Doing words',
       nodes: [
-        ['level', 'The Dock', 'run, jump, walk', 14],
-        ['level', 'The Lily Pond', 'swim, eat, drink', 14],
-        ['level', 'The Misty Glade', 'sleep, sit, stand', 16],
+        ['level', 'The Dock', 'walk, stop, hand', 14],
+        ['level', 'The Lily Pond', 'wave, clap, look', 14],
+        ['level', 'The Misty Glade', 'sit, stand, smile', 16],
         ['level', 'The Mushroom Ring', 'read, write, draw', 16],
         ['chest', 'Sunken Chest', 'A chest full of gold', 60],
-        ['level', 'The Frog Stone', 'sing, dance, play', 18],
-        ['level', 'The Witch Hut', 'open, close, give', 18],
+        ['level', 'The Frog Stone', 'sing, dance, climb', 18],
+        ['level', 'The Witch Hut', 'cook, give, help', 18],
         ['shop', 'Swamp Shop', 'Buy gear with your gold', 0],
-        ['level', 'Firefly Meadow', 'see, hear, say', 20],
-        ['level', 'The Root Cave', 'Mixed doing words', 20],
+        ['level', 'Firefly Meadow', 'think, say, he, she', 20],
+        ['level', 'The Root Cave', 'you, they, not, now', 20],
         ['boss', 'The Mumbling Witch', 'All words from Mushroom Swamp', 140]
       ]
     },

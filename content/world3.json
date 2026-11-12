@@ -1,0 +1,1857 @@
+{
+ "schema": 1,
+ "world": "svamptrasket",
+ "title": "Mushroom Swamp",
+ "locale": {
+  "target": "en-US",
+  "support": "sv-SE"
+ },
+ "about": "Genereras av prototypes/content/build_world3.py. Ändra där, inte här.",
+ "items": [
+  {
+   "id": "walk",
+   "en": "walk",
+   "sv": "gå",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "🚶",
+   "say": "Walk.",
+   "audio": "walk",
+   "node": 1,
+   "foils": []
+  },
+  {
+   "id": "stop",
+   "en": "stop",
+   "sv": "stanna",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "🛑",
+   "say": "Stop.",
+   "audio": "stop",
+   "node": 1,
+   "foils": []
+  },
+  {
+   "id": "hand",
+   "en": "hand",
+   "sv": "hand",
+   "pos": "noun",
+   "cat": "body",
+   "pic": "✋",
+   "say": "Hand.",
+   "audio": "hand",
+   "node": 1,
+   "foils": []
+  },
+  {
+   "id": "foot",
+   "en": "foot",
+   "sv": "fot",
+   "pos": "noun",
+   "cat": "body",
+   "pic": "🦶",
+   "say": "Foot.",
+   "audio": "foot",
+   "node": 1,
+   "foils": [
+    "hand"
+   ]
+  },
+  {
+   "id": "mushroom",
+   "en": "mushroom",
+   "sv": "svamp",
+   "pos": "noun",
+   "cat": "nature",
+   "pic": "🍄",
+   "say": "Mushroom.",
+   "audio": "mushroom",
+   "node": 1,
+   "foils": []
+  },
+  {
+   "id": "go",
+   "en": "go",
+   "sv": "gå, åka",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Go.",
+   "audio": "go",
+   "node": 1,
+   "foils": []
+  },
+  {
+   "id": "come",
+   "en": "come",
+   "sv": "komma",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Come.",
+   "audio": "come",
+   "node": 1,
+   "foils": [
+    "go"
+   ]
+  },
+  {
+   "id": "wave",
+   "en": "wave",
+   "sv": "vinka",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "👋",
+   "say": "Wave.",
+   "audio": "wave",
+   "node": 2,
+   "foils": [
+    "hand"
+   ]
+  },
+  {
+   "id": "clap",
+   "en": "clap",
+   "sv": "klappa händerna",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "👏",
+   "say": "Clap.",
+   "audio": "clap",
+   "node": 2,
+   "foils": [
+    "wave"
+   ]
+  },
+  {
+   "id": "eye",
+   "en": "eye",
+   "sv": "öga",
+   "pos": "noun",
+   "cat": "body",
+   "pic": "👁️",
+   "say": "Eye.",
+   "audio": "eye",
+   "node": 2,
+   "foils": [],
+   "accept": [
+    "i",
+    "aye"
+   ]
+  },
+  {
+   "id": "ear",
+   "en": "ear",
+   "sv": "öra",
+   "pos": "noun",
+   "cat": "body",
+   "pic": "👂",
+   "say": "Ear.",
+   "audio": "ear",
+   "node": 2,
+   "foils": [
+    "eye"
+   ]
+  },
+  {
+   "id": "look",
+   "en": "look",
+   "sv": "titta",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "👀",
+   "say": "Look.",
+   "audio": "look",
+   "node": 2,
+   "foils": [
+    "eye"
+   ]
+  },
+  {
+   "id": "hear",
+   "en": "hear",
+   "sv": "höra",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Hear.",
+   "audio": "hear",
+   "node": 2,
+   "foils": [],
+   "accept": [
+    "here"
+   ]
+  },
+  {
+   "id": "wash_my_hands",
+   "en": "wash my hands",
+   "sv": "tvätta händerna",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "🧼",
+   "say": "Wash my hands.",
+   "audio": "wash_my_hands",
+   "node": 2,
+   "foils": []
+  },
+  {
+   "id": "stand",
+   "en": "stand",
+   "sv": "stå",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "🧍",
+   "say": "Stand.",
+   "audio": "stand",
+   "node": 3,
+   "foils": [
+    "walk"
+   ]
+  },
+  {
+   "id": "sit",
+   "en": "sit",
+   "sv": "sitta",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Sit.",
+   "audio": "sit",
+   "node": 3,
+   "foils": [
+    "stand"
+   ]
+  },
+  {
+   "id": "nose",
+   "en": "nose",
+   "sv": "näsa",
+   "pos": "noun",
+   "cat": "body",
+   "pic": "👃",
+   "say": "Nose.",
+   "audio": "nose",
+   "node": 3,
+   "foils": [
+    "ear"
+   ]
+  },
+  {
+   "id": "mouth",
+   "en": "mouth",
+   "sv": "mun",
+   "pos": "noun",
+   "cat": "body",
+   "pic": "👄",
+   "say": "Mouth.",
+   "audio": "mouth",
+   "node": 3,
+   "foils": [
+    "nose"
+   ]
+  },
+  {
+   "id": "smile",
+   "en": "smile",
+   "sv": "le",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "😊",
+   "say": "Smile.",
+   "audio": "smile",
+   "node": 3,
+   "foils": []
+  },
+  {
+   "id": "cry",
+   "en": "cry",
+   "sv": "gråta",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "😢",
+   "say": "Cry.",
+   "audio": "cry",
+   "node": 3,
+   "foils": [
+    "smile"
+   ]
+  },
+  {
+   "id": "laugh",
+   "en": "laugh",
+   "sv": "skratta",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "😂",
+   "say": "Laugh.",
+   "audio": "laugh",
+   "node": 3,
+   "foils": [
+    "cry"
+   ]
+  },
+  {
+   "id": "wake_up",
+   "en": "wake up",
+   "sv": "vakna",
+   "pos": "verb",
+   "cat": "home",
+   "pic": null,
+   "say": "Wake up.",
+   "audio": "wake_up",
+   "node": 3,
+   "foils": []
+  },
+  {
+   "id": "write",
+   "en": "write",
+   "sv": "skriva",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "✍️",
+   "say": "Write.",
+   "audio": "write",
+   "node": 4,
+   "foils": [],
+   "accept": [
+    "right"
+   ]
+  },
+  {
+   "id": "draw",
+   "en": "draw",
+   "sv": "rita",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "🖍️",
+   "say": "Draw.",
+   "audio": "draw",
+   "node": 4,
+   "foils": [
+    "write"
+   ]
+  },
+  {
+   "id": "read",
+   "en": "read",
+   "sv": "läsa",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Read.",
+   "audio": "read",
+   "node": 4,
+   "foils": [
+    "write"
+   ],
+   "accept": [
+    "reed"
+   ]
+  },
+  {
+   "id": "pencil",
+   "en": "pencil",
+   "sv": "penna",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "✏️",
+   "say": "Pencil.",
+   "audio": "pencil",
+   "node": 4,
+   "foils": []
+  },
+  {
+   "id": "paper",
+   "en": "paper",
+   "sv": "papper",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "📄",
+   "say": "Paper.",
+   "audio": "paper",
+   "node": 4,
+   "foils": [
+    "pencil"
+   ]
+  },
+  {
+   "id": "do_homework",
+   "en": "do homework",
+   "sv": "göra läxan",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "📝",
+   "say": "Do homework.",
+   "audio": "do_homework",
+   "node": 4,
+   "foils": []
+  },
+  {
+   "id": "read_a_book",
+   "en": "read a book",
+   "sv": "läsa en bok",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "📚",
+   "say": "Read a book.",
+   "audio": "read_a_book",
+   "node": 4,
+   "foils": []
+  },
+  {
+   "id": "sing",
+   "en": "sing",
+   "sv": "sjunga",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "🎤",
+   "say": "Sing.",
+   "audio": "sing",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "dance",
+   "en": "dance",
+   "sv": "dansa",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "💃",
+   "say": "Dance.",
+   "audio": "dance",
+   "node": 6,
+   "foils": [
+    "sing"
+   ]
+  },
+  {
+   "id": "climb",
+   "en": "climb",
+   "sv": "klättra",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "🧗",
+   "say": "Climb.",
+   "audio": "climb",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "music",
+   "en": "music",
+   "sv": "musik",
+   "pos": "noun",
+   "cat": "thing",
+   "pic": "🎵",
+   "say": "Music.",
+   "audio": "music",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "play",
+   "en": "play",
+   "sv": "leka, spela",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Play.",
+   "audio": "play",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "listen_to_music",
+   "en": "listen to music",
+   "sv": "lyssna på musik",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "🎧",
+   "say": "Listen to music.",
+   "audio": "listen_to_music",
+   "node": 6,
+   "foils": [
+    "music"
+   ]
+  },
+  {
+   "id": "ride_a_bike",
+   "en": "ride a bike",
+   "sv": "cykla",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "🚲",
+   "say": "Ride a bike.",
+   "audio": "ride_a_bike",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "witch",
+   "en": "witch",
+   "sv": "häxa",
+   "pos": "noun",
+   "cat": "game",
+   "pic": "🧙",
+   "say": "Witch.",
+   "audio": "witch",
+   "node": 7,
+   "foils": []
+  },
+  {
+   "id": "cook",
+   "en": "cook",
+   "sv": "laga mat",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "🍲",
+   "say": "Cook.",
+   "audio": "cook",
+   "node": 7,
+   "foils": []
+  },
+  {
+   "id": "give",
+   "en": "give",
+   "sv": "ge",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "🎁",
+   "say": "Give.",
+   "audio": "give",
+   "node": 7,
+   "foils": []
+  },
+  {
+   "id": "take",
+   "en": "take",
+   "sv": "ta",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Take.",
+   "audio": "take",
+   "node": 7,
+   "foils": [
+    "give"
+   ]
+  },
+  {
+   "id": "close",
+   "en": "close",
+   "sv": "stänga",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Close.",
+   "audio": "close",
+   "node": 7,
+   "foils": []
+  },
+  {
+   "id": "help",
+   "en": "help",
+   "sv": "hjälpa",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Help.",
+   "audio": "help",
+   "node": 7,
+   "foils": []
+  },
+  {
+   "id": "clean_my_room",
+   "en": "clean my room",
+   "sv": "städa mitt rum",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "🧹",
+   "say": "Clean my room.",
+   "audio": "clean_my_room",
+   "node": 7,
+   "foils": []
+  },
+  {
+   "id": "take_a_shower",
+   "en": "take a shower",
+   "sv": "duscha",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "🚿",
+   "say": "Take a shower.",
+   "audio": "take_a_shower",
+   "node": 7,
+   "foils": [
+    "wash_my_hands"
+   ]
+  },
+  {
+   "id": "think",
+   "en": "think",
+   "sv": "tänka",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "🤔",
+   "say": "Think.",
+   "audio": "think",
+   "node": 9,
+   "foils": []
+  },
+  {
+   "id": "tooth",
+   "en": "tooth",
+   "sv": "tand",
+   "pos": "noun",
+   "cat": "body",
+   "pic": "🦷",
+   "say": "Tooth.",
+   "audio": "tooth",
+   "node": 9,
+   "foils": [
+    "mouth"
+   ]
+  },
+  {
+   "id": "leg",
+   "en": "leg",
+   "sv": "ben",
+   "pos": "noun",
+   "cat": "body",
+   "pic": "🦵",
+   "say": "Leg.",
+   "audio": "leg",
+   "node": 9,
+   "foils": [
+    "foot"
+   ]
+  },
+  {
+   "id": "arm",
+   "en": "arm",
+   "sv": "arm",
+   "pos": "noun",
+   "cat": "body",
+   "pic": "💪",
+   "say": "Arm.",
+   "audio": "arm",
+   "node": 9,
+   "foils": [
+    "leg"
+   ]
+  },
+  {
+   "id": "say",
+   "en": "say",
+   "sv": "säga",
+   "pos": "verb",
+   "cat": "action",
+   "pic": null,
+   "say": "Say.",
+   "audio": "say",
+   "node": 9,
+   "foils": [
+    "hear"
+   ],
+   "accept": [
+    "se"
+   ]
+  },
+  {
+   "id": "he",
+   "en": "he",
+   "sv": "han",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "He.",
+   "audio": "he",
+   "node": 9,
+   "foils": [],
+   "accept": [
+    "hee"
+   ]
+  },
+  {
+   "id": "she",
+   "en": "she",
+   "sv": "hon",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "She.",
+   "audio": "she",
+   "node": 9,
+   "foils": [
+    "he"
+   ]
+  },
+  {
+   "id": "we",
+   "en": "we",
+   "sv": "vi",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "We.",
+   "audio": "we",
+   "node": 9,
+   "foils": [],
+   "accept": [
+    "wee"
+   ]
+  },
+  {
+   "id": "hug",
+   "en": "hug",
+   "sv": "krama",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "🫂",
+   "say": "Hug.",
+   "audio": "hug",
+   "node": 10,
+   "foils": []
+  },
+  {
+   "id": "wait",
+   "en": "wait",
+   "sv": "vänta",
+   "pos": "verb",
+   "cat": "action",
+   "pic": "⏳",
+   "say": "Wait.",
+   "audio": "wait",
+   "node": 10,
+   "foils": [],
+   "accept": [
+    "weight"
+   ]
+  },
+  {
+   "id": "you",
+   "en": "you",
+   "sv": "du",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "You.",
+   "audio": "you",
+   "node": 10,
+   "foils": [
+    "we"
+   ]
+  },
+  {
+   "id": "they",
+   "en": "they",
+   "sv": "de",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "They.",
+   "audio": "they",
+   "node": 10,
+   "foils": [
+    "we"
+   ]
+  },
+  {
+   "id": "not",
+   "en": "not",
+   "sv": "inte",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "Not.",
+   "audio": "not",
+   "node": 10,
+   "foils": [],
+   "accept": [
+    "knot"
+   ]
+  },
+  {
+   "id": "now",
+   "en": "now",
+   "sv": "nu",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "Now.",
+   "audio": "now",
+   "node": 10,
+   "foils": []
+  },
+  {
+   "id": "today",
+   "en": "today",
+   "sv": "i dag",
+   "pos": "function",
+   "cat": "small",
+   "pic": null,
+   "say": "Today.",
+   "audio": "today",
+   "node": 10,
+   "foils": [
+    "now"
+   ]
+  },
+  {
+   "id": "get_dressed",
+   "en": "get dressed",
+   "sv": "klä på sig",
+   "pos": "verb",
+   "cat": "home",
+   "pic": null,
+   "say": "Get dressed.",
+   "audio": "get_dressed",
+   "node": 10,
+   "foils": []
+  },
+  {
+   "id": "ph_come_here",
+   "en": "Come here!",
+   "sv": "Kom hit!",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "say": "Come here!",
+   "audio": "ph_come_here",
+   "node": 1
+  },
+  {
+   "id": "ph_look",
+   "en": "Look!",
+   "sv": "Titta!",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "say": "Look!",
+   "audio": "ph_look",
+   "node": 2
+  },
+  {
+   "id": "ph_good_night",
+   "en": "Good night!",
+   "sv": "God natt!",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "say": "Good night!",
+   "audio": "ph_good_night",
+   "node": 3
+  },
+  {
+   "id": "ph_i_dont_know",
+   "en": "I don't know.",
+   "sv": "Jag vet inte.",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": null,
+   "say": "I don't know.",
+   "audio": "ph_i_dont_know",
+   "node": 9
+  }
+ ],
+ "sentences": [
+  {
+   "id": "e_wave_hand",
+   "node": 2,
+   "en": "I can wave.",
+   "sv": "Jag kan vinka.",
+   "say": "I can wave.",
+   "audio": "s/e_wave_hand",
+   "tiles": [
+    "I",
+    "can",
+    "wave"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "wave",
+     "foot",
+     "stop"
+    ]
+   }
+  },
+  {
+   "id": "e_see_mushroom",
+   "node": 2,
+   "en": "I can see a mushroom.",
+   "sv": "Jag kan se en svamp.",
+   "say": "I can see a mushroom.",
+   "audio": "s/e_see_mushroom",
+   "tiles": [
+    "I",
+    "can",
+    "see",
+    "a",
+    "mushroom"
+   ],
+   "gap": {
+    "index": 4,
+    "options": [
+     "mushroom",
+     "hand",
+     "foot"
+    ]
+   }
+  },
+  {
+   "id": "e_hear_frog",
+   "node": 2,
+   "en": "I can hear the frog.",
+   "sv": "Jag kan höra grodan.",
+   "say": "I can hear the frog.",
+   "audio": "s/e_hear_frog",
+   "tiles": [
+    "I",
+    "can",
+    "hear",
+    "the",
+    "frog"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "hear",
+     "look",
+     "walk"
+    ]
+   }
+  },
+  {
+   "id": "e_two_hands",
+   "node": 2,
+   "en": "Two hands.",
+   "sv": "Två händer.",
+   "say": "Two hands.",
+   "audio": "s/e_two_hands",
+   "tiles": [
+    "Two",
+    "hands"
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "hands",
+     "eyes",
+     "ears"
+    ]
+   }
+  },
+  {
+   "id": "e_big_nose",
+   "node": 3,
+   "en": "A big nose.",
+   "sv": "En stor näsa.",
+   "say": "A big nose.",
+   "audio": "s/e_big_nose",
+   "tiles": [
+    "A",
+    "big",
+    "nose"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "nose",
+     "mouth",
+     "ear"
+    ]
+   }
+  },
+  {
+   "id": "e_can_stand",
+   "node": 3,
+   "en": "I can stand.",
+   "sv": "Jag kan stå.",
+   "say": "I can stand.",
+   "audio": "s/e_can_stand",
+   "tiles": [
+    "I",
+    "can",
+    "stand"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "stand",
+     "sit",
+     "cry"
+    ]
+   }
+  },
+  {
+   "id": "e_dog_sit",
+   "node": 3,
+   "en": "The dog can sit.",
+   "sv": "Hunden kan sitta.",
+   "say": "The dog can sit.",
+   "audio": "s/e_dog_sit",
+   "tiles": [
+    "The",
+    "dog",
+    "can",
+    "sit"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "sit",
+     "stand",
+     "laugh"
+    ]
+   }
+  },
+  {
+   "id": "e_two_eyes",
+   "node": 3,
+   "en": "I have two eyes.",
+   "sv": "Jag har två ögon.",
+   "say": "I have two eyes.",
+   "audio": "s/e_two_eyes",
+   "tiles": [
+    "I",
+    "have",
+    "two",
+    "eyes"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "eyes",
+     "ears",
+     "hands"
+    ]
+   }
+  },
+  {
+   "id": "e_small_mouth",
+   "node": 3,
+   "en": "A small mouth.",
+   "sv": "En liten mun.",
+   "say": "A small mouth.",
+   "audio": "s/e_small_mouth",
+   "tiles": [
+    "A",
+    "small",
+    "mouth"
+   ],
+   "gap": {
+    "index": 1,
+    "options": [
+     "small",
+     "big",
+     "red"
+    ]
+   }
+  },
+  {
+   "id": "e_draw_cat",
+   "node": 4,
+   "en": "I can draw a cat.",
+   "sv": "Jag kan rita en katt.",
+   "say": "I can draw a cat.",
+   "audio": "s/e_draw_cat",
+   "tiles": [
+    "I",
+    "can",
+    "draw",
+    "a",
+    "cat"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "draw",
+     "write",
+     "read"
+    ]
+   }
+  },
+  {
+   "id": "e_new_pencil",
+   "node": 4,
+   "en": "I have a new pencil.",
+   "sv": "Jag har en ny penna.",
+   "say": "I have a new pencil.",
+   "audio": "s/e_new_pencil",
+   "tiles": [
+    "I",
+    "have",
+    "a",
+    "new",
+    "pencil"
+   ],
+   "gap": {
+    "index": 4,
+    "options": [
+     "pencil",
+     "paper",
+     "mushroom"
+    ]
+   }
+  },
+  {
+   "id": "e_write_paper",
+   "node": 4,
+   "en": "I can write on the paper.",
+   "sv": "Jag kan skriva på pappret.",
+   "say": "I can write on the paper.",
+   "audio": "s/e_write_paper",
+   "tiles": [
+    "I",
+    "can",
+    "write",
+    "on",
+    "the",
+    "paper"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "write",
+     "draw",
+     "read"
+    ]
+   }
+  },
+  {
+   "id": "e_want_draw",
+   "node": 4,
+   "en": "I want a red pencil.",
+   "sv": "Jag vill ha en röd penna.",
+   "say": "I want a red pencil.",
+   "audio": "s/e_want_draw",
+   "tiles": [
+    "I",
+    "want",
+    "a",
+    "red",
+    "pencil"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "red",
+     "new",
+     "old"
+    ]
+   }
+  },
+  {
+   "id": "e_can_sing",
+   "node": 6,
+   "en": "I can sing.",
+   "sv": "Jag kan sjunga.",
+   "say": "I can sing.",
+   "audio": "s/e_can_sing",
+   "tiles": [
+    "I",
+    "can",
+    "sing"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "sing",
+     "dance",
+     "climb"
+    ]
+   }
+  },
+  {
+   "id": "e_frog_dance",
+   "node": 6,
+   "en": "The frog can dance.",
+   "sv": "Grodan kan dansa.",
+   "say": "The frog can dance.",
+   "audio": "s/e_frog_dance",
+   "tiles": [
+    "The",
+    "frog",
+    "can",
+    "dance"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "dance",
+     "sing",
+     "climb"
+    ]
+   }
+  },
+  {
+   "id": "e_like_music",
+   "node": 6,
+   "en": "I like music.",
+   "sv": "Jag gillar musik.",
+   "say": "I like music.",
+   "audio": "s/e_like_music",
+   "tiles": [
+    "I",
+    "like",
+    "music"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "music",
+     "paper",
+     "mushroom"
+    ]
+   }
+  },
+  {
+   "id": "e_climb_tree",
+   "node": 6,
+   "en": "I can climb the tree.",
+   "sv": "Jag kan klättra i trädet.",
+   "say": "I can climb the tree.",
+   "audio": "s/e_climb_tree",
+   "tiles": [
+    "I",
+    "can",
+    "climb",
+    "the",
+    "tree"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "climb",
+     "sing",
+     "draw"
+    ]
+   }
+  },
+  {
+   "id": "e_witch_cook",
+   "node": 7,
+   "en": "The witch can cook.",
+   "sv": "Häxan kan laga mat.",
+   "say": "The witch can cook.",
+   "audio": "s/e_witch_cook",
+   "tiles": [
+    "The",
+    "witch",
+    "can",
+    "cook"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "cook",
+     "sing",
+     "climb"
+    ]
+   }
+  },
+  {
+   "id": "e_help_witch",
+   "node": 7,
+   "en": "I can help the witch.",
+   "sv": "Jag kan hjälpa häxan.",
+   "say": "I can help the witch.",
+   "audio": "s/e_help_witch",
+   "tiles": [
+    "I",
+    "can",
+    "help",
+    "the",
+    "witch"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "help",
+     "give",
+     "take"
+    ]
+   }
+  },
+  {
+   "id": "e_close_door",
+   "node": 7,
+   "en": "I can close the door.",
+   "sv": "Jag kan stänga dörren.",
+   "say": "I can close the door.",
+   "audio": "s/e_close_door",
+   "tiles": [
+    "I",
+    "can",
+    "close",
+    "the",
+    "door"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "close",
+     "open",
+     "cook"
+    ]
+   }
+  },
+  {
+   "id": "e_take_key",
+   "node": 7,
+   "en": "I can take the key.",
+   "sv": "Jag kan ta nyckeln.",
+   "say": "I can take the key.",
+   "audio": "s/e_take_key",
+   "tiles": [
+    "I",
+    "can",
+    "take",
+    "the",
+    "key"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "take",
+     "give",
+     "close"
+    ]
+   }
+  },
+  {
+   "id": "e_old_witch",
+   "node": 7,
+   "en": "The witch is old.",
+   "sv": "Häxan är gammal.",
+   "say": "The witch is old.",
+   "audio": "s/e_old_witch",
+   "tiles": [
+    "The",
+    "witch",
+    "is",
+    "old"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "old",
+     "new",
+     "small"
+    ]
+   }
+  },
+  {
+   "id": "e_he_sing",
+   "node": 9,
+   "en": "He can sing.",
+   "sv": "Han kan sjunga.",
+   "say": "He can sing.",
+   "audio": "s/e_he_sing",
+   "tiles": [
+    "He",
+    "can",
+    "sing"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "He",
+     "She",
+     "We"
+    ]
+   }
+  },
+  {
+   "id": "e_she_think",
+   "node": 9,
+   "en": "She can think.",
+   "sv": "Hon kan tänka.",
+   "say": "She can think.",
+   "audio": "s/e_she_think",
+   "tiles": [
+    "She",
+    "can",
+    "think"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "She",
+     "He",
+     "We"
+    ]
+   }
+  },
+  {
+   "id": "e_we_like_pizza",
+   "node": 9,
+   "en": "We like pizza.",
+   "sv": "Vi gillar pizza.",
+   "say": "We like pizza.",
+   "audio": "s/e_we_like_pizza",
+   "tiles": [
+    "We",
+    "like",
+    "pizza"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "We",
+     "He",
+     "She"
+    ]
+   }
+  },
+  {
+   "id": "e_he_is_fast",
+   "node": 9,
+   "en": "He is fast.",
+   "sv": "Han är snabb.",
+   "say": "He is fast.",
+   "audio": "s/e_he_is_fast",
+   "tiles": [
+    "He",
+    "is",
+    "fast"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "He",
+     "We",
+     "The"
+    ]
+   }
+  },
+  {
+   "id": "e_she_is_happy",
+   "node": 9,
+   "en": "She is happy.",
+   "sv": "Hon är glad.",
+   "say": "She is happy.",
+   "audio": "s/e_she_is_happy",
+   "tiles": [
+    "She",
+    "is",
+    "happy"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "happy",
+     "sad",
+     "old"
+    ]
+   }
+  },
+  {
+   "id": "e_big_tooth",
+   "node": 9,
+   "en": "A big tooth.",
+   "sv": "En stor tand.",
+   "say": "A big tooth.",
+   "audio": "s/e_big_tooth",
+   "tiles": [
+    "A",
+    "big",
+    "tooth"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "tooth",
+     "leg",
+     "arm"
+    ]
+   }
+  },
+  {
+   "id": "e_we_can_say",
+   "node": 9,
+   "en": "We can say hello.",
+   "sv": "Vi kan säga hej.",
+   "say": "We can say hello.",
+   "audio": "s/e_we_can_say",
+   "tiles": [
+    "We",
+    "can",
+    "say",
+    "hello"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "say",
+     "hear",
+     "think"
+    ]
+   }
+  },
+  {
+   "id": "e_you_can_wait",
+   "node": 10,
+   "en": "You can wait.",
+   "sv": "Du kan vänta.",
+   "say": "You can wait.",
+   "audio": "s/e_you_can_wait",
+   "tiles": [
+    "You",
+    "can",
+    "wait"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "You",
+     "They",
+     "He"
+    ]
+   }
+  },
+  {
+   "id": "e_they_like_music",
+   "node": 10,
+   "en": "They like music.",
+   "sv": "De gillar musik.",
+   "say": "They like music.",
+   "audio": "s/e_they_like_music",
+   "tiles": [
+    "They",
+    "like",
+    "music"
+   ],
+   "gap": {
+    "index": 0,
+    "options": [
+     "They",
+     "He",
+     "She"
+    ]
+   }
+  },
+  {
+   "id": "e_he_is_not_old",
+   "node": 10,
+   "en": "He is not old.",
+   "sv": "Han är inte gammal.",
+   "say": "He is not old.",
+   "audio": "s/e_he_is_not_old",
+   "tiles": [
+    "He",
+    "is",
+    "not",
+    "old"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "not",
+     "now",
+     "we"
+    ]
+   }
+  },
+  {
+   "id": "e_we_play_now",
+   "node": 10,
+   "en": "We can play now.",
+   "sv": "Vi kan leka nu.",
+   "say": "We can play now.",
+   "audio": "s/e_we_play_now",
+   "tiles": [
+    "We",
+    "can",
+    "play",
+    "now"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "now",
+     "not",
+     "they"
+    ]
+   }
+  },
+  {
+   "id": "e_hug_dog",
+   "node": 10,
+   "en": "I can hug my dog.",
+   "sv": "Jag kan krama min hund.",
+   "say": "I can hug my dog.",
+   "audio": "s/e_hug_dog",
+   "tiles": [
+    "I",
+    "can",
+    "hug",
+    "my",
+    "dog"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "hug",
+     "wait",
+     "think"
+    ]
+   }
+  },
+  {
+   "id": "e_they_are",
+   "node": 10,
+   "en": "They can dance today.",
+   "sv": "De kan dansa i dag.",
+   "say": "They can dance today.",
+   "audio": "s/e_they_are",
+   "tiles": [
+    "They",
+    "can",
+    "dance",
+    "today"
+   ],
+   "gap": {
+    "index": 3,
+    "options": [
+     "today",
+     "now",
+     "not"
+    ]
+   }
+  },
+  {
+   "id": "e_you_help",
+   "node": 10,
+   "en": "You can help now.",
+   "sv": "Du kan hjälpa till nu.",
+   "say": "You can help now.",
+   "audio": "s/e_you_help",
+   "tiles": [
+    "You",
+    "can",
+    "help",
+    "now"
+   ],
+   "gap": {
+    "index": 2,
+    "options": [
+     "help",
+     "hug",
+     "wait"
+    ]
+   }
+  }
+ ],
+ "nodes": [
+  {
+   "n": 1,
+   "type": "level",
+   "name": "The Dock",
+   "introduce": [
+    "walk",
+    "stop",
+    "hand",
+    "foot",
+    "mushroom",
+    "go",
+    "come"
+   ],
+   "phrases": [
+    "ph_come_here"
+   ],
+   "sentences": []
+  },
+  {
+   "n": 2,
+   "type": "level",
+   "name": "The Lily Pond",
+   "introduce": [
+    "wave",
+    "clap",
+    "eye",
+    "ear",
+    "look",
+    "hear",
+    "wash_my_hands"
+   ],
+   "phrases": [
+    "ph_look"
+   ],
+   "sentences": [
+    "e_wave_hand",
+    "e_see_mushroom",
+    "e_hear_frog",
+    "e_two_hands"
+   ]
+  },
+  {
+   "n": 3,
+   "type": "level",
+   "name": "The Misty Glade",
+   "introduce": [
+    "stand",
+    "sit",
+    "nose",
+    "mouth",
+    "smile",
+    "cry",
+    "laugh",
+    "wake_up"
+   ],
+   "phrases": [
+    "ph_good_night"
+   ],
+   "sentences": [
+    "e_big_nose",
+    "e_can_stand",
+    "e_dog_sit",
+    "e_two_eyes",
+    "e_small_mouth"
+   ]
+  },
+  {
+   "n": 4,
+   "type": "level",
+   "name": "The Mushroom Ring",
+   "introduce": [
+    "write",
+    "draw",
+    "read",
+    "pencil",
+    "paper",
+    "do_homework",
+    "read_a_book"
+   ],
+   "phrases": [],
+   "sentences": [
+    "e_draw_cat",
+    "e_new_pencil",
+    "e_write_paper",
+    "e_want_draw"
+   ]
+  },
+  {
+   "n": 5,
+   "type": "chest",
+   "name": "Sunken Chest",
+   "introduce": [],
+   "phrases": [],
+   "sentences": []
+  },
+  {
+   "n": 6,
+   "type": "level",
+   "name": "The Frog Stone",
+   "introduce": [
+    "sing",
+    "dance",
+    "climb",
+    "music",
+    "play",
+    "listen_to_music",
+    "ride_a_bike"
+   ],
+   "phrases": [],
+   "sentences": [
+    "e_can_sing",
+    "e_frog_dance",
+    "e_like_music",
+    "e_climb_tree"
+   ]
+  },
+  {
+   "n": 7,
+   "type": "level",
+   "name": "The Witch Hut",
+   "introduce": [
+    "witch",
+    "cook",
+    "give",
+    "take",
+    "close",
+    "help",
+    "clean_my_room",
+    "take_a_shower"
+   ],
+   "phrases": [],
+   "sentences": [
+    "e_witch_cook",
+    "e_help_witch",
+    "e_close_door",
+    "e_take_key",
+    "e_old_witch"
+   ]
+  },
+  {
+   "n": 8,
+   "type": "shop",
+   "name": "Swamp Shop",
+   "introduce": [],
+   "phrases": [],
+   "sentences": []
+  },
+  {
+   "n": 9,
+   "type": "level",
+   "name": "Firefly Meadow",
+   "introduce": [
+    "think",
+    "tooth",
+    "leg",
+    "arm",
+    "say",
+    "he",
+    "she",
+    "we"
+   ],
+   "phrases": [
+    "ph_i_dont_know"
+   ],
+   "sentences": [
+    "e_he_sing",
+    "e_she_think",
+    "e_we_like_pizza",
+    "e_he_is_fast",
+    "e_she_is_happy",
+    "e_big_tooth",
+    "e_we_can_say"
+   ]
+  },
+  {
+   "n": 10,
+   "type": "level",
+   "name": "The Root Cave",
+   "introduce": [
+    "hug",
+    "wait",
+    "you",
+    "they",
+    "not",
+    "now",
+    "today",
+    "get_dressed"
+   ],
+   "phrases": [],
+   "sentences": [
+    "e_you_can_wait",
+    "e_they_like_music",
+    "e_he_is_not_old",
+    "e_we_play_now",
+    "e_hug_dog",
+    "e_they_are",
+    "e_you_help"
+   ]
+  },
+  {
+   "n": 11,
+   "type": "boss",
+   "name": "The Mumbling Witch",
+   "introduce": [],
+   "phrases": [],
+   "sentences": []
+  }
+ ]
+}

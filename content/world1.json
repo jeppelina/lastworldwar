@@ -936,7 +936,7 @@
    "say": "Key.",
    "audio": "key",
    "have": true,
-   "node": 4,
+   "node": 3,
    "diff": 2,
    "cognate": false,
    "spell": false
@@ -1328,7 +1328,7 @@
    "say": "Sword.",
    "audio": "sword",
    "have": true,
-   "node": 7,
+   "node": 2,
    "diff": 2,
    "cognate": true,
    "spell": false,
@@ -1346,7 +1346,7 @@
    "say": "Shield.",
    "audio": "shield",
    "have": true,
-   "node": 7,
+   "node": 3,
    "diff": 2,
    "cognate": true,
    "spell": false,
@@ -1717,8 +1717,8 @@
    "pos": "function",
    "cat": "small",
    "pic": null,
-   "say": null,
-   "audio": null,
+   "say": "A.",
+   "audio": "a",
    "have": false,
    "node": 9,
    "diff": 3,
@@ -1745,8 +1745,8 @@
    "pos": "function",
    "cat": "small",
    "pic": null,
-   "say": null,
-   "audio": null,
+   "say": "The.",
+   "audio": "the",
    "have": false,
    "node": 9,
    "diff": 3,
@@ -2173,6 +2173,186 @@
    "cognate": false,
    "spell": false,
    "maxStage": 3
+  },
+  {
+   "id": "map",
+   "en": "map",
+   "sv": "karta",
+   "pos": "noun",
+   "cat": "game",
+   "pic": "🗺️",
+   "say": "Map.",
+   "audio": "map",
+   "node": 1,
+   "foils": []
+  },
+  {
+   "id": "breakfast",
+   "en": "breakfast",
+   "sv": "frukost",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🍳",
+   "say": "Breakfast.",
+   "audio": "breakfast",
+   "node": 2,
+   "foils": []
+  },
+  {
+   "id": "porridge",
+   "en": "porridge",
+   "sv": "gröt",
+   "pos": "noun",
+   "cat": "food",
+   "pic": "🥣",
+   "say": "Porridge.",
+   "audio": "porridge",
+   "node": 3,
+   "foils": []
+  },
+  {
+   "id": "enemy",
+   "en": "enemy",
+   "sv": "fiende",
+   "pos": "noun",
+   "cat": "game",
+   "pic": "👹",
+   "say": "Enemy.",
+   "audio": "enemy",
+   "node": 5,
+   "foils": []
+  },
+  {
+   "id": "go_to_bed",
+   "en": "go to bed",
+   "sv": "gå och lägga sig",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "🛌",
+   "say": "Go to bed.",
+   "audio": "go_to_bed",
+   "node": 5,
+   "foils": []
+  },
+  {
+   "id": "battle",
+   "en": "battle",
+   "sv": "strid",
+   "pos": "noun",
+   "cat": "game",
+   "pic": "⚔️",
+   "say": "Battle.",
+   "audio": "battle",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "brush_my_teeth",
+   "en": "brush my teeth",
+   "sv": "borsta tänderna",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "🪥",
+   "say": "Brush my teeth.",
+   "audio": "brush_my_teeth",
+   "node": 6,
+   "foils": []
+  },
+  {
+   "id": "spear",
+   "en": "spear",
+   "sv": "spjut",
+   "pos": "noun",
+   "cat": "game",
+   "pic": null,
+   "say": "Spear.",
+   "audio": "spear",
+   "node": 8,
+   "foils": []
+  },
+  {
+   "id": "school",
+   "en": "school",
+   "sv": "skola",
+   "pos": "noun",
+   "cat": "home",
+   "pic": "🏫",
+   "say": "School.",
+   "audio": "school",
+   "node": 8,
+   "foils": []
+  },
+  {
+   "id": "go_to_school",
+   "en": "go to school",
+   "sv": "gå till skolan",
+   "pos": "verb",
+   "cat": "home",
+   "pic": null,
+   "say": "Go to school.",
+   "audio": "go_to_school",
+   "node": 8,
+   "foils": []
+  },
+  {
+   "id": "gear",
+   "en": "gear",
+   "sv": "utrustning",
+   "pos": "noun",
+   "cat": "game",
+   "pic": null,
+   "say": "Gear.",
+   "audio": "gear",
+   "node": 9,
+   "foils": []
+  },
+  {
+   "id": "weapon",
+   "en": "weapon",
+   "sv": "vapen",
+   "pos": "noun",
+   "cat": "game",
+   "pic": null,
+   "say": "Weapon.",
+   "audio": "weapon",
+   "node": 9,
+   "foils": []
+  },
+  {
+   "id": "yoghurt",
+   "en": "yoghurt",
+   "sv": "yoghurt",
+   "pos": "noun",
+   "cat": "food",
+   "pic": null,
+   "say": "Yoghurt.",
+   "audio": "yoghurt",
+   "node": 9,
+   "foils": []
+  },
+  {
+   "id": "walk_the_dog",
+   "en": "walk the dog",
+   "sv": "gå ut med hunden",
+   "pos": "verb",
+   "cat": "home",
+   "pic": "🦮",
+   "say": "Walk the dog.",
+   "audio": "walk_the_dog",
+   "node": 10,
+   "foils": []
+  },
+  {
+   "id": "preschool",
+   "en": "preschool",
+   "sv": "förskola",
+   "pos": "noun",
+   "cat": "home",
+   "pic": null,
+   "say": "Preschool.",
+   "audio": "preschool",
+   "node": 10,
+   "foils": []
   }
  ],
  "sentences": [
@@ -4126,7 +4306,8 @@
     "bird",
     "tree",
     "sun",
-    "flower"
+    "flower",
+    "map"
    ],
    "phrases": [
     "ph_hello",
@@ -4187,7 +4368,9 @@
     "bear",
     "apple",
     "yes",
-    "no"
+    "no",
+    "sword",
+    "breakfast"
    ],
    "phrases": [],
    "reviewNodes": [
@@ -4249,7 +4432,10 @@
     "mouse",
     "big",
     "red",
-    "green"
+    "green",
+    "shield",
+    "key",
+    "porridge"
    ],
    "phrases": [],
    "reviewNodes": [
@@ -4316,9 +4502,7 @@
    "name": "Mossy Chest",
    "sv": "Mossig kista",
    "safe": true,
-   "introduce": [
-    "key"
-   ],
+   "introduce": [],
    "phrases": [
     "ph_thank_you"
    ],
@@ -4383,7 +4567,9 @@
     "small",
     "one",
     "two",
-    "three"
+    "three",
+    "enemy",
+    "go_to_bed"
    ],
    "phrases": [],
    "reviewNodes": [
@@ -4472,7 +4658,9 @@
     "blue",
     "yellow",
     "run",
-    "jump"
+    "jump",
+    "battle",
+    "brush_my_teeth"
    ],
    "phrases": [],
    "reviewNodes": [
@@ -4555,10 +4743,7 @@
    "name": "Forest Shop",
    "sv": "Skogsboden",
    "safe": true,
-   "introduce": [
-    "sword",
-    "shield"
-   ],
+   "introduce": [],
    "phrases": [
     "ph_goodbye"
    ],
@@ -4634,7 +4819,10 @@
     "eat",
     "happy",
     "four",
-    "five"
+    "five",
+    "spear",
+    "school",
+    "go_to_school"
    ],
    "phrases": [],
    "reviewNodes": [
@@ -4726,7 +4914,10 @@
     "black",
     "a",
     "the",
-    "and"
+    "and",
+    "gear",
+    "weapon",
+    "yoghurt"
    ],
    "phrases": [],
    "reviewNodes": [
@@ -4826,7 +5017,9 @@
     "see",
     "is",
     "I",
-    "can"
+    "can",
+    "walk_the_dog",
+    "preschool"
    ],
    "phrases": [],
    "reviewNodes": [

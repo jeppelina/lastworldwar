@@ -267,7 +267,7 @@ function statLine(it) {
 function sv(key, text) { P.heard = P.heard || {}; P.heard[key] = (P.heard[key] || 0) + 1; return P.heard[key] <= 5 ? `  (${text})` : ''; }
 
 // ---------- Boken: orden man har mött, färgade efter hur bra man kan dem. Ord man inte mött finns inte här. ----------
-const CATS = [['animal', 'Animals'], ['nature', 'Nature'], ['food', 'Food'], ['clothes', 'Clothes'], ['thing', 'Things'], ['color', 'Colours'], ['number', 'Numbers'], ['verb', 'Doing words'], ['adj', 'Describing words'], ['small', 'Small words'], ['function', 'Small words'], ['phrase', 'Phrases']];
+const CATS = [['animal', 'Animals'], ['nature', 'Nature'], ['home', 'At home'], ['game', 'The game'], ['body', 'The body'], ['food', 'Food'], ['clothes', 'Clothes'], ['thing', 'Things'], ['color', 'Colours'], ['number', 'Numbers'], ['verb', 'Doing words'], ['adj', 'Describing words'], ['small', 'Small words'], ['function', 'Small words'], ['phrase', 'Phrases']];
 let bSel = null;
 function openBook() { bSel = null; show('book'); renderBook(); }
 function renderBook() {
@@ -410,7 +410,7 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
 (async function () {
   const art = await loadArt();
   words = (await (await fetch('audio/words.json')).json()).words;
-  for (const n of [1, 2]) try { CONTENT[n - 1] = await (await fetch(`content/world${n}.json`)).json(); } catch (e) { console.error(`world${n}.json`, e); }
+  for (const n of [1, 2, 3]) try { CONTENT[n - 1] = await (await fetch(`content/world${n}.json`)).json(); } catch (e) { console.error(`world${n}.json`, e); }
   checkUpdate(); preloadPics();
   await sync.init({ ...SYNC_CONFIG, xpToLevel });
   S.profiles.forEach(adopt);
