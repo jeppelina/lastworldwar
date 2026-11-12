@@ -14,6 +14,20 @@ const INTERVAL = [1, 1, 2, 3, 5, 8, 13, 21];          // dagar tills ordet vill 
 // Hur mycket ett rätt svar är värt per övningstyp: känna igen < koppla ord och skrift < plocka fram < stava.
 export const WEIGHT = { listen_pick_picture: 1, true_false: 1, picture_pick_word: 1.5, listen_pick_word: 1.5, read_pick_picture: 1.5, en_to_sv: 1.5, sv_to_en: 2, sentence_gap: 2, missing_letter: 2.5, spell_tiles: 3, build_sentence: 3 };
 
+// Bossarnas egna uppgifter (game/boss/) bokförs som vanliga stridssvar, med vikten för en övningstyp som redan finns.
+// Därför räknar en äldre klient ordboken exakt likadant. Bossuppgiftens eget namn sparas bara i svarsloggen.
+//   bildkort (känna igen ordet, med bild eller på ljud)  -> listen_pick_picture, vikt 1
+//   ordkort som ska läsas efter att ordet har hörts       -> listen_pick_word, vikt 1,5
+//   skrivna ord eller ledtrådar som ska leda till en bild -> read_pick_picture, vikt 1,5
+// Ingen bossuppgift ger mer än 1,5: i trollets sista fas bokförs två eller tre ord i samma uppgift, och sfinxens bilduppgifter
+// går delvis att lösa på bilderna. (Designnoten föreslog 1,5 och 3 för trollets fas 2 och 3. Det här är med flit lägre.)
+export const BOSS_AS = {
+  troll_look: 'listen_pick_picture', troll_listen: 'listen_pick_picture', troll_listen_text: 'listen_pick_word',
+  troll_order: 'listen_pick_picture', troll_order_text: 'listen_pick_word',
+  sphinx_odd: 'listen_pick_picture', sphinx_pattern: 'listen_pick_picture', sphinx_pattern_text: 'read_pick_picture',
+  sphinx_clue: 'listen_pick_picture', sphinx_clue_text: 'read_pick_picture',
+};
+
 export const tierOf = (rec) => { if (!rec) return -1; let t = 0; for (let i = 1; i < TIERS.length; i++) if (rec.s >= NEED_SCORE[i] && rec.d >= NEED_DAYS[i]) t = i; return t; };
 export const isDue = (rec, day) => !!rec && day - rec.last >= INTERVAL[tierOf(rec)];
 // Vad som fattas till nästa nivå, för bokens detaljruta.

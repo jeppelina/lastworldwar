@@ -51,7 +51,9 @@ const ATTACKS = {
 
 export class Battle {
   // el: tomt element. o: { profile, worldIdx, nodeIdx, node (med rec och ease), words, play(url), onEnd(result),
-  //   rewardMult (avtrappningen: andel av fiendernas guld som delas ut, bara för siffran som flyger upp) }
+  //   rewardMult (avtrappningen: andel av fiendernas guld som delas ut, bara för siffran som flyger upp),
+  //   bossFor(striden, bossens post i ROSTER) -> BossFight eller null: bossar med egen mekanik (boss/index.js). Finns en
+  //   sådan (this.bf) tar den över bosstriden: uppgifterna, stenraden, fasbytena, segern och förlusten. Övriga bossar går som förut. }
   constructor(el, o) {
     Object.assign(this, o); this.el = el;
     this.gear = Object.fromEntries(Object.entries(o.profile.eq).filter(([, id]) => id).map(([k, id]) => [k, BY_ID[id]]));
@@ -59,7 +61,7 @@ export class Battle {
     this.run = R.newRun(heroStats(o.profile), buildRun(o.worldIdx, o.nodeIdx, o.node));
     this.hero = Object.assign(this.run.hero, { flashUntil: 0, hurtAt: -9 });
     this.fx = []; this.anim = null; this.phase = 'intro'; this.shake = 0;
-    this.q = R.newQuiz(); this.target = null; this.over = false;
+    this.q = R.newQuiz(); this.target = null; this.over = false; this.bf = null;
     el.innerHTML = `<div class="scene"><canvas class="bg"></canvas><canvas class="fg"></canvas><div class="floaters"></div>
       <div class="hud"><div class="hp me"><b>♥</b><div class="bar"><i></i></div><span></span></div>
       <div class="mid"><span class="wave"></span><span class="streak"><i></i><i></i><i></i></span></div>
@@ -73,7 +75,7 @@ export class Battle {
     this.timer = setInterval(() => this.frame(), 45);
     this.nextFight();
   }
-  destroy() { this.over = true; clearInterval(this.timer); clearTimeout(this.bt); this.el.innerHTML = ''; }
+  destroy() { this.over = true; if (this.bf) this.bf.stop(); clearInterval(this.timer); clearTimeout(this.bt); this.el.innerHTML = ''; }
   now() { return performance.now() / 1000; }
 
   // ----- scenens geometri -----
@@ -95,6 +97,7 @@ export class Battle {
     if (BD) { try { BD.drawBackdrop(b, biome, W, H, this.groundY, this.worldIdx * 100 + this.nodeIdx * 7 + this.run.fi); } catch (e) { console.error(e); } }
     else { b.begin(); b.rect(0, 0, W, this.groundY, ramp('#7fb7e6'), 3); b.rect(0, this.groundY - 3, W, H, ramp('#5aa257'), 3); b.end({ outline: false, edge: false }); }
     b.paint(bg.getContext('2d'));
+    this.bf = f.tier === 'boss' && this.bossFor && this.quiz && R.stoneBoss(d) ? this.bossFor(this, d) : null;      // boss med egen mekanik
     this.banner(f.tier === 'boss' ? `BOSS: ${d.name}` : n > 1 ? `${n} × ${d.name}` : d.name, f.tier === 'boss');
     this.hud(); this.phase = 'intro'; this.introAt = this.now();
     setTimeout(() => { if (!this.over) this.ask(); }, f.tier === 'boss' ? 1500 : 900);
@@ -111,6 +114,7 @@ export class Battle {
     this.$('.wave').textContent = `Fight ${this.run.fi + 1}/${this.run.fights.length}`;
     this.el.querySelectorAll('.streak i').forEach((p, i) => p.classList.toggle('on', i < this.run.streak));
     this.$('.streak').classList.toggle('full', this.run.streak >= R.K.superStreak);
+    if (this.bf) this.bf.hud();                                  // ordstenar i stället för livmätare och nedräkning
   }
   // Ett ord blev starkare i boken: en rad som stiger över hjälten, i ordnivåns färg.
   note(text, color) { const f = document.createElement('div'); f.className = 'fl grow'; f.textContent = text; f.style.left = '50%'; f.style.top = '34%'; if (color) f.style.color = color; this.$('.floaters').appendChild(f); setTimeout(() => f.remove(), 1500); }
@@ -127,6 +131,7 @@ export class Battle {
   }
   ask() {
     if (this.over) return;
+    if (this.bf) return this.bf.ask();                           // bossens egna uppgifter i stället för den vanliga frågan
     this.phase = 'ask'; this.first = true; this.$('.quiz').classList.remove('ok', 'bad');
     if (this.quiz) { this.target = null; this.quiz.render(this.quiz.next(), this.$('.quiz'), this.$('.word'), (r) => this.onTask(r)); return; }   // världar med byggd pedagogik
     const t = this.target = R.nextWord(this.q, this.words);
@@ -177,7 +182,7 @@ export class Battle {
       return;
     }
     // träff
-    for (const { m, dmg } of R.heroHit(this.run, a.type, ev.hit, a.sup)) {
+    for (const { m, dmg } of this.bf ? this.bf.heroHits(ev) : R.heroHit(this.run, a.type, ev.hit, a.sup)) {
       m.flashUntil = this.now() + 0.12; m.hurtAt = this.now();
       this.float(dmg, m.x, this.groundY - this.enemy.f.def.h - 6, a.sup ? 'crit' : '');
       this.burst(m.x, this.groundY - this.enemy.f.def.h * 0.5, a.sup ? 14 : 7, mat, 60);
@@ -189,9 +194,11 @@ export class Battle {
     if (ev.fx === 'boom' || ev.fx === 'bigboom') this.burst(tx, ty, ev.fx === 'bigboom' ? 40 : 18, mat, ev.fx === 'bigboom' ? 130 : 80);
     this.hud();
   }
+  sparks(x, y, n) { this.burst(x, y, n, SPARK, 90); }
   burst(x, y, n, rp, speed) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, v = speed * (0.3 + Math.random() * 0.7); this.fx.push({ kind: 'p', t0: this.now(), dur: 0.25 + Math.random() * 0.35, x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, rp, lv: 3 + (i % 3) }); } }
 
   afterHero() {
+    if (this.bf) return this.bf.afterHero();
     const next = R.afterHeroAttack(this.run);
     if (next === 'next' || next === 'won') {
       const f = this.enemy.f;
@@ -202,16 +209,18 @@ export class Battle {
     }
     if (next === 'enemy') this.enemyAttack(); else { this.hud(); this.phase = 'wait'; this.askSoon(2000); }
   }
-  enemyAttack() { R.resetCountdown(this.run); this.anim = { who: 'enemy', t0: this.now(), dur: 0.85, fired: new Set() }; }
+  // kind: vilken av bossens två attacker som spelas (bara bossar med egen mekanik skickar med den).
+  enemyAttack(kind) { R.resetCountdown(this.run); this.anim = { who: 'enemy', t0: this.now(), dur: this.bf ? 1.05 : 0.85, fired: new Set(), kind: kind || 0 }; }
   enemyHit() {
-    const dmg = R.enemyStrike(this.run);
-    this.hero.flashUntil = this.now() + 0.14; this.hero.hurtAt = this.now(); this.shake = Math.max(this.shake, 4);
-    this.float(`-${dmg}`, this.heroX, this.groundY - 56, 'hurt'); this.burst(this.heroX, this.groundY - 26, 8, RED, 60); this.hud();
+    const dmg = this.bf ? this.bf.strike() : R.enemyStrike(this.run);
+    this.hero.flashUntil = this.now() + 0.14; this.hero.hurtAt = this.now(); this.shake = Math.max(this.shake, this.bf ? 6 : 4);
+    this.float(dmg > 0 ? `-${dmg}` : 'Phew!', this.heroX, this.groundY - 56, 'hurt'); this.burst(this.heroX, this.groundY - 26, 8, RED, 60); this.hud();
   }
-  afterEnemy() { if (R.defeated(this.run)) { this.hero.deadAt = this.now(); setTimeout(() => this.finish(false), 900); } else { this.hud(); this.phase = 'wait'; this.askSoon(3200); } }
+  afterEnemy() { if (this.bf) return this.bf.afterEnemy(); if (R.defeated(this.run)) { this.hero.deadAt = this.now(); setTimeout(() => this.finish(false), 900); } else { this.hud(); this.phase = 'wait'; this.askSoon(3200); } }
   finish(win) {
     if (this.over) return; this.over = true; this.phase = 'over';
     const res = R.result(this.run, win); if (this.gaveUp) res.gaveUp = true;
+    if (this.bf) { if (res.boss) Object.assign(res.boss, this.bf.summary()); this.bf.stop(); }
     this.onEnd(res);
   }
 
@@ -247,7 +256,9 @@ export class Battle {
       if (d.fly) { g.begin(); g.ell(ex, groundY + 1.5, d.w * 0.3, 2, SHADOW, false, null, 1); g.end({ outline: false, edge: false }); }
       if (dead >= 0 && Math.floor(dead * 16) % 2) return;
       g.push(ex, groundY + (dead > 0 ? Math.round(dead * 8) : 0)); g.flash = now < m.flashUntil;
-      try { d.draw(g, now + m.ph, { attack: ea && (al[0] === m || f.n > 1) ? ea : 0, hurt: hurtE }); } catch (e) { if (!this.err) { this.err = 1; console.error(d.id, e); } }
+      const pose = { attack: ea && (al[0] === m || f.n > 1) ? ea : 0, hurt: hurtE };
+      if (this.bf) Object.assign(pose, this.bf.pose(a));         // attackKind, phase, defeated, talk (valfria fält i bosses.js)
+      try { d.draw(g, now + m.ph, pose); } catch (e) { if (!this.err) { this.err = 1; console.error(d.id, e); } }
       g.flash = false; g.pop();
     });
     // händelser

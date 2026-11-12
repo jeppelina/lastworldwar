@@ -132,7 +132,59 @@ export const defeated = (run) => run.hero.hp <= 0;
 
 export function stars(run) { const frac = run.hero.hp / run.hero.maxHp; return frac > K.stars[0] ? 3 : frac > K.stars[1] ? 2 : 1; }
 export function result(run, win) {
-  return { win, stars: win ? stars(run) : 0, gold: run.gold, xp: win ? run.xp : Math.round(run.xp * K.lossXp), kills: run.kills, fights: run.fights.length };
+  const res = { win, stars: win ? stars(run) : 0, gold: run.gold, xp: win ? run.xp : Math.round(run.xp * K.lossXp), kills: run.kills, fights: run.fights.length };
+  if (run.boss) res.boss = { lit: run.boss.lit, stones: run.boss.stones, keep: win ? 0 : bossKeep(run.boss), wrong: run.boss.wrong };   // stenar som står kvar tända till nästa försök
+  return res;
+}
+
+// ---------- Bossfight med ordstenar ----------
+// Bossar med egen mekanik (K.boss.on i balance.js, se game/boss/) har ingen livmätare. Bossen har en rad ordstenar:
+// varje löst uppgift tänder en sten (ibland två), alla tända är seger. Hjältens attack avgör alltså inte bossdelen,
+// det gör orden. Hjältens liv avgör hur många missar man har råd med: ett fel svar är ett slag från bossen
+// (K.boss.wrong gånger bossens skada), och vid varje fasbyte kommer ETT förvarnat slag (K.boss.phaseHit) som aldrig
+// kan fälla hjälten, följt av lite liv tillbaka (K.boss.phaseHeal). Nedräkningen "var tredje tur" gäller inte här.
+// Förstriden före bossen går som en vanlig strid. Bossens skada (f.atk) räknas som förut ur banans rek.
+export const stoneBoss = (def) => !!(K.boss && def && (K.boss.on || []).includes(def.id));
+export const bossStoneCount = (young) => (young && K.young && K.young.bossStones ? K.young.bossStones : K.boss.stones);
+// kept = stenar som stod kvar från förra försöket (aldrig alla). Anropas efter startFight för bosstriden.
+export function startBoss(run, kept = 0, young = false) {
+  const stones = bossStoneCount(young);
+  run.boss = { stones, lit: Math.max(0, Math.min(stones - 1, Math.floor(kept) || 0)), wrong: 0 };
+  run.boss.kept = run.boss.lit;
+  return run.boss;
+}
+// Fasen (1 till antal trösklar + 1) följer hur många stenar som är tända.
+export function bossPhase(b) { let ph = 1; for (const share of K.boss.phases) if (b.lit >= Math.floor(b.stones * share + 1e-9)) ph++; return ph; }
+// En löst uppgift: n stenar tänds. Returnerar { lit, won, phaseUp }. Vid seger bokförs bossens guld och xp som för en slagen fiende.
+export function bossRight(run, n = 1) {
+  const b = run.boss, before = bossPhase(b);
+  b.lit = Math.min(b.stones, b.lit + Math.max(1, Math.round(n)));
+  const won = b.lit >= b.stones;
+  if (won && !b.won) { b.won = true; const f = run.enemy.f; run.gold += f.gold; run.xp += f.xp; run.kills++; }
+  return { lit: b.lit, won, phaseUp: !won && bossPhase(b) > before };
+}
+function bossBlow(run, mult, lethal, rnd) {
+  let dmg = Math.max(1, Math.round(run.enemy.f.atk * mult * (K.spreadLo + rnd() * K.spreadWidth)));
+  if (!lethal) dmg = Math.max(0, Math.min(dmg, run.hero.hp - 1));
+  run.hero.hp -= dmg;
+  return dmg;
+}
+// Fel svar: bossens slag landar. Returnerar skadan. Hjälten är besegrad om hero.hp <= 0 efteråt.
+export function bossWrong(run, rnd = Math.random) { run.boss.wrong++; return bossBlow(run, K.boss.wrong, true, rnd); }
+// Fasbytets förvarnade slag: lämnar alltid minst 1 liv. bossPhaseHeal ger sedan tillbaka en andel av maxlivet.
+export const bossPhaseHit = (run, rnd = Math.random) => bossBlow(run, K.boss.phaseHit, false, rnd);
+export function bossPhaseHeal(run) { const h = run.hero, heal = Math.max(0, Math.min(h.maxHp - h.hp, Math.round(h.maxHp * K.boss.phaseHeal))); h.hp += heal; return heal; }
+export const bossKeep = (b) => Math.min(b.stones - 1, Math.floor(b.lit * K.boss.keep + 1e-9));
+// En hel bosstur i ett svep, för simulatorn. correct = uppgiften löst, n = antal stenar den tänder.
+export function playBossTurn(run, correct, rnd = Math.random, n = 1) {
+  if (correct) {
+    const r = bossRight(run, n);
+    if (r.won) return 'won';
+    if (r.phaseUp) { bossPhaseHit(run, rnd); bossPhaseHeal(run); }
+    return 'ask';
+  }
+  answerWrong(run); bossWrong(run, rnd);
+  return defeated(run) ? 'lost' : 'ask';
 }
 
 // ---------- Vilket ord som frågas ----------

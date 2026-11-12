@@ -13,6 +13,7 @@ import * as sync from './sync.js';
 import { SYNC_CONFIG } from './sync-config.js';
 import { MINI, miniFor } from './minigames/index.js';
 import { usable, esc } from './minigames/shared.js';
+import { makeBoss, bossFiles } from './boss/index.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY = 'larovarlden-spel-v4';
@@ -27,6 +28,8 @@ let S; try { S = JSON.parse(localStorage.getItem(KEY)) || fresh(); } catch (e) {
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 let P = null, MAP = null, battle = null, words = [];
 const CONTENT = {};                                    // världsindex -> innehåll (content/worldN.json)
+const BOSSDATA = {};                                   // filnamn -> innehåll till bossar med egen mekanik (content/riddles2.json)
+let TEMPO = 1;                                         // bara för testkörningar: bossens repliker och väntetider gånger det här
 const dayNum = () => { const d = new Date(Date.now() + S.dayOffset * 864e5); return Math.floor((d.getTime() - d.getTimezoneOffset() * 6e4) / 864e5); };
 const today = () => sync.dayKey(Date.now(), S.dayOffset);
 // ---------- Synk: händelseloggen är facit, P är en kopia som fylls på efter varje ändring ----------
@@ -269,8 +272,11 @@ function startBattle(k, i, node, w) {
   run = { level: P.level, stats: heroStats(P), words: 0, wordXp: 0 };
   const C = contentFor(k);                                   // världar med innehållsfil har byggd pedagogik, övriga kör enkla frågor tills vidare
   const quiz = C ? new Quiz({ sfx, newCap: P.young ? K.newPerRunYoung : K.newPerRun, content: C, prior: Object.keys(CONTENT).filter((j) => +j < k).flatMap((j) => contentFor(+j).items), nodeIdx: i, book: P.words, day: dayNum(), reading: P.reading !== false, play, save,
-    onAnswer: (t, right, up) => { sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.type, correct: right, stage: w.id + ':' + i, ms: t.ms, chosen: right ? null : t.chosen }); if (up && up.up) wordUp(t.item, up); } }) : null;
-  battle = new Battle($('battle-root'), { profile: P, worldIdx: k, nodeIdx: i, node, words: wordsFor(k, i), quiz, rewardMult: R.rewardFactor(P.level, node.rec), play, sfx, voiceIdle, onEnd: (r) => endBattle(r, k, i, node, w) });
+    onAnswer: (t, right, up) => { sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.ex || t.type, correct: right, stage: w.id + ':' + i, ms: t.ms, chosen: right ? null : t.chosen }); if (up && up.up) wordUp(t.item, up); } }) : null;      // t.ex = bossuppgiftens eget namn
+  // Bossar med egen mekanik (boss/index.js, K.boss.on i balance.js). kept = ordstenar som står kvar från förra försöket:
+  // de sparas bara på den här enheten (P.bossKeep), inte i händelseloggen.
+  const bossFor = quiz && node.type === 'boss' ? (bt, def) => makeBoss(bt, def, { kept: (P.bossKeep || {})[w.id] || 0, young: !!P.young, data: BOSSDATA, svShow: heardFew, tempo: TEMPO }) : null;
+  battle = new Battle($('battle-root'), { profile: P, worldIdx: k, nodeIdx: i, node, words: wordsFor(k, i), quiz, bossFor, rewardMult: R.rewardFactor(P.level, node.rec), play, sfx, voiceIdle, onEnd: (r) => endBattle(r, k, i, node, w) });
   if ((P.runs || 0) < 3) { play('audio/en-listen.mp3'); toast('Listen, and choose the picture.' + sv('listen', 'Lyssna och välj bilden.')); }
 }
 // Ett ord har nått en ny högsta nivå i boken: xp bokförs direkt som en egen händelse, så att den finns kvar även om
@@ -294,27 +300,37 @@ function endBattle(r, k, i, node, w) {
   const first = !(P.done[w.id] && P.done[w.id][i]), st = run || { level: P.level, stats: heroStats(P), words: 0, wordXp: 0 };
   const rw = R.reward(r, node, first, st.level, !!CONTENT[k]), log = battle && battle.quiz ? battle.quiz.log : [];
   for (let c = 0; c < log.length; c += 30) sync.record(pid(P), 'words', { day: dayNum(), a: log.slice(c, c + 30).map((l) => { const a = [l.id, l.type, l.free && !l.right ? -1 : l.right ? 1 : 0]; if (l.start) a.push(l.start); return a; }) });
+  // Boss med ordstenar: efter en förlust står en del av stenarna kvar till nästa försök (K.boss.keep). Efter en seger börjar raden om.
+  const bs = r.boss && r.boss.id ? r.boss : null;
+  if (r.boss) { P.bossKeep = P.bossKeep || {}; if (!r.win && r.boss.keep > 0) P.bossKeep[w.id] = r.boss.keep; else delete P.bossKeep[w.id]; }
   const lkey = w.id + ':' + i; if (r.win) delete LOSSES[lkey]; else if (!r.gaveUp) LOSSES[lkey] = (LOSSES[lkey] || 0) + 1;
   rec('stage', { world: w.id, node: i, kind: 'battle', win: r.win, stars: r.stars, gold: rw.gold, xp: rw.xp, bv: BV, lv: st.level, gaveUp: r.gaveUp ? true : undefined, kills: r.kills });
   const ups = P.level - st.level, before = st.stats; run = null;
-  const el = $('result'); el.hidden = false; el.className = r.win ? 'win' : 'lose';
-  
+  const el = $('result'); el.hidden = false; el.className = (r.win ? 'win' : 'lose') + (bs && r.win ? ' boss' : '');
   el.querySelector('.stars').innerHTML = r.win ? [0, 1, 2].map((s) => (s < r.stars ? '★' : '<i>★</i>')).join('') : '';
   const target = r.win ? null : practiceTarget(k), canPractice = target && !(target[0] === k && target[1] === i), under = !r.win && P.level < node.rec, pushy = canPractice && (under || (LOSSES[w.id + ':' + i] || 0) >= 2);
-  el.querySelector('.lines').innerHTML = (r.win ? `You won at ${node.name}.\n` : `You reached fight ${Math.min(r.kills + 1, r.fights)} of ${r.fights}.\n`) +
+  // Boss med ordstenar: stenraden, och vid förlust bossens replik, stenarna som står kvar och orden som är värda att öva.
+  const stoneRow = bs ? `<span class="stones rstones">${Array.from({ length: bs.stones }, (_, j) => `<i class="${j < bs.lit ? 'lit' : ''}"></i>`).join('')}</span>` : '';
+  const bossTop = !bs ? '' : r.win ? `You helped ${node.name}.\n${stoneRow}` :
+    `<span class="bquote">"${esc(bs.lose[0])}"<small>${esc(bs.lose[1])}</small></span>${stoneRow}You lit ${bs.lit} of ${bs.stones} stones.` + (bs.keep ? ` <b>${bs.keep} ${bs.keep === 1 ? 'stays' : 'stay'} lit</b> for next time.` : '') + '\n';
+  const missed = bs && !r.win ? bs.missed || [] : [];
+  el.querySelector('.lines').innerHTML = (bs ? bossTop : r.win ? `You won at ${node.name}.\n` : `You reached fight ${Math.min(r.kills + 1, r.fights)} of ${r.fights}.\n`) +
     `<b>+${fmt(rw.gold)} gold</b>   <b>+${fmt(rw.xp)} XP</b>` +
     (st.words ? `\n<b class="grow">${st.words} ${st.words === 1 ? 'word' : 'words'} got stronger</b>   <b>+${fmt(st.wordXp)} XP</b>` : '') +
     (rw.factor < 1 ? '\nToo easy now: small reward.' : '') +
     (ups ? `\n<b>Level ${P.level}!</b> You are stronger now.` : '') +
     (under ? `\n<b class="warn">This level is Lv ${node.rec}. You are Lv ${P.level}.</b>` : '') +
+    (missed.length ? `\nPractice these words:<span class="rmiss">${missed.map((it, j) => `<button data-i="${j}">${pic(it)}<span>${esc(it.en)}</span></button>`).join('')}</span>` : '') +
     (r.win ? '' : canPractice ? '\nMake your words stronger to level up.' : '\nYou keep your gold and XP.');
-  el.querySelector('h2').textContent = r.win ? 'Good job!' : pushy ? 'Get stronger first!' : 'Try again!';
-  el.querySelector('.sv').textContent = r.win ? sv('good-job', 'Bra jobbat!').trim() : pushy ? '(Träna ord på en lättare bana först!)' : sv('try-again', 'Försök igen!').trim();
+  el.querySelectorAll('.rmiss button').forEach((b) => (b.onclick = () => play(`audio/${missed[+b.dataset.i].audio}.mp3`)));
+  el.querySelector('h2').textContent = r.win ? (bs ? bs.cheer[0] : 'Good job!') : pushy ? 'Get stronger first!' : 'Try again!';      // bs: en hjälpt boss har sin egen rubrik
+  el.querySelector('.sv').textContent = r.win ? (bs ? bs.cheer[1] : sv('good-job', 'Bra jobbat!').trim()) : pushy ? '(Träna ord på en lättare bana först!)' : sv('try-again', 'Försök igen!').trim();
   const acts = el.querySelector('.acts'); acts.innerHTML = '';
   const btn = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = label; b.onclick = () => { el.hidden = true; if (battle) battle.destroy(); battle = null; if (ups) levelUp(before, fn); else fn(); }; acts.appendChild(b); };
   if (canPractice) btn('Practice words', pushy ? 'big' : 'alt big', () => goPractice(target[0], target[1]));
   if (!r.win) btn('Try again', pushy ? 'alt' : '', () => startBattle(k, i, node, w));
   btn('Map', r.win ? '' : 'alt', () => { enterMap(false); if (r.win) { MAP.state.gold = P.gold; MAP.finish(k, i, r.stars); } afterMapChange(); });
+  if (bs && r.win) sfx('level');                              // en boss som är hjälpt är värd en fanfar
   play(r.win ? 'audio/en-good-job.mp3' : 'audio/en-try-again.mp3');
 }
 
@@ -498,7 +514,9 @@ function statLine(it) {
   return `<b style="color:#fff">+${it.power} ${it.stat === 'atk' ? '⚔ Attack' : '♥ Health'}</b>` + (d ? ` <span style="color:${d > 0 ? '#8dffb0' : '#ef7d7d'}">(${d > 0 ? '+' : ''}${d} vs now)</span>` : '');
 }
 // Engelska fraser får svensk översättning de fem första gångerna, sedan står de på egna ben.
-function sv(key, text) { P.heard = P.heard || {}; P.heard[key] = (P.heard[key] || 0) + 1; return P.heard[key] <= 5 ? `  (${text})` : ''; }
+function sv(key, text) { return heardFew(key) ? `  (${text})` : ''; }
+// Räknar hur många gånger en fras har visats. true de fem första gångerna (då visas den svenska stödraden).
+function heardFew(key) { P.heard = P.heard || {}; P.heard[key] = (P.heard[key] || 0) + 1; return P.heard[key] <= 5; }
 
 // ---------- Boken: orden man har mött, färgade efter hur bra man kan dem. Ord man inte mött finns inte här. ----------
 const CATS = [['animal', 'Animals'], ['nature', 'Nature'], ['home', 'At home'], ['game', 'The game'], ['body', 'The body'], ['food', 'Food'], ['clothes', 'Clothes'], ['thing', 'Things'], ['color', 'Colours'], ['number', 'Numbers'], ['verb', 'Doing words'], ['adj', 'Describing words'], ['small', 'Small words'], ['function', 'Small words'], ['phrase', 'Phrases']];
@@ -661,6 +679,7 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
   const art = await loadArt();
   words = (await (await fetch('audio/words.json')).json()).words;
   for (const n of [1, 2, 3]) try { const c = await (await fetch(`content/world${n}.json`)).json(); c.items = c.items.filter((it) => it.isolated !== false); CONTENT[n - 1] = c; } catch (e) { console.error(`world${n}.json`, e); }
+  for (const f of bossFiles()) try { BOSSDATA[f] = await (await fetch(f)).json(); } catch (e) { console.error(f, e); }      // saknas filen klarar sig bossen utan (se boss/sphinx.js)
   checkUpdate(); preloadPics();
   for (const g of Object.values(MINI)) g.load().catch(() => {});     // minispelens kod hämtas i förväg, så att de går att öppna utan nät
   await sync.init({ ...SYNC_CONFIG, xpToLevel });
@@ -674,5 +693,5 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
     const go = () => { S.seenIntro = true; save(); renderWho(); show('who'); };
     if (S.seenIntro) go(); else playIntro(root, { play, look: looks[0], onDone: go });
   } });
-  window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, gate: (k) => bossGate(k), practice: (k) => practiceTarget(k), openBook, mapInfo: pushMapInfo, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, levelUp, mini: () => mini, openMini: (k, slot) => { const w = MAP.worlds[k], nd = typeof slot === 'number' ? w.nodes[slot] : w.side.find((x) => x.slot === slot); openMini(k, slot, nd); }, miniWords, pick: (n) => { P = S.profiles[n]; enterMap(true); } };
+  window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, gate: (k) => bossGate(k), practice: (k) => practiceTarget(k), openBook, mapInfo: pushMapInfo, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, levelUp, mini: () => mini, openMini: (k, slot) => { const w = MAP.worlds[k], nd = typeof slot === 'number' ? w.nodes[slot] : w.side.find((x) => x.slot === slot); openMini(k, slot, nd); }, miniWords, pick: (n) => { P = S.profiles[n]; enterMap(true); }, tempo: (x) => (TEMPO = x), bossData: () => BOSSDATA };
 })();

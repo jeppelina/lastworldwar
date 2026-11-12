@@ -1,0 +1,75 @@
+/* Bossfighter med egen mekanik (game/boss/). Panelen under scenen har tre delar: lyssna-knapparna till vänster,
+   bossens rad (ordrutor eller ledtrådar) över svarskorten i mitten, och låsknapparna till höger. */
+.quiz.boss { align-items:stretch; }
+.quiz.boss .bmain { flex:1; min-width:0; max-width:820px; display:flex; flex-direction:column; gap:8px; }
+.quiz.boss .cards { flex:1; min-height:56px; max-width:none; width:100%; }
+.quiz.boss .cards:empty { visibility:hidden; }
+.quiz.boss .card { min-height:56px; }
+.quiz.boss .card:disabled { opacity:.3; box-shadow:none; }
+.quiz.boss .card.pick.sel { border-color:#4a7fd0; box-shadow:0 0 0 4px #4a7fd0aa, 0 5px 0 #8f8266; }
+.quiz.boss .card.right { opacity:1; }
+.brow { flex:none; display:flex; justify-content:center; align-items:stretch; gap:8px; height:clamp(56px, 15vh, 92px); }
+.brow:empty { display:none; }
+.bslot { flex:0 1 auto; height:100%; aspect-ratio:1; min-width:0; border-radius:12px; background:#2d3150; border:3px solid #4a5080; display:grid; place-items:center; font-size:clamp(22px, 5vh, 34px); font-weight:800; color:#eef0fa; transition:transform .15s, border-color .15s; overflow:hidden; }
+.bslot .pimg { width:76%; height:76%; object-fit:contain; }
+.bslot.now, .bchip.now { border-color:#ffd84a; transform:scale(1.08); }
+.bslot.gone { border-style:dashed; color:#ffd84a; }
+.bslot.ok { border-color:#49d17d; background:#1f3a2c; }
+.bslot.shown { border-color:#e2473d; }
+.bslot .bt, .bchip .bt { font-size:clamp(14px, 2.3vw, 22px); font-weight:800; line-height:1.05; text-align:center; overflow-wrap:anywhere; }
+.brow.txt .bslot { aspect-ratio:auto; min-width:52px; padding:0 8px; }
+.bsnd { font-size:.9em; opacity:.85; }
+.brow.chips { gap:10px; }
+.bchip { flex:0 1 auto; min-width:72px; min-height:56px; padding:2px 16px; border-radius:14px; border:3px solid #fff3; background:linear-gradient(#fffdf4, #ece3cc); color:#1d1b2e; box-shadow:0 4px 0 #8f8266; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; font-size:clamp(20px, 4.4vh, 30px); transition:transform .15s, border-color .15s; }
+.bchip small { font-size:12px; font-weight:600; color:#5a5f7a; line-height:1; }
+.bchip .pimg { width:1.6em; height:1.6em; }
+.bsw { width:1.4em; height:1.4em; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 2px #0003; display:block; }
+.bgl { line-height:1; }
+.bside { flex:none; display:flex; flex-direction:column; gap:8px; width:clamp(104px, 17vw, 160px); }
+.bside:empty { display:none; }
+.bside .btn { flex:1; min-height:56px; padding:6px 8px; font-size:clamp(15px, 2.2vw, 20px); line-height:1.1; }
+.bside .btn[hidden] { display:none; }
+/* Bossens replik: en pratbubbla mellan hjälten och bossen. Går att trycka bort. */
+.bsay { position:absolute; left:40%; top:17%; transform:translateX(-50%); max-width:min(54%, 460px); min-height:56px; padding:8px 16px; border-radius:16px; background:#fffdf4; color:#1d1b2e; box-shadow:0 4px 0 #8f8266, 0 0 0 3px #1d1b2e33; text-align:left; z-index:4; animation:pop .2s cubic-bezier(.2, 1.6, .4, 1); }
+.bsay[hidden] { display:none; }
+.bsay b { display:block; font-size:clamp(15px, 2.7vw, 24px); font-weight:800; line-height:1.15; }
+.bsay small { display:block; font-size:clamp(11px, 1.7vw, 15px); font-weight:600; color:#5a5f7a; margin-top:2px; }
+.bsay::after { content:""; position:absolute; right:-12px; top:22px; border:8px solid transparent; border-left-color:#fffdf4; border-right-width:6px; }
+.word.bprompt { font-size:clamp(15px, 3vw, 24px); padding:3px 16px; text-align:center; }
+/* Ordstenarna står där fiendens liv brukar stå. */
+.hud .hp.foe.stonebar { flex-direction:column; align-items:flex-end; gap:3px; }
+.hud .hp.foe.stonebar .bar, .hud .hp.foe.stonebar .cd { display:none; }
+.hud .hp.foe.stonebar .name { max-width:100%; font-size:12px; }
+.stones { display:flex; gap:4px; }
+.stones i { width:16px; height:16px; border-radius:5px; background:#3a3f60; border:2px solid #555b85; display:block; transition:all .25s; }
+.stones i.lit { background:#ffd84a; border-color:#fff3b0; box-shadow:0 0 8px #ffd84a; }
+.stones i.kept.lit { background:#c9a637; border-color:#e8cf6a; box-shadow:none; }
+.fl.heal { color:#8dffb0; }
+.banner.boss.cheer { color:#ffd84a; }
+/* Resultatskärmen efter en bossfight */
+#result.boss .box { box-shadow:0 0 60px #ffc83d77; animation:pop .35s cubic-bezier(.2, 1.7, .4, 1); }
+#result .rstones { display:flex; justify-content:center; margin:2px 0 4px; } #result .rstones i { width:20px; height:20px; }
+#result .bquote { color:var(--text); font-style:italic; }
+#result .bquote small { display:block; font-style:normal; font-size:12px; color:var(--dim); }
+#result .rmiss { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:4px; }
+#result .rmiss button { min-height:56px; min-width:56px; padding:4px 10px; border-radius:12px; background:linear-gradient(#f7f1e3, #e3d8bf); color:#1d1b2e; box-shadow:0 3px 0 #8f8266; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:13px; font-weight:800; line-height:1.1; }
+#result .rmiss .pimg { width:30px; height:30px; }
+@media (max-width: 520px) { .stones { gap:2px; } .stones i { width:11px; height:11px; border-width:1px; border-radius:3px; } }
+@media (max-height: 500px) {
+  .quiz.boss .bmain { gap:6px; } .brow { height:56px; }
+  .bsay { top:15%; padding:5px 12px; }
+  .hud .hp.foe.stonebar .name { display:none; }
+  #result .rmiss button { flex-direction:row; gap:6px; }
+  #result .box:has(.rmiss) { max-width:min(96vw, 640px); padding:6px 16px; } #result .box:has(.rmiss) h2 { font-size:20px; margin:0; } #result .box:has(.rmiss) .lines { margin:2px 0 6px; line-height:1.25; }
+  #result .bquote small { display:inline; margin-left:8px; } #result .rstones i { width:14px; height:14px; } #result .rmiss { display:inline-flex; margin:0 0 0 8px; vertical-align:middle; }
+}
+/* Stående läge: raden och korten över hela bredden, knapparna i en rad under. Panelen får växa. */
+@media (orientation: portrait) {
+  .quiz.boss { flex:1 1 auto; height:auto; max-height:460px; display:grid; grid-template-columns:auto 1fr; grid-template-rows:1fr auto; gap:8px; align-content:start; }
+  .quiz.boss .bmain { grid-column:1 / -1; grid-row:1; max-width:none; min-height:0; }
+  .quiz.boss .speak { grid-row:2; grid-column:1; flex-direction:row; height:60px; } .quiz.boss .speak button { width:64px; }
+  .quiz.boss .bside { grid-row:2; grid-column:2; flex-direction:row; width:auto; height:60px; }
+  .brow { flex-wrap:wrap; height:auto; min-height:60px; } .bslot { height:60px; } .brow.chips .bchip { min-height:60px; }
+  .quiz.boss .cards.n4 { grid-template-columns:repeat(2, 1fr); }
+  .bsay { left:38%; max-width:62%; }
+}

@@ -37,7 +37,16 @@
 //                   är oförändrad, så orden måste fortfarande läras. Inte simulerat före lappen.
 //   v5  2026-11-12  Högst K.newPerRun nya ord per omgång (resten kommer när banan spelas om), så att en bana med elva nya ord
 //                   inte lär ut alla på en gång. Orden 'a' och 'the' frågas inte längre ensamma (isolated: false i innehållet).
-export const version = 5;
+//   v6  2026-11-12  Bossfighter med ordstenar för The Forgetful Troll och The Riddle Sphinx (K.boss, K.young.bossStones,
+//                   reglerna under "Bossfight med ordstenar" i rules.js). Förstriden och de fyra andra bossarna är orörda.
+//                   Bossen har 8 ordstenar i stället för liv (ung-läge 6), nedräkningen "var tredje tur" är borta i de två
+//                   bossfighterna: fel svar 1,5 x bossens skada, ett förvarnat slag 1,5 x vid varje fasbyte som aldrig kan
+//                   fälla hjälten, sedan 12 procent av maxlivet tillbaka, och hälften av stenarna står kvar efter en förlust.
+//                   Inga andra tal är ändrade. Simulering: node game/sim/boss.mjs (sim/out/boss.txt). På rek med väntad
+//                   utrustning, 50 / 70 / 85 procent rätt: trollet 7 / 68 / 99 procent vinst före och 9 / 66 / 97 efter,
+//                   sfinxen 8 / 66 / 98 före och 10 / 69 / 98 efter. Hjältens attack avgör inte längre bossdelen (bara
+//                   förstriden), så en hjälte under rek klarar sig bättre än förut och en över rek kan inte slå sig förbi orden.
+export const version = 6;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -95,8 +104,25 @@ export const K = {
   // omgången per dag därefter. Fler omgångar samma dag ger inget. Jämför: en bana ger ungefär 5 till 7 fienders guld plus
   // banbonusen 4 första gången, en kista 12. youngLevel: så många storlekar mindre spelar ett barn i ung-läget (lägst 1).
   mini: { first: 5, daily: 1.5, youngLevel: -1 },
-  // Ung-läge (bocken "Yngre barn" per barn på föräldraskärmen).
-  young: { thin: 0.5, bossShare: 0.35, learnMult: 3 },
+  // Bossfighter med ordstenar (bossar som har en egen mekanik, se game/boss/ och "Bossfight med ordstenar" i rules.js).
+  // Förstriden före bossen är en vanlig strid och rörs inte. Tas ett id bort ur `on` blir den bossen en vanlig frågestrid igen.
+  boss: {
+    on: ['glomsk', 'gatfull'],   // The Forgetful Troll (Word Forest) och The Riddle Sphinx (Sun Desert)
+    stones: 8,                   // ordstenar: en per löst uppgift, alla tända är seger
+    phases: [1 / 3, 2 / 3],      // andel tända stenar där fas 2 och fas 3 börjar (8 stenar: efter 2 och 5, alltså 2 + 3 + 3 uppgifter)
+    wrong: 1.5,                  // fel svar: bossens slag är så här många gånger bossens skada (K.tier.atk.boss gäller som förut)
+    phaseHit: 1.5,               // det förvarnade slaget vid varje fasbyte, gånger bossens skada. Det kan aldrig fälla hjälten
+    phaseHeal: 0.12,             // efter fasbytet får hjälten tillbaka så här stor andel av sitt maxliv
+    keep: 0.5,                   // andel av de tända stenarna som står kvar till nästa försök efter en förlust (avrundas nedåt)
+    clueBonus: 2,                // stenar för en ledtrådsgåta som löses på första ledtråden utan miss (sfinxen)
+    // Uppgifternas storlek. full = barn som läser och inte har ung-läget, small = barn som inte läser eller har ung-läget.
+    troll: { say: 3, cards: { full: 3, small: 2 }, order: { full: 3, small: 2 }, extra: { full: 1, small: 0 } },
+    sphinx: { odd: { full: 4, small: 3 }, pattern: { full: 3, small: 2 }, clue: { full: 3, small: 2 }, clues: 3 },
+    review: 0.3,                 // andel av uppgifterna som hämtar sitt ord ur tidigare världar (repetition)
+    talkMs: 2600,                // så länge står en replik från bossen kvar (går att trycka bort)
+  },
+  // Ung-läge (bocken "Yngre barn" per barn på föräldraskärmen). bossStones: antal ordstenar i en bossfight.
+  young: { thin: 0.5, bossShare: 0.35, learnMult: 3, bossStones: 6 },
 };
 
 // ---------- Hjälten, föremålen och nivåerna (formlerna står i catalog.js) ----------

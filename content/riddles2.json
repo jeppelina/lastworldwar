@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "world": 2,
+  "title": "Sun Desert",
+  "about": "Innehåll till The Riddle Sphinx (game/boss/sphinx.js). Alla id pekar på ord i content/world1.json och world2.json. groups: grupperna för 'vilken hör inte hit' (bara ord med bild). avoid: par av grupper som ligger för nära varandra för att ställas mot varandra. riddles: ledtrådsgåtor där svaret är ett ord ur Sun Desert. review: gåtor där svaret är ett ord ur Word Forest (repetition). Varje gåta: a = svaret, clues = högst tre ledtrådar (ord barnet har mött, den mest avgörande sist), foils = felaktiga svar som vart och ett faller på minst en ledtråd. En gåta används bara om svaret och alla ledtrådar finns bland barnets ord, så flera gåtor får ha samma svar: den första som går att använda gäller (de senare är skrivna med de ord som finns kvar i ung-läget). colors och glyphs: hur en ledtråd utan bild visas för barn som inte läser (färgruta eller tecken). En gåta vars ledtråd inte går att visa hoppas över för dem.",
+  "groups": {
+    "animals": ["cat", "dog", "bird", "fish", "frog", "duck", "bear", "bee", "fox", "mouse", "horse", "cow", "pig", "snake", "owl", "bat", "camel", "lion"],
+    "food": ["milk", "juice", "bread", "banana", "cheese", "cake", "orange", "carrot", "tomato", "cookie", "ice_cream", "pizza", "apple"],
+    "clothes": ["hat", "shoe", "shirt", "pants", "sock"],
+    "home": ["bed", "chair", "door", "window", "clock"],
+    "table": ["cup", "plate", "spoon", "knife"],
+    "sky": ["sun", "moon", "star", "rain"],
+    "plants": ["tree", "flower", "leaf", "forest", "cactus"],
+    "rides": ["boat", "car"]
+  },
+  "avoid": [["food", "table"], ["food", "plants"], ["home", "table"], ["animals", "plants"]],
+  "colors": { "red": "#d8433b", "green": "#58b04a", "blue": "#4a7fd0", "yellow": "#ffd84a", "black": "#22202e" },
+  "glyphs": {
+    "eat": "🍴", "drink": "🥤", "sleep": "😴", "swim": "🏊", "run": "🏃", "fly": "🕊️", "see": "👀", "happy": "😀", "sad": "😢", "fast": "💨",
+    "big": { "g": "⬤", "scale": 1.5 }, "small": { "g": "⬤", "scale": 0.45 },
+    "one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10"
+  },
+  "riddles": [
+    { "a": "ice_cream", "clues": ["cold", "eat", "happy"], "foils": ["milk", "pizza", "shoe"] },
+    { "a": "milk", "clues": ["drink", "cold", "cow"], "foils": ["juice", "bread", "hat"] },
+    { "a": "milk", "clues": ["cow", "cat"], "foils": ["juice", "bread", "hat"] },
+    { "a": "juice", "clues": ["drink", "cold", "orange"], "foils": ["milk", "cake", "sock"] },
+    { "a": "banana", "clues": ["yellow", "eat", "tree"], "foils": ["cheese", "coin", "carrot"] },
+    { "a": "cheese", "clues": ["yellow", "eat", "mouse"], "foils": ["banana", "tomato", "sun"] },
+    { "a": "cheese", "clues": ["eat", "small", "mouse"], "foils": ["bread", "knife", "plate"] },
+    { "a": "tomato", "clues": ["red", "eat", "small"], "foils": ["car", "bread", "banana"] },
+    { "a": "pizza", "clues": ["hot", "eat", "big"], "foils": ["ice_cream", "cup", "cookie"] },
+    { "a": "cup", "clues": ["hot", "small", "drink"], "foils": ["pizza", "plate", "hat"] },
+    { "a": "bed", "clues": ["house", "big", "sleep"], "foils": ["chair", "car", "plate"] },
+    { "a": "tent", "clues": ["forest", "small", "sleep"], "foils": ["chair", "boat", "door"] },
+    { "a": "shoe", "clues": ["two", "run", "sock"], "foils": ["hat", "shirt", "bag"] },
+    { "a": "coin", "clues": ["small", "yellow", "money"], "foils": ["key", "banana", "cookie"] },
+    { "a": "coin", "clues": ["small", "money"], "foils": ["box", "book", "plate"] },
+    { "a": "door", "clues": ["house", "big", "open"], "foils": ["bed", "box", "clock"] },
+    { "a": "window", "clues": ["house", "open", "see"], "foils": ["bed", "chair", "ball"] },
+    { "a": "ball", "clues": ["small", "jump", "play_football"], "foils": ["coin", "box", "cookie"] },
+    { "a": "boat", "clues": ["big", "fast", "water"], "foils": ["car", "cup", "fish"] },
+    { "a": "car", "clues": ["fast", "big", "red"], "foils": ["boat", "tomato", "horse"] },
+    { "a": "lion", "clues": ["big", "hungry", "cat"], "foils": ["camel", "mouse", "bird"] },
+    { "a": "lion", "clues": ["big", "fast", "cat"], "foils": ["horse", "mouse", "bear"] },
+    { "a": "cactus", "clues": ["green", "sun", "hot"], "foils": ["frog", "banana", "hat"] },
+    { "a": "spoon", "clues": ["eat", "small", "porridge"], "foils": ["knife", "hat", "chair"] },
+    { "a": "bag", "clues": ["school", "in", "book"], "foils": ["hat", "chair", "shoe"] }
+  ],
+  "review": [
+    { "a": "frog", "clues": ["green", "jump", "water"], "foils": ["cow", "bird", "bear"] },
+    { "a": "fish", "clues": ["small", "water", "swim"], "foils": ["horse", "bee", "owl"] },
+    { "a": "bee", "clues": ["yellow", "small", "fly"], "foils": ["pig", "fish", "bear"] },
+    { "a": "bear", "clues": ["big", "forest", "sleep"], "foils": ["mouse", "fish", "bee"] },
+    { "a": "bat", "clues": ["black", "fly", "moon"], "foils": ["pig", "duck", "cow"] },
+    { "a": "horse", "clues": ["big", "fast", "run"], "foils": ["mouse", "fish", "frog"] },
+    { "a": "duck", "clues": ["bird", "water", "swim"], "foils": ["fox", "bear", "snake"] },
+    { "a": "apple", "clues": ["red", "eat", "tree"], "foils": ["egg", "key", "moon"] },
+    { "a": "bird", "clues": ["fly", "nest", "egg"], "foils": ["dog", "fish", "pig"] },
+    { "a": "fox", "clues": ["red", "fast", "forest"], "foils": ["cow", "frog", "owl"] },
+    { "a": "owl", "clues": ["bird", "moon", "see"], "foils": ["bat", "cow", "fish"] }
+  ]
+}
