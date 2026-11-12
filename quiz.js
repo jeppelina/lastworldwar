@@ -29,6 +29,7 @@ export class Quiz {
       const keep = (i) => !!i.pic || Math.random() < 0.15, hasPic = this.own.some((i) => i.pic);
       if (hasPic) this.own = this.own.filter(keep); this.earlier = this.earlier.filter((i) => !!i.pic); this.sentences = [];
     }
+    this.newCap = o.newCap || K.newPerRun || 99; this.newSeen = 0;      // tak för nya ord per omgång
     this.asked = 0; this.lastNew = -9; this.requeue = []; this.last = null; this.log = [];
   }
 
@@ -38,7 +39,7 @@ export class Quiz {
     if (this.requeue.length && this.asked - this.requeue[0].at >= 2) return this.task(this.requeue.shift().item);
     if (this.sentences.length && this.asked > 2 && Math.random() < 0.3) { const s = pick(this.sentences); return { sentence: s, type: s.gap && Math.random() < 0.5 ? 'sentence_gap' : 'build_sentence' }; }
     const met = (i) => !!this.book[i.id], fresh = this.own.filter((i) => !met(i)), known = this.own.filter(met);
-    if (fresh.length && (this.asked - this.lastNew >= 2 || !known.length)) { this.lastNew = this.asked; return this.task(fresh[0]); }   // nya ord ett i taget, med gamla emellan
+    if (fresh.length && (this.newSeen < this.newCap || !known.length) && (this.asked - this.lastNew >= 2 || !known.length)) { this.lastNew = this.asked; this.newSeen++; return this.task(fresh[0]); }   // nya ord ett i taget, med gamla emellan
     const due = this.earlier.filter((i) => isDue(this.book[i.id], this.day) && i !== this.last);
     if (due.length && Math.random() < 0.4) return this.task(pick(due));                                                             // gamla ord som vill repeteras
     const pool = known.filter((i) => i !== this.last);
@@ -76,8 +77,9 @@ export class Quiz {
     const it = task.item, s = task.sentence, P = this.play, T = task.type;
     const en = it ? `audio/${it.audio}.mp3` : `audio/${s.audio}.mp3`, slow = en.replace('.mp3', '.slow.mp3'), svA = `audio/sv/${(it || s).id}.mp3`;
     let promptAudio = en, locked = false;
+    const t0 = Date.now();                                  // svarstid: från att uppgiften visas till svaret
     const finish = (right) => {
-      if (locked) return; locked = true; this.done(task, right);
+      if (locked) return; locked = true; task.ms = Date.now() - t0; this.done(task, right);
       if (!right && task.free) return this.teach(it, quizEl, wordEl, () => cb({ right: false, free: true }));
       cb({ right, free: false });
     };
@@ -93,7 +95,7 @@ export class Quiz {
       const box = quizEl.querySelector('.cards');
       for (const o of opts) {
         const b = document.createElement('button'); b.className = 'card' + (txt ? ' txt' : '') + (o.cls ? ' ' + o.cls : ''); b.innerHTML = o.html;
-        b.onclick = () => { if (locked) return; if (o.ok) { b.classList.add('right'); if (promptAudio !== en) P(en); } else { b.classList.add('wrong'); [...box.children].forEach((c, i) => opts[i].ok && c.classList.add('right')); P(slow); } finish(!!o.ok); };
+        b.onclick = () => { if (locked) return; if (o.ok) { b.classList.add('right'); if (promptAudio !== en) P(en); } else { b.classList.add('wrong'); [...box.children].forEach((c, i) => opts[i].ok && c.classList.add('right')); P(slow); task.chosen = (b.textContent.trim() || ((b.querySelector('img') || { getAttribute: () => '' }).getAttribute('src') || '').split('/').pop().replace('.png', '')).slice(0, 64); } finish(!!o.ok); };
         box.appendChild(b); if (o.ok) this._auto = () => b.click();          // används av testkörningar
       }
       if (promptAudio) P(promptAudio);

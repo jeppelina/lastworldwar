@@ -35,7 +35,9 @@
 //                   16 gånger i rad utan att spela om något. xpBase 85 -> 42 (hälften så mycket xp per nivå, nivåerna stiger
 //                   direkt för alla eftersom nivån räknas ur summan) och guld per fiende 2 -> 2.6. Ordmätaren på bossen
 //                   är oförändrad, så orden måste fortfarande läras. Inte simulerat före lappen.
-export const version = 4;
+//   v5  2026-11-12  Högst K.newPerRun nya ord per omgång (resten kommer när banan spelas om), så att en bana med elva nya ord
+//                   inte lär ut alla på en gång. Orden 'a' och 'the' frågas inte längre ensamma (isolated: false i innehållet).
+export const version = 5;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -63,6 +65,8 @@ export const K = {
   superMult: 2,        // superattackens skada
   spreadLo: 0.9, spreadWidth: 0.2,   // slumpen i varje slag: 0,9 till 1,1 gånger skadan
   stars: [0.66, 0.33], // andel liv kvar som ger tre respektive två stjärnor
+  newPerRun: 5,        // högst så här många nya ord per omgång på en bana (ung-läge: newPerRunYoung). Resten kommer vid omspel.
+  newPerRunYoung: 3,
   requeueGap: 2,       // ett missat ord kommer tillbaka tidigast efter så här många frågor (världar utan innehållsfil)
   options: 4,          // antal svarskort (världar utan innehållsfil)
 

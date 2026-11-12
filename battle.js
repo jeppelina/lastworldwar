@@ -69,7 +69,7 @@ export class Battle {
     this.$ = (s) => el.querySelector(s);
     this.$('.again').onclick = () => this.target && this.play(`audio/${this.target.en}.mp3`);
     this.$('.slow').onclick = () => this.target && this.play(`audio/${this.target.en}.slow.mp3`);
-    this.$('.flee').onclick = () => { if (!this.over) this.finish(false); };
+    this.$('.flee').onclick = () => { if (!this.over) { this.gaveUp = true; this.finish(false); } };
     this.timer = setInterval(() => this.frame(), 45);
     this.nextFight();
   }
@@ -211,7 +211,8 @@ export class Battle {
   afterEnemy() { if (R.defeated(this.run)) { this.hero.deadAt = this.now(); setTimeout(() => this.finish(false), 900); } else { this.hud(); this.phase = 'wait'; this.askSoon(2400); } }
   finish(win) {
     if (this.over) return; this.over = true; this.phase = 'over';
-    this.onEnd(R.result(this.run, win));
+    const res = R.result(this.run, win); if (this.gaveUp) res.gaveUp = true;
+    this.onEnd(res);
   }
 
   // ----- bildrutan -----

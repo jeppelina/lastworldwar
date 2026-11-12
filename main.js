@@ -268,8 +268,8 @@ function startBattle(k, i, node, w) {
   node = { ...node, ...R.nodeInfo(w.id, i) };                // banans rekommenderade nivå och lättnad (balance.js)
   run = { level: P.level, stats: heroStats(P), words: 0, wordXp: 0 };
   const C = contentFor(k);                                   // världar med innehållsfil har byggd pedagogik, övriga kör enkla frågor tills vidare
-  const quiz = C ? new Quiz({ content: C, prior: Object.keys(CONTENT).filter((j) => +j < k).flatMap((j) => contentFor(+j).items), nodeIdx: i, book: P.words, day: dayNum(), reading: P.reading !== false, play, save,
-    onAnswer: (t, right, up) => { sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.type, correct: right, stage: w.id + ':' + i }); if (up && up.up) wordUp(t.item, up); } }) : null;
+  const quiz = C ? new Quiz({ newCap: P.young ? K.newPerRunYoung : K.newPerRun, content: C, prior: Object.keys(CONTENT).filter((j) => +j < k).flatMap((j) => contentFor(+j).items), nodeIdx: i, book: P.words, day: dayNum(), reading: P.reading !== false, play, save,
+    onAnswer: (t, right, up) => { sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.type, correct: right, stage: w.id + ':' + i, ms: t.ms, chosen: right ? null : t.chosen }); if (up && up.up) wordUp(t.item, up); } }) : null;
   battle = new Battle($('battle-root'), { profile: P, worldIdx: k, nodeIdx: i, node, words: wordsFor(k, i), quiz, rewardMult: R.rewardFactor(P.level, node.rec), play, sfx, voiceIdle, onEnd: (r) => endBattle(r, k, i, node, w) });
   if ((P.runs || 0) < 3) { play('audio/en-listen.mp3'); toast('Listen, and choose the picture.' + sv('listen', 'Lyssna och välj bilden.')); }
 }
@@ -289,17 +289,18 @@ function wordUp(item, up) {
   run.words++; run.wordXp += got;
   if (battle && battle.note) battle.note(`${TIERS[up.after].name}!  +${got} XP`, TIERS[up.after].color);
 }
+const LOSSES = {};      // förluster i rad per bana (bara i minnet): efter två pekar resultatskärmen tydligt mot att träna ord
 function endBattle(r, k, i, node, w) {
   const first = !(P.done[w.id] && P.done[w.id][i]), st = run || { level: P.level, stats: heroStats(P), words: 0, wordXp: 0 };
   const rw = R.reward(r, node, first, st.level, !!CONTENT[k]), log = battle && battle.quiz ? battle.quiz.log : [];
   for (let c = 0; c < log.length; c += 30) sync.record(pid(P), 'words', { day: dayNum(), a: log.slice(c, c + 30).map((l) => { const a = [l.id, l.type, l.free && !l.right ? -1 : l.right ? 1 : 0]; if (l.start) a.push(l.start); return a; }) });
-  rec('stage', { world: w.id, node: i, kind: 'battle', win: r.win, stars: r.stars, gold: rw.gold, xp: rw.xp, bv: BV });
+  const lkey = w.id + ':' + i; if (r.win) delete LOSSES[lkey]; else if (!r.gaveUp) LOSSES[lkey] = (LOSSES[lkey] || 0) + 1;
+  rec('stage', { world: w.id, node: i, kind: 'battle', win: r.win, stars: r.stars, gold: rw.gold, xp: rw.xp, bv: BV, lv: st.level, gaveUp: r.gaveUp ? true : undefined, kills: r.kills });
   const ups = P.level - st.level, before = st.stats; run = null;
   const el = $('result'); el.hidden = false; el.className = r.win ? 'win' : 'lose';
-  el.querySelector('h2').textContent = r.win ? 'Good job!' : 'Try again!';
-  el.querySelector('.sv').textContent = r.win ? sv('good-job', 'Bra jobbat!').trim() : sv('try-again', 'Försök igen!').trim();
+  
   el.querySelector('.stars').innerHTML = r.win ? [0, 1, 2].map((s) => (s < r.stars ? '★' : '<i>★</i>')).join('') : '';
-  const target = r.win ? null : practiceTarget(k), canPractice = target && !(target[0] === k && target[1] === i), under = !r.win && P.level < node.rec;
+  const target = r.win ? null : practiceTarget(k), canPractice = target && !(target[0] === k && target[1] === i), under = !r.win && P.level < node.rec, pushy = canPractice && (under || (LOSSES[w.id + ':' + i] || 0) >= 2);
   el.querySelector('.lines').innerHTML = (r.win ? `You won at ${node.name}.\n` : `You reached fight ${Math.min(r.kills + 1, r.fights)} of ${r.fights}.\n`) +
     `<b>+${fmt(rw.gold)} gold</b>   <b>+${fmt(rw.xp)} XP</b>` +
     (st.words ? `\n<b class="grow">${st.words} ${st.words === 1 ? 'word' : 'words'} got stronger</b>   <b>+${fmt(st.wordXp)} XP</b>` : '') +
@@ -307,10 +308,12 @@ function endBattle(r, k, i, node, w) {
     (ups ? `\n<b>Level ${P.level}!</b> You are stronger now.` : '') +
     (under ? `\n<b class="warn">This level is Lv ${node.rec}. You are Lv ${P.level}.</b>` : '') +
     (r.win ? '' : canPractice ? '\nMake your words stronger to level up.' : '\nYou keep your gold and XP.');
+  el.querySelector('h2').textContent = r.win ? 'Good job!' : pushy ? 'Get stronger first!' : 'Try again!';
+  el.querySelector('.sv').textContent = r.win ? sv('good-job', 'Bra jobbat!').trim() : pushy ? '(Träna ord på en lättare bana först!)' : sv('try-again', 'Försök igen!').trim();
   const acts = el.querySelector('.acts'); acts.innerHTML = '';
   const btn = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = label; b.onclick = () => { el.hidden = true; if (battle) battle.destroy(); battle = null; if (ups) levelUp(before, fn); else fn(); }; acts.appendChild(b); };
-  if (canPractice) btn('Practice words', under ? 'big' : 'alt big', () => goPractice(target[0], target[1]));
-  if (!r.win) btn('Try again', under && canPractice ? 'alt' : '', () => startBattle(k, i, node, w));
+  if (canPractice) btn('Practice words', pushy ? 'big' : 'alt big', () => goPractice(target[0], target[1]));
+  if (!r.win) btn('Try again', pushy ? 'alt' : '', () => startBattle(k, i, node, w));
   btn('Map', r.win ? '' : 'alt', () => { enterMap(false); if (r.win) { MAP.state.gold = P.gold; MAP.finish(k, i, r.stars); } afterMapChange(); });
   play(r.win ? 'audio/en-good-job.mp3' : 'audio/en-try-again.mp3');
 }
@@ -655,7 +658,7 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
 (async function () {
   const art = await loadArt();
   words = (await (await fetch('audio/words.json')).json()).words;
-  for (const n of [1, 2, 3]) try { CONTENT[n - 1] = await (await fetch(`content/world${n}.json`)).json(); } catch (e) { console.error(`world${n}.json`, e); }
+  for (const n of [1, 2, 3]) try { const c = await (await fetch(`content/world${n}.json`)).json(); c.items = c.items.filter((it) => it.isolated !== false); CONTENT[n - 1] = c; } catch (e) { console.error(`world${n}.json`, e); }
   checkUpdate(); preloadPics();
   for (const g of Object.values(MINI)) g.load().catch(() => {});     // minispelens kod hämtas i förväg, så att de går att öppna utan nät
   await sync.init({ ...SYNC_CONFIG, xpToLevel });
