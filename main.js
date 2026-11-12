@@ -284,16 +284,16 @@ function startBattle(k, i, node, w) {
 // av två enheter eller efter en omstart. Nivåer som ordet nådde före balans v2 betalas inte i efterhand (mt i words.js).
 function wordUp(item, up) {
   if (!K.learn || !run) return;
-  let got = 0;
+  let got = 0, gotGold = 0;
   for (let tier = up.top + 1; tier <= up.after; tier++) {
-    const key = `w:${item.id}:${tier}`, xp = R.learnXp(tier, run.level, xpToLevel, R.learnMult(P.young));
+    const key = `w:${item.id}:${tier}`, xp = R.learnXp(tier, run.level, xpToLevel, R.learnMult(P.young)), gold = R.learnGold(tier, run.level);
     if (!xp || P.paid[key]) continue;
-    if (sync.record(pid(P), 'grant', { gold: 0, xp, reason: 'word', word: item.id, tier, bv: BV }, { once: key })) got += xp;
+    if (sync.record(pid(P), 'grant', { gold, xp, reason: 'word', word: item.id, tier, bv: BV }, { once: key })) { got += xp; gotGold += gold; }
     P.paid[key] = 1;
   }
   if (!got) return;
-  run.words++; run.wordXp += got;
-  if (battle && battle.note) battle.note(`${TIERS[up.after].name}!  +${got} XP`, TIERS[up.after].color);
+  run.words++; run.wordXp += got; run.wordGold = (run.wordGold || 0) + gotGold;
+  if (battle && battle.note) battle.note(`${TIERS[up.after].name}!  +${got} XP` + (gotGold ? `  +${gotGold} gold` : ''), TIERS[up.after].color);
 }
 const LOSSES = {};      // förluster i rad per bana (bara i minnet): efter två pekar resultatskärmen tydligt mot att träna ord
 function endBattle(r, k, i, node, w) {
@@ -316,7 +316,7 @@ function endBattle(r, k, i, node, w) {
   const missed = bs && !r.win ? bs.missed || [] : [];
   el.querySelector('.lines').innerHTML = (bs ? bossTop : r.win ? `You won at ${node.name}.\n` : `You reached fight ${Math.min(r.kills + 1, r.fights)} of ${r.fights}.\n`) +
     `<b>+${fmt(rw.gold)} gold</b>   <b>+${fmt(rw.xp)} XP</b>` +
-    (st.words ? `\n<b class="grow">${st.words} ${st.words === 1 ? 'word' : 'words'} got stronger</b>   <b>+${fmt(st.wordXp)} XP</b>` : '') +
+    (st.words ? `\n<b class="grow">${st.words} ${st.words === 1 ? 'word' : 'words'} got stronger</b>   <b>+${fmt(st.wordXp)} XP</b>` + (st.wordGold ? `   <b>+${fmt(st.wordGold)} gold</b>` : '') : '') +
     (rw.factor < 1 ? '\nToo easy now: small reward.' : '') +
     (ups ? `\n<b>Level ${P.level}!</b> You are stronger now.` : '') +
     (under ? `\n<b class="warn">This level is Lv ${node.rec}. You are Lv ${P.level}.</b>` : '') +
@@ -554,7 +554,7 @@ function renderBook() {
 
 // ---------- Dagens butik: fyra föremål, nya i morgon, ingen katalog ----------
 let sSel = null;
-function shopToday() { const day = today(); if (!P.shop || P.shop.day !== day) rec('shop', { day, ids: dailyShop(P, day) }); return P.shop.ids.map((id) => BY_ID[id]); }
+function shopToday() { const day = today(), fresh = dailyShop(P, day); if (!P.shop || P.shop.day !== day || fresh.length > P.shop.ids.length) rec('shop', { day, ids: fresh }); return P.shop.ids.map((id) => BY_ID[id]); }   // fyller också på dagens hylla om butiken har blivit större
 function openShop() { sSel = null; show('shop'); renderShop(); }
 function renderShop() {
   document.querySelectorAll('.gold').forEach((e) => (e.textContent = fmt(P.gold)));

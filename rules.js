@@ -217,6 +217,8 @@ export function levelBonus(node, first, win) {
 export const chestGold = (rec) => Math.round(K.chestBonus * enemyGold(rec));
 // Guld för ett minispel på en nod med rekommenderad nivå rec: första gången noden spelas klart, eller dagens första omgång.
 export const miniGold = (rec, first) => (K.mini ? Math.max(1, Math.round((first ? K.mini.first : K.mini.daily) * enemyGold(rec))) : 0);
+// Guld när ett ord når en ny högsta nivå: K.learn.gold[tier] fienders guld på hjältens nivå.
+export function learnGold(tier, level) { const g = K.learn && K.learn.gold; return g ? Math.round((g[Math.min(tier, g.length - 1)] || 0) * enemyGold(level)) : 0; }
 // Xp när ett ord når en ny högsta nivå (tier) i ordboken: en andel av xp-kravet för hjältens nivå. mult: se learnMult.
 export function learnXp(tier, level, xpToLevel, mult = 1) {
   const L = K.learn, share = L ? L.share[Math.min(tier, L.share.length - 1)] : 0;

@@ -46,7 +46,10 @@
 //                   utrustning, 50 / 70 / 85 procent rätt: trollet 7 / 68 / 99 procent vinst före och 9 / 66 / 97 efter,
 //                   sfinxen 8 / 66 / 98 före och 10 / 69 / 98 efter. Hjältens attack avgör inte längre bossdelen (bara
 //                   förstriden), så en hjälte under rek klarar sig bättre än förut och en över rek kan inte slå sig förbi orden.
-export const version = 6;
+//   v7  2026-11-12  Guld när ett ord når en ny nivå i ordboken (K.learn.gold, i fiendeguld på hjältens nivå), så att det
+//                   lönar sig att träna ord och inte bara att vinna banor. Mål: ungefär ett föremål extra per speldag.
+//                   Butiken fyller på dagens hylla om den är kortare än den nya storleken. Inte simulerat.
+export const version = 7;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -91,7 +94,8 @@ export const K = {
   // Xp när ett ord når en ny högsta nivå i ordboken: share[nivå] * mult * xp-kravet för hjältens nivå.
   // Nivåerna: 0 Wood, 1 Iron, 2 Steel, 3 Gold, 4 Emerald, 5 Crystal, 6 Star, 7 Neutron Star.
   // kill: andel av fiendernas xp som finns kvar i världar som har innehållsfil (övriga världar ger full fiende-xp).
-  learn: { share: [0, 0.01, 0.025, 0.035, 0.045, 0.05, 0.05, 0.05], mult: 1, kill: 0.2 },
+  learn: { share: [0, 0.01, 0.025, 0.035, 0.045, 0.05, 0.05, 0.05], mult: 1, kill: 0.2,
+    gold: [0, 2, 4, 5, 6, 7, 7, 7] },   // guld per ordnivå, räknat i fiendeguld på hjältens nivå (Iron 2, Steel 4 ...). 0 = inget guld för ord.
   // Ordmätare. boss: bossen går att utmana när `share` av världens ord har nått nivå `tier` (2 = Steel).
   // node: mätaren längs vägen (en ny bana öppnas när share av de tidigare banornas ord är Iron). INTE BYGGD i spelet:
   // föräldern har inte bett om den och ett lås på vanliga banor kan stänga in ett barn. `on` läses bara av simulatorn.
