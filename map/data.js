@@ -42,7 +42,7 @@ window.GAME_DATA = {
         ['level', 'The Owl Tree', 'owl, bat, moon', 16],
         ['boss', 'The Forgetful Troll', 'All words from Word Forest', 100]
       ],
-      side: [{ id: 's1', after: 8, node: ['mini', 'The Broken Trail', 'Mend the Path', 0, { game: 'path', level: 1 }] }]
+      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'The Broken Trail', 'Mend the Path', 0, { game: 'path', level: 1 }] }]
     },
     {
       id: 'soloknen', name: 'Sun Desert', biome: 'desert',
@@ -60,7 +60,7 @@ window.GAME_DATA = {
         ['level', 'The Sun Gate', 'boat, car, lion', 18],
         ['boss', 'The Riddle Sphinx', 'All words from Sun Desert', 120]
       ],
-      side: [{ id: 's1', after: 8, node: ['mini', 'Lantern Camp', 'Light the Lanterns', 0, { game: 'lanterns', level: 1 }] }]
+      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'Lantern Camp', 'Light the Lanterns', 0, { game: 'lanterns', level: 1 }] }]
     },
     {
       id: 'svamptrasket', name: 'Mushroom Swamp', biome: 'swamp',
@@ -78,7 +78,7 @@ window.GAME_DATA = {
         ['level', 'The Root Cave', 'you, they, not, now', 20],
         ['boss', 'The Mumbling Witch', 'All words from Mushroom Swamp', 140]
       ],
-      side: [{ id: 's1', after: 8, node: ['mini', 'The Sunken Boardwalk', 'Mend the Path', 0, { game: 'path', level: 2 }] }]
+      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'The Sunken Boardwalk', 'Mend the Path', 0, { game: 'path', level: 2 }] }]
     },
     {
       id: 'frostbergen', name: 'Frost Mountains', biome: 'ice',
@@ -96,7 +96,7 @@ window.GAME_DATA = {
         ['level', 'The Peak', 'Mixed words', 22],
         ['boss', 'The Shivering Giant', 'All words from Frost Mountains', 160]
       ],
-      side: [{ id: 's1', after: 8, node: ['mini', 'Echo Peak', "Owl's Echo", 0, { game: 'echo', level: 2 }] }]
+      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'Echo Peak', "Owl's Echo", 0, { game: 'echo', level: 2 }] }]
     },
     {
       id: 'meningsvulkanen', name: 'Sentence Volcano', biome: 'volcano',
@@ -115,7 +115,7 @@ window.GAME_DATA = {
         ['level', 'The Crater Rim', 'Mixed sentences', 28],
         ['boss', 'The Word Dragon', 'All sentences from the volcano', 200]
       ],
-      side: [{ id: 's1', after: 9, node: ['mini', 'The Lava Hall', 'Word Bingo', 0, { game: 'bingo', level: 1 }] }]
+      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 9, node: ['mini', 'The Lava Hall', 'Word Bingo', 0, { game: 'bingo', level: 1 }] }]
     },
     {
       id: 'molnslottet', name: 'Cloud Castle', biome: 'sky',
@@ -133,7 +133,7 @@ window.GAME_DATA = {
         ['level', 'The King\'s Gate', 'Tell a story in three sentences', 30],
         ['boss', 'The Babbling Cloud King', 'Everything you have learned', 300]
       ],
-      side: [{ id: 's1', after: 8, node: ['mini', 'The Play Room', "Spark Pairs or Owl's Echo", 0, { game: ['pairs', 'echo'], level: 2 }] }]
+      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'The Play Room', "Spark Pairs or Owl's Echo", 0, { game: ['pairs', 'echo'], level: 2 }] }]
     }
   ],
 

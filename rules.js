@@ -208,6 +208,7 @@ export function rewardFactor(heroLevel, rec) {
   const over = heroLevel - rec - F.free;
   return over <= 0 ? 1 : Math.max(F.floor, +(1 - F.step * over).toFixed(4));
 }
+export const enemyGoldAt = (rec) => enemyGold(rec);
 const enemyGold = (rec) => K.enemy.gold * Math.pow(K.enemy.goldGrowth, rec - 1);
 // Banbonus: bara första gången banan klaras (first). node behöver type och rec.
 export function levelBonus(node, first, win) {

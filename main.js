@@ -11,6 +11,7 @@ import * as R from './rules.js';
 import { K, version as BV } from './balance.js';
 import * as sync from './sync.js';
 import { SYNC_CONFIG } from './sync-config.js';
+import { openGym } from './gym.js';
 import { MINI, miniFor } from './minigames/index.js';
 import { usable, esc } from './minigames/shared.js';
 import { makeBoss, bossFiles } from './boss/index.js';
@@ -235,6 +236,8 @@ function pushMapInfo() {
 // Det kartan visar i rutan för ett minispel: spelets namn och en rad om vad man gör, guldet, och om dagens guld är hämtat.
 // anchor = nodindex som guldet räknas efter (nodens eget, eller noden som sidostoppet ligger efter).
 function miniInfo(w, nd, anchor) {
+  if (nd.mini && nd.mini.game === 'gym') { const g = K.gym ? Math.round(K.gym.daily * R.enemyGoldAt(P.level)) : 0, got = !!(P.paid || {})['gym:' + today()];      // ordgymmet: ett sidostopp som inte är ett minispel
+    return { mini: { name: 'Word Gym', desc: 'Train all your words here. Stronger words give gold.', first: g, daily: g, played: true, got } }; }
   const gs = [].concat(nd.mini.game).filter((id) => MINI[id]).map((id) => MINI[miniFor(id, P.reading !== false)]), st = (P.mini || {})[w.id + ':' + nd.slot], rec = R.nodeInfo(w.id, anchor).rec, day = today();
   return { mini: { name: gs.map((g) => g.name).join(' or '), desc: gs.length > 1 ? 'You choose.' : gs.length ? gs[0].desc : '', first: R.miniGold(rec, true), daily: R.miniGold(rec, false), played: !!(st && st.first), got: !!(st && (st.first === day || st.last === day)) } };
 }
@@ -364,6 +367,7 @@ function miniWords(k, need) {
 }
 // Kartan anropar den här när barnet trycker Play på ett minispel. slot = nodindex, eller sidostoppets id ('s1').
 function openMini(k, slot, nd) {
+  if (nd.mini && nd.mini.game === 'gym') return startGym(k);
   const ids = [].concat(nd.mini && nd.mini.game).filter((id) => MINI[id]);
   if (!ids.length) return toast('This game is not ready yet.');
   if (battle) { battle.destroy(); battle = null; }
@@ -528,6 +532,29 @@ function heardFew(key) { P.heard = P.heard || {}; P.heard[key] = (P.heard[key] |
 const CATS = [['animal', 'Animals'], ['nature', 'Nature'], ['home', 'At home'], ['game', 'The game'], ['body', 'The body'], ['food', 'Food'], ['clothes', 'Clothes'], ['thing', 'Things'], ['color', 'Colours'], ['number', 'Numbers'], ['verb', 'Doing words'], ['adj', 'Describing words'], ['small', 'Small words'], ['function', 'Small words'], ['phrase', 'Phrases']];
 let bSel = null;
 function openBook() { bSel = null; show('book'); renderBook(); }
+// ---------- Ordgymmet (gym.js): träna alla mötta ord, ingen fiende. Nås från ordboken. ----------
+// k = världen vars gym barnet står i: där tränas den världens ord. I en värld utan ordlista tränas alla mötta ord.
+function startGym(k) {
+  if (battle) { battle.destroy(); battle = null; }
+  const book = P.words || (P.words = {}), src = CONTENT[k] ? [CONTENT[k]] : Object.values(CONTENT), items = src.flatMap((c) => c.items).filter((it) => book[it.id] && counts(it, P));
+  const sentences = P.reading === false ? [] : MAP ? MAP.worlds.flatMap((w, j) => (CONTENT[j] && (!CONTENT[k] || j === k) ? CONTENT[j].sentences.filter((s) => ((P.done || {})[w.id] || [])[s.node - 1] && s.tiles.length <= 6) : [])) : [];
+  const lv0 = P.level, before = heroStats(P), day = dayNum();
+  run = { level: P.level, stats: before, words: 0, wordXp: 0 };
+  openGym({
+    items, sentences, book, day, reading: P.reading !== false, play, sfx, save, questions: K.gym ? K.gym.questions : 15,
+    onAnswer: (t, right, up) => { if (!t.item) return; sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.type, correct: right, stage: 'gym', ms: t.ms, chosen: right ? null : t.chosen }); if (up && up.up) wordUp(t.item, up); },
+    onDone: (log) => {
+      for (let c = 0; c < log.length; c += 30) sync.record(pid(P), 'words', { day, a: log.slice(c, c + 30).map((l) => { const a = [l.id, l.type, l.free && !l.right ? -1 : l.right ? 1 : 0]; if (l.start) a.push(l.start); return a; }) });
+      const st = run || { words: 0, wordXp: 0 }; run = null;
+      let bonus = 0; const key = 'gym:' + today();
+      if (K.gym && K.gym.daily && log.length >= 5 && !P.paid[key]) { bonus = Math.round(K.gym.daily * R.enemyGoldAt(lv0)); if (sync.record(pid(P), 'grant', { gold: bonus, xp: 0, reason: 'gym', bv: BV }, { once: key })) P.paid[key] = 1; else bonus = 0; }
+      adopt(P); renderBar(); if (MAP) { MAP.state.gold = P.gold; MAP.updateHud(); }
+      return { words: st.words, xp: st.wordXp, gold: st.wordGold || 0, bonus, after: () => { if (P.level > lv0) levelUp(before, () => {}); } };
+    },
+    again: null, onClose: () => { run = null; enterMap(false); afterMapChange(); },
+  });
+  show('gym');
+}
 function renderBook() {
   const book = P.words || {}, day = dayNum(), all = Object.values(CONTENT).flatMap((c) => c.items).filter((i) => book[i.id]);
   $('book-count').textContent = `${all.length} ${all.length === 1 ? 'word' : 'words'}`;

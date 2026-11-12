@@ -53,7 +53,10 @@
 //                   poäng och svagare avtagande för rätta svar samma dag (1 + 0,25 * antal i stället för 1 + antal). Barnen stod vid
 //                   bossen med 37 och 48 ord på Iron och inget på Steel, och inget de gjorde samma dag kunde ändra det.
 //                   Kartans stjärnor visar nu ordens nivå på banan (1 = klarad, 2 = hälften Steel, 3 = nästan alla Steel). Inte simulerat.
-export const version = 8;
+//   v9  2026-11-12  Ordgymmet (gym.js, K.gym): träna alla mötta ord utan fiende. Mer guld för nivåerna över Steel
+//                   (K.learn.gold Gold 5 -> 8, Emerald 6 -> 12, Crystal 7 -> 16, Star 7 -> 20, Neutron Star 7 -> 25) och en dagsbonus
+//                   för första passet varje dag. Inte simulerat.
+export const version = 9;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -99,11 +102,12 @@ export const K = {
   // Nivåerna: 0 Wood, 1 Iron, 2 Steel, 3 Gold, 4 Emerald, 5 Crystal, 6 Star, 7 Neutron Star.
   // kill: andel av fiendernas xp som finns kvar i världar som har innehållsfil (övriga världar ger full fiende-xp).
   learn: { share: [0, 0.01, 0.025, 0.035, 0.045, 0.05, 0.05, 0.05], mult: 1, kill: 0.2,
-    gold: [0, 2, 4, 5, 6, 7, 7, 7] },   // guld per ordnivå, räknat i fiendeguld på hjältens nivå (Iron 2, Steel 4 ...). 0 = inget guld för ord.
+    gold: [0, 2, 4, 8, 12, 16, 20, 25] },   // guld per ordnivå, räknat i fiendeguld på hjältens nivå (Iron 2, Steel 4 ...). 0 = inget guld för ord.
   // Ordmätare. boss: bossen går att utmana när `share` av världens ord har nått nivå `tier` (2 = Steel).
   // node: mätaren längs vägen (en ny bana öppnas när share av de tidigare banornas ord är Iron). INTE BYGGD i spelet:
   // föräldern har inte bett om den och ett lås på vanliga banor kan stänga in ett barn. `on` läses bara av simulatorn.
   gate: { boss: { share: 0.5, tier: 2 }, node: { on: false, share: 0.6, tier: 1 } },
+  gym: { questions: 15, daily: 5 },   // ordgymmet: frågor per pass, och dagsbonus (fiendeguld på hjältens nivå) för första passet varje dag
   knownStart: 4,       // rätt svar första gången barnet möter ett ord ger ordet minst så här många poäng (försprång)
   firstOptions: 4,     // antal kort vid första mötet (skrivna val för barn som inte läser är alltid två, och ger då inget försprång)
   wordShare: 1,        // andel av varje banas ord som används (introduce och phrases, de första i listan). 1 = alla.

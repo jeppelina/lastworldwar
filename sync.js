@@ -83,7 +83,7 @@ export function fold(events, opts = {}) {
       if (!slot) continue;
       if (!p.item) delete eq[slot]; else if (has.has(p.item)) eq[slot] = p.item;
     } else if (e.type === 'shop') {
-      if (p.day === day && !shop && Array.isArray(p.ids)) shop = { day: p.day, ids: p.ids.slice(), dream: null };
+      if (p.day === day && Array.isArray(p.ids) && (!shop || p.ids.length > shop.ids.length)) shop = { day: p.day, ids: p.ids.slice(), dream: null };   // en längre hylla samma dag ersätter (butiken växte), annars gäller den första
     } else if (e.type === 'mini') {
       if (p.once == null) continue;                               // utan nyckel går det inte att veta om guldet redan är givet
       const k = String(p.once); if (once.has(k)) continue; once.add(k);
