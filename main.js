@@ -1,12 +1,14 @@
 // Spelets skal: vem spelar, karta, strid, resultat, utrustning och dagens butik.
 import { G, ramp } from './pixel.js';
 import { W, H, drawHero, drawIcon, HAIR_STYLES } from './hero.js';
-import { ITEMS, BY_ID, SLOTS, RARITY, dailyShop, heroStats, xpToLevel } from './catalog.js';
+import { ITEMS, BY_ID, SLOTS, RARITY, dailyShop, heroStats, xpToLevel, levelKeepGrant } from './catalog.js';
 import { Battle, loadArt } from './battle.js';
 import { Quiz } from './quiz.js';
 import { showTitle, playIntro } from './intro.js';
 import { pic, preloadPics } from './pics.js';
-import { TIERS, tierOf, isDue, nextNeed, record as wordRecord, meet as wordMeet } from './words.js';
+import { TIERS, STEEL, tierOf, isDue, nextNeed, countAt, thinContent, record as wordRecord, meet as wordMeet } from './words.js';
+import * as R from './rules.js';
+import { K, version as BV } from './balance.js';
 import * as sync from './sync.js';
 import { SYNC_CONFIG } from './sync-config.js';
 
@@ -27,21 +29,46 @@ const dayNum = () => { const d = new Date(Date.now() + S.dayOffset * 864e5); ret
 const today = () => sync.dayKey(Date.now(), S.dayOffset);
 // ---------- Synk: händelseloggen är facit, P är en kopia som fylls på efter varje ändring ----------
 const pid = (p) => 'p' + (S.profiles.indexOf(p) + 1);           // p1, p2, p3 i den ordning profilerna står i fresh(). Ändra aldrig ordningen. Namnen finns bara på enheten.
-// Boken räknas fram ur händelserna av typen 'words' (en per spelad bana: [ord, övningstyp, 1 rätt | 0 fel | -1 första mötet]).
-function bookFor(id) {
-  const book = {};
-  for (const e of sync.exportLocal().events) if (e.profile === id && e.type === 'words') for (const [w, type, r] of e.payload.a || []) { if (r < 0) wordMeet(book, w, e.payload.day); else wordRecord(book, w, r > 0, type, e.payload.day); }
-  return book;
-}
-// Utseende och inställningar per barn följer också med mellan enheter: senaste händelsen av typen gäller.
-function latest(id, type) { let out = null; for (const e of sync.exportLocal().events) if (e.profile === id && e.type === type) out = e.payload; return out; }
+// Det här räknas fram ur profilens händelser varje gång något ändras (utöver guld, nivå och föremål som sync.fold ger):
+//   boken        händelser av typen 'words', en per spelad bana: [ord, övningstyp, 1 rätt | 0 fel | -1 första mötet, försprång]
+//   paid         engångsnycklar som redan har gett något (payload.once): 'w:<ord>:<nivå>' = xp för en ordnivå, 'bal-2' = nivåskyddet
+//   look, prefs  senaste händelsen av typen gäller. young (ung-läge) läses ur den senaste prefs som har fältet, eftersom en
+//                äldre klient skriver prefs utan det
+//   open         bossar som föräldern har öppnat för hand (typen 'unlock', senaste per värld gäller)
 const adopt = (p) => {
-  Object.assign(p, sync.stateFor(pid(p), today())); p.words = bookFor(pid(p));
-  const look = latest(pid(p), 'look'), prefs = latest(pid(p), 'prefs');
+  const id = pid(p), evs = sync.eventsFor(id);
+  Object.assign(p, sync.stateFor(id, today()));
+  const book = {}, paid = {}, open = {}; let look = null, prefs = null, young = false;
+  for (const e of evs) {
+    const pl = e.payload || {};
+    if (e.type === 'words') for (const [w, type, r, hs] of pl.a || []) { if (r < 0) wordMeet(book, w, pl.day); else wordRecord(book, w, r > 0, type, pl.day, +hs || 0); }
+    else if (e.type === 'grant' && pl.once != null) paid[pl.once] = 1;
+    else if (e.type === 'look') look = pl;
+    else if (e.type === 'prefs') { prefs = pl; if (typeof pl.young === 'boolean') young = pl.young; }
+    else if (e.type === 'unlock' && pl.world) open[pl.world] = pl.open !== false;
+  }
+  // En ordnivå som redan har gett xp räknas som nådd, även om svaren som ledde dit aldrig sparades (strid som avbröts).
+  for (const k of Object.keys(paid)) { const m = /^w:(.+):(\d+)$/.exec(k); if (m && book[m[1]]) book[m[1]].mt = Math.max(book[m[1]].mt || 0, +m[2]); }
+  p.words = book; p.paid = paid; p.open = open; p.young = young;
   if (look && look.skin) p.look = look; p.reading = prefs ? prefs.reading !== false : true;
   if (prefs && prefs.name) p.name = prefs.name;                 // namnet följer med mellan enheter (ligger i hushållets skyddade data, inte i koden)
+  levelKeep(p, evs);
   save();
 };
+// Balans version 2 bytte xp-kurva. Nivån räknas alltid fram ur summan av xp, så utan åtgärd hade barn på nivå 6 till 12
+// kunnat se nivån sjunka ett steg (den nya kurvan kräver upp till 41 xp mer för samma nivå där). Första gången en profil
+// med xp från före bytet öppnas i den nya versionen bokförs därför en engångsgåva: skillnaden mellan vad barnets
+// nivå kostar med nya och gamla kurvan (och nivån efter, ifall en annan enhet hunnit längre), aldrig mindre än noll.
+// Nyckeln 'bal-2' ger händelsen samma id på alla enheter, så den ges en gång. Räkningen står i catalog.js (levelKeepGrant)
+// och kontrolleras i balance.test.mjs.
+function levelKeep(p, evs) {
+  if (p.paid['bal-2']) return;
+  let old = 0; for (const e of evs) if ((e.type === 'stage' || e.type === 'grant') && !(e.payload && e.payload.bv)) old += Math.max(0, Math.round(+(e.payload || {}).xp || 0));
+  if (old <= 0) return;                                          // inget tjänat före bytet: inget att skydda
+  const g = levelKeepGrant(old);
+  if (sync.record(pid(p), 'grant', { gold: 0, xp: g.xp, reason: 'balance-v2', was: g.level, bv: BV }, { once: 'bal-2' })) Object.assign(p, sync.stateFor(pid(p), today()));
+  p.paid['bal-2'] = 1;
+}
 const rec = (type, payload) => { sync.record(pid(P), type, payload); adopt(P); };
 const gearOf = (p, preview) => { const eq = { ...p.eq }; if (preview) eq[preview.slot] = preview.id; return Object.fromEntries(Object.entries(eq).filter(([, id]) => id).map(([k, id]) => [k, BY_ID[id]])); };
 
@@ -106,23 +133,76 @@ window.GAME = {
   mapReady(m) { MAP = m; if (P) syncMap(true); },
   play(k, i, node, done) {
     const w = MAP.worlds[k];
-    if (node.type === 'chest') { if (done) return toast('The chest is empty.'); rec('stage', { world: w.id, node: i, kind: 'chest', win: true, stars: 1, gold: node.gold, xp: 0 }); toast(`You found ${node.gold} gold!`); MAP.finish(k, i, 1); return afterMapChange(); }
-    if (node.type === 'shop') { if (!done) { rec('stage', { world: w.id, node: i, kind: 'shop', win: true, stars: 1, gold: 0, xp: 0 }); MAP.finish(k, i, 1); afterMapChange(); } return openShop(); }
+    if (node.type === 'chest') { if (done) return toast('The chest is empty.'); const gold = R.chestGold(R.nodeInfo(w.id, i).rec); rec('stage', { world: w.id, node: i, kind: 'chest', win: true, stars: 1, gold, xp: 0, bv: BV }); toast(`You found ${gold} gold!`); MAP.finish(k, i, 1); return afterMapChange(); }
+    if (node.type === 'shop') { if (!done) { rec('stage', { world: w.id, node: i, kind: 'shop', win: true, stars: 1, gold: 0, xp: 0, bv: BV }); MAP.finish(k, i, 1); afterMapChange(); } return openShop(); }
+    // Bossens ordmätare: bossen går att utmana först när tillräckligt många av världens ord är inlärda (eller föräldern har öppnat den).
+    if (node.type === 'boss' && !done) { const g = bossGate(k); if (g && !g.open) { toast(meterText(g)); return goPractice(k, g.best); } }
     startBattle(k, i, node, w);
   },
+  // Kartans knapp "Practice words": till banan där flest ord kan växa.
+  practice(k) { const t = practiceTarget(k); if (t) goPractice(t[0], t[1]); },
 };
-function afterMapChange() { P.done = JSON.parse(JSON.stringify(MAP.state.done)); MAP.state.gold = P.gold; MAP.updateHud(); save(); renderBar(); }
+function afterMapChange() { P.done = JSON.parse(JSON.stringify(MAP.state.done)); MAP.state.gold = P.gold; pushMapInfo(); MAP.updateHud(); save(); renderBar(); }
 // Barnets egen gubbe i sin utrustning som markör på kartan (halv storlek).
 function mapHero() {
   if (!MAP || !MAP.setHero || !P) return;
   const g = new G(40, 38); g.push(0, 0, 0, 0.5); drawHero(g, P.look, gearOf(P), { t: 0, noShadow: true, noPet: true, noFx: true }); g.pop();
   const c = document.createElement('canvas'); c.width = 40; c.height = 38; g.paint(c.getContext('2d')); MAP.setHero(c, 19, 31);
 }
-function syncMap(jump) { mapHero(); MAP.load(P.done, P.gold); if (jump) { const cw = MAP.curWorld(); MAP.setView('world', cw < 0 ? MAP.worlds.length - 1 : cw, true); } }
+function syncMap(jump) { mapHero(); MAP.load(P.done, P.gold); pushMapInfo(); if (jump) { const cw = MAP.curWorld(); MAP.setView('world', cw < 0 ? MAP.worlds.length - 1 : cw, true); } }
 function enterMap(jump) {
   show('map'); renderBar();
-  if (!$('map-frame').src) $('map-frame').src = 'map/index.html?v=4'; else if (MAP) syncMap(jump);
+  if (!$('map-frame').src) $('map-frame').src = 'map/index.html?v=5'; else if (MAP) syncMap(jump);
 }
+
+// ---------- Orden per värld: vad som räknas, mätaren på bossen och var det lönar sig att öva ----------
+// Världens innehåll så som det här barnet möter det: ung-läget och K.wordShare tar bort de sista orden på varje bana.
+const THIN = {};
+const wordShare = (p = P) => (p && p.young ? K.young.thin : K.wordShare ?? 1);
+function contentFor(k, p = P) { const c = CONTENT[k], sh = wordShare(p); if (!c || !(sh < 1)) return c || null; const key = k + '|' + sh; return THIN[key] || (THIN[key] = thinContent(c, sh)); }
+const counts = (it, p) => p.reading !== false || !!it.pic;            // den som inte läser möter nästan bara ord med bild, så bara de räknas
+// Orden som en bana inför (det är dem barnet övar mest när banan spelas om).
+function nodeWords(k, i, p = P) { const c = contentFor(k, p), nd = c && c.nodes[i]; if (!nd) return []; const by = c._by || (c._by = Object.fromEntries(c.items.map((it) => [it.id, it]))); return [...(nd.introduce || []), ...(nd.phrases || [])].map((id) => by[id]).filter((it) => it && counts(it, p)); }
+const unlearned = (k, i, p = P) => nodeWords(k, i, p).filter((it) => tierOf((p.words || {})[it.id]) < STEEL).length;
+const isDone = (k, i, p = P) => !!((p.done || {})[R.WORLD_IDS[k]] || [])[i];
+// Den klarade banan i världen med flest ord som inte är inlärda (under Steel). -1 om ingen finns.
+function practiceNode(k, p = P) { const c = contentFor(k, p); let best = -1, bn = 0; if (c) c.nodes.forEach((nd, i) => { if (nd.type !== 'level' || !isDone(k, i, p)) return; const u = unlearned(k, i, p); if (u > bn) { bn = u; best = i; } }); return best; }
+// Samma sak, men letar bakåt i tidigare världar om den här inte har någon. Returnerar [värld, nod] eller null.
+function practiceTarget(k, p = P) { for (let j = k; j >= 0; j--) { const i = practiceNode(j, p); if (i >= 0) return [j, i]; } return null; }
+// Bossens ordmätare för värld k. null = världen har ingen mätare (ingen innehållsfil, eller mätaren är avstängd i balance.js).
+function bossGate(k, p = P) {
+  const G = K.gate && K.gate.boss, c = contentFor(k, p); if (!G || !c) return null;
+  const items = c.items.filter((it) => counts(it, p)), n = items.length, have = countAt(p.words || {}, items, G.tier);
+  const need = Math.ceil((p.young ? K.young.bossShare : G.share) * n - 1e-9), forced = !!(p.open && p.open[R.WORLD_IDS[k]]), best = practiceNode(k, p);
+  // Finns ingen bana att öva på hålls bossen öppen: mätaren får aldrig stänga in ett barn.
+  return { n, have, need, left: Math.max(0, need - have), tier: TIERS[G.tier].name, forced, best, open: have >= need || forced || best < 0 };
+}
+const withText = (g) => (g ? { ...g, text: meterText(g) } : null);
+const meterText = (g) => `${g.have} of ${g.n} words are ${g.tier} or better. ` + (g.left > 0 ? `${g.left} to go.` : 'The boss is open!');
+const meterHTML = (g) => `<div class="meter"><i style="width:${Math.min(100, Math.round(100 * g.have / Math.max(1, g.need)))}%"></i></div>`;
+// Världen barnet står i: den första som inte är helt klarad.
+function curWorldIdx(p = P) { const k = R.WORLD_IDS.findIndex((id, j) => { const d = (p.done || {})[id] || []; return !R.nodeCount(j) || d.length < R.nodeCount(j) || d.slice(0, R.nodeCount(j)).some((x) => !x); }); return k < 0 ? R.WORLD_IDS.length - 1 : k; }
+// Det kartan behöver veta för att rita nivåer, belöning och ord kvar. Kartan har inga egna regler.
+function pushMapInfo() {
+  if (!MAP || !MAP.setInfo || !P) return;
+  const worlds = {};
+  MAP.worlds.forEach((w, k) => {
+    const hasC = !!CONTENT[k], done = P.done[w.id] || [], bossI = w.nodes.findIndex((nd) => nd.type === 'boss');
+    worlds[w.id] = {
+      best: hasC ? practiceNode(k) : -1,
+      gate: bossI >= 0 && !done[bossI] ? withText(bossGate(k)) : null,
+      nodes: w.nodes.map((nd, i) => {
+        const info = R.nodeInfo(w.id, i);
+        if (nd.type === 'chest') return { gold: R.chestGold(info.rec) };
+        if (nd.type === 'shop') return {};
+        return { rec: info.rec, f: R.rewardFactor(P.level, info.rec), bonus: done[i] ? 0 : R.levelBonus({ type: nd.type, rec: info.rec }, true, true), left: hasC && nd.type === 'level' ? unlearned(k, i) : null };
+      }),
+    };
+  });
+  MAP.setInfo({ level: P.level, free: (K.falloff && K.falloff.free) || 0, worlds });
+}
+// Till kartan med rutan för en viss bana öppen.
+function goPractice(k, i) { enterMap(false); if (MAP) { afterMapChange(); if (i >= 0 && MAP.focus) MAP.focus(k, i); } }
 function renderBar() {
   $('me-name').textContent = P.name; $('me-level').textContent = P.level; $('me-xp').style.width = (100 * P.xp / xpToLevel(P.level)) + '%';
   $('shop-dot').hidden = P.seenShop === today();
@@ -149,31 +229,58 @@ document.querySelectorAll('.back').forEach((b) => (b.onclick = () => enterMap(fa
 
 // ---------- Strid ----------
 function wordsFor(k, i) { const n = words.length, off = (k * 6 + Math.floor(i / 3) * 3) % n; return Array.from({ length: 12 }, (_, j) => words[(off + j) % n]); }
+let run = null;                                              // den pågående omgången: nivå och värden vid start, ord som blivit starkare
 function startBattle(k, i, node, w) {
   if (battle) { battle.destroy(); battle = null; }          // aldrig två strider samtidigt
   $('result').hidden = true;
   show('battle');
   P.words = P.words || {};
-  const quiz = CONTENT[k] ? new Quiz({ content: CONTENT[k], prior: Object.keys(CONTENT).filter((j) => +j < k).flatMap((j) => CONTENT[j].items), nodeIdx: i, book: P.words, day: dayNum(), reading: P.reading !== false, play, save, onAnswer: (t, right) => sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.type, correct: right, stage: w.id + ':' + i }) }) : null;   // världar med innehållsfil har byggd pedagogik, övriga kör enkla frågor tills vidare
-  battle = new Battle($('battle-root'), { profile: P, worldIdx: k, nodeIdx: i, node, words: wordsFor(k, i), quiz, play, sfx, voiceIdle, onEnd: (r) => endBattle(r, k, i, node, w) });
+  node = { ...node, ...R.nodeInfo(w.id, i) };                // banans rekommenderade nivå och lättnad (balance.js)
+  run = { level: P.level, stats: heroStats(P), words: 0, wordXp: 0 };
+  const C = contentFor(k);                                   // världar med innehållsfil har byggd pedagogik, övriga kör enkla frågor tills vidare
+  const quiz = C ? new Quiz({ content: C, prior: Object.keys(CONTENT).filter((j) => +j < k).flatMap((j) => contentFor(+j).items), nodeIdx: i, book: P.words, day: dayNum(), reading: P.reading !== false, play, save,
+    onAnswer: (t, right, up) => { sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.type, correct: right, stage: w.id + ':' + i }); if (up && up.up) wordUp(t.item, up); } }) : null;
+  battle = new Battle($('battle-root'), { profile: P, worldIdx: k, nodeIdx: i, node, words: wordsFor(k, i), quiz, rewardMult: R.rewardFactor(P.level, node.rec), play, sfx, voiceIdle, onEnd: (r) => endBattle(r, k, i, node, w) });
   if ((P.runs || 0) < 3) { play('audio/en-listen.mp3'); toast('Listen, and choose the picture.' + sv('listen', 'Lyssna och välj bilden.')); }
 }
+// Ett ord har nått en ny högsta nivå i boken: xp bokförs direkt som en egen händelse, så att den finns kvar även om
+// striden sedan förloras eller avbryts. Nyckeln per ord och nivå gör att samma nivå aldrig betalas två gånger, varken
+// av två enheter eller efter en omstart. Nivåer som ordet nådde före balans v2 betalas inte i efterhand (mt i words.js).
+function wordUp(item, up) {
+  if (!K.learn || !run) return;
+  let got = 0;
+  for (let tier = up.top + 1; tier <= up.after; tier++) {
+    const key = `w:${item.id}:${tier}`, xp = R.learnXp(tier, run.level, xpToLevel, R.learnMult(P.young));
+    if (!xp || P.paid[key]) continue;
+    if (sync.record(pid(P), 'grant', { gold: 0, xp, reason: 'word', word: item.id, tier, bv: BV }, { once: key })) got += xp;
+    P.paid[key] = 1;
+  }
+  if (!got) return;
+  run.words++; run.wordXp += got;
+  if (battle && battle.note) battle.note(`${TIERS[up.after].name}!  +${got} XP`, TIERS[up.after].color);
+}
 function endBattle(r, k, i, node, w) {
-  const first = !(P.done[w.id] && P.done[w.id][i]), bonus = r.win ? Math.round(node.gold * (first ? 1 : 0.4) * 0.7) : 0;
-  const lv = P.level, before = heroStats(P), log = battle && battle.quiz ? battle.quiz.log : [];
-  for (let c = 0; c < log.length; c += 30) sync.record(pid(P), 'words', { day: dayNum(), a: log.slice(c, c + 30).map((l) => [l.id, l.type, l.free && !l.right ? -1 : l.right ? 1 : 0]) });
-  rec('stage', { world: w.id, node: i, kind: 'battle', win: r.win, stars: r.stars, gold: r.gold + bonus, xp: r.xp });
-  const ups = P.level - lv;
+  const first = !(P.done[w.id] && P.done[w.id][i]), st = run || { level: P.level, stats: heroStats(P), words: 0, wordXp: 0 };
+  const rw = R.reward(r, node, first, st.level, !!CONTENT[k]), log = battle && battle.quiz ? battle.quiz.log : [];
+  for (let c = 0; c < log.length; c += 30) sync.record(pid(P), 'words', { day: dayNum(), a: log.slice(c, c + 30).map((l) => { const a = [l.id, l.type, l.free && !l.right ? -1 : l.right ? 1 : 0]; if (l.start) a.push(l.start); return a; }) });
+  rec('stage', { world: w.id, node: i, kind: 'battle', win: r.win, stars: r.stars, gold: rw.gold, xp: rw.xp, bv: BV });
+  const ups = P.level - st.level, before = st.stats; run = null;
   const el = $('result'); el.hidden = false; el.className = r.win ? 'win' : 'lose';
   el.querySelector('h2').textContent = r.win ? 'Good job!' : 'Try again!';
   el.querySelector('.sv').textContent = r.win ? sv('good-job', 'Bra jobbat!').trim() : sv('try-again', 'Försök igen!').trim();
   el.querySelector('.stars').innerHTML = r.win ? [0, 1, 2].map((s) => (s < r.stars ? '★' : '<i>★</i>')).join('') : '';
+  const target = r.win ? null : practiceTarget(k), canPractice = target && !(target[0] === k && target[1] === i), under = !r.win && P.level < node.rec;
   el.querySelector('.lines').innerHTML = (r.win ? `You won at ${node.name}.\n` : `You reached fight ${Math.min(r.kills + 1, r.fights)} of ${r.fights}.\n`) +
-    `<b>+${fmt(r.gold + bonus)} gold</b>` + (ups ? `\n<b>Level ${P.level}!</b> You are stronger now.` : '') +
-    (r.win ? '' : '\nYou keep your gold. Play an easier level again to get stronger.');
+    `<b>+${fmt(rw.gold)} gold</b>   <b>+${fmt(rw.xp)} XP</b>` +
+    (st.words ? `\n<b class="grow">${st.words} ${st.words === 1 ? 'word' : 'words'} got stronger</b>   <b>+${fmt(st.wordXp)} XP</b>` : '') +
+    (rw.factor < 1 ? '\nToo easy now: small reward.' : '') +
+    (ups ? `\n<b>Level ${P.level}!</b> You are stronger now.` : '') +
+    (under ? `\n<b class="warn">This level is Lv ${node.rec}. You are Lv ${P.level}.</b>` : '') +
+    (r.win ? '' : canPractice ? '\nMake your words stronger to level up.' : '\nYou keep your gold and XP.');
   const acts = el.querySelector('.acts'); acts.innerHTML = '';
   const btn = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = label; b.onclick = () => { el.hidden = true; if (battle) battle.destroy(); battle = null; if (ups) levelUp(before, fn); else fn(); }; acts.appendChild(b); };
-  if (!r.win) btn('Try again', '', () => startBattle(k, i, node, w));
+  if (canPractice) btn('Practice words', under ? 'big' : 'alt big', () => goPractice(target[0], target[1]));
+  if (!r.win) btn('Try again', under && canPractice ? 'alt' : '', () => startBattle(k, i, node, w));
   btn('Map', r.win ? '' : 'alt', () => { enterMap(false); if (r.win) { MAP.state.gold = P.gold; MAP.finish(k, i, r.stars); } afterMapChange(); });
   play(r.win ? 'audio/en-good-job.mp3' : 'audio/en-try-again.mp3');
 }
@@ -274,6 +381,9 @@ function renderBook() {
   const book = P.words || {}, day = dayNum(), all = Object.values(CONTENT).flatMap((c) => c.items).filter((i) => book[i.id]);
   $('book-count').textContent = `${all.length} ${all.length === 1 ? 'word' : 'words'}`;
   $('book-legend').innerHTML = TIERS.map((t, i) => { const n = all.filter((x) => tierOf(book[x.id]) === i).length; return `<span style="background:${t.color};color:${t.ink}" class="${n ? '' : 'none'}">${t.name}${n ? ' ' + n : ''}</span>`; }).join('');
+  // Världens ordmätare överst: samma tal som bossen på kartan visar.
+  const mk = curWorldIdx(), mg = bossGate(mk), mEl = $('book-meter'); mEl.hidden = !mg;
+  if (mg) mEl.innerHTML = `<b>${CONTENT[mk].title || 'This world'}</b> <span>${isDone(mk, R.nodeCount(mk) - 1) ? `${mg.have} of ${mg.n} words are ${mg.tier} or better.` : mg.forced && mg.left > 0 ? `${mg.have} of ${mg.n} words are ${mg.tier} or better. The boss is open.` : meterText(mg)}</span>${meterHTML(mg)}`;
   const pages = $('book-pages'); pages.innerHTML = '';
   if (!all.length) pages.innerHTML = '<div class="emptybag"><p><b>Your book is empty.</b><br>Every word you meet in battle lands here.</p></div>';
   const groups = new Map();
@@ -350,15 +460,28 @@ async function signUp(email, password) {
     return { ok: true, confirmed: !!d.access_token };
   } catch (e) { return { ok: false, msg: 'inget nät' }; }
 }
+// Inställningar per barn sparas som en händelse av typen 'prefs' (senaste gäller), så att de följer med mellan enheter.
+const savePrefs = (p, patch = {}) => { sync.record(pid(p), 'prefs', { reading: p.reading !== false, name: p.name, young: !!p.young, ...patch }); adopt(p); };
+const worldTitle = (k) => (CONTENT[k] && CONTENT[k].title) || `värld ${k + 1}`;
 function namesForm() {
-  return '<h3>Spelarnas namn</h3><p class="dim">Namnen sparas i hushållets konto och syns på alla enheter som är inloggade.</p><div id="names">' +
-    S.profiles.map((p, i) => `<label><input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}"><span><input type="checkbox" data-r="${i}" ${p.reading !== false ? 'checked' : ''}> Läser</span></label>`).join('') + '</div><p class="dim">Utan "Läser" får barnet nästan bara bilduppgifter, och högst två val när något ska läsas.</p>';
+  const pct = (x) => Math.round(x * 100);
+  return '<h3>Spelarna</h3><p class="dim">Namnen och inställningarna sparas i hushållets konto och syns på alla enheter som är inloggade.</p><div id="names">' +
+    S.profiles.map((p, i) => {
+      const k = curWorldIdx(p), g = bossGate(k, p), wid = R.WORLD_IDS[k], forced = !!(p.open && p.open[wid]), bossDone = isDone(k, R.nodeCount(k) - 1, p);
+      const gate = !g || bossDone ? '' : `<small>${worldTitle(k)}: ${g.have} av ${g.n} ord är ${g.tier} eller bättre, bossen öppnar vid ${g.need}.</small><button type="button" class="btn alt big" data-o="${i}">${forced ? 'Bossen är öppnad för hand. Stäng igen' : 'Öppna bossen för hand'}</button>`;
+      return `<div class="kid"><input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}"><label class="chk"><input type="checkbox" data-r="${i}" ${p.reading !== false ? 'checked' : ''}> Läser</label><label class="chk"><input type="checkbox" data-y="${i}" ${p.young ? 'checked' : ''}> Yngre barn</label>${gate}</div>`;
+    }).join('') + `</div><p class="dim">Utan "Läser" får barnet nästan bara bilduppgifter, och högst två val när något ska läsas.</p>
+    <p class="dim">"Yngre barn": ${pct(K.young.thin)} procent av orden på varje bana, bossen öppnar när ${pct(K.young.bossShare)} procent av världens ord är Steel (annars ${pct(K.gate.boss.share)}), och varje ord som blir starkare ger ${K.young.learnMult} gånger så mycket xp.</p>
+    <p class="dim">"Öppna bossen för hand" släpper barnet förbi ordmätaren i den värld det står i. Använd den om barnet har fastnat.</p>`;
 }
 function bindNames() {
-  document.querySelectorAll('#names input[data-r]').forEach((el) => (el.onchange = () => { const p = S.profiles[+el.dataset.r]; sync.record(pid(p), 'prefs', { reading: el.checked, name: p.name }); adopt(p); }));
+  document.querySelectorAll('#names input[data-r]').forEach((el) => (el.onchange = () => { savePrefs(S.profiles[+el.dataset.r], { reading: el.checked }); renderParent(); }));
+  document.querySelectorAll('#names input[data-y]').forEach((el) => (el.onchange = () => { savePrefs(S.profiles[+el.dataset.y], { young: el.checked }); renderParent(); }));
+  // Öppna (eller stäng) bossen för hand: en egen händelse per värld, senaste gäller, så att den synkas som allt annat.
+  document.querySelectorAll('#names button[data-o]').forEach((el) => (el.onclick = () => { const p = S.profiles[+el.dataset.o], wid = R.WORLD_IDS[curWorldIdx(p)]; sync.record(pid(p), 'unlock', { world: wid, open: !(p.open && p.open[wid]) }); adopt(p); sync.sync(); renderParent(); }));
   document.querySelectorAll('#names input[data-i]').forEach((el) => (el.oninput = () => { S.profiles[+el.dataset.i].name = el.value.trim() || `Player ${+el.dataset.i + 1}`; save(); }));
   // När fältet lämnas sparas namnet som en händelse, så att det syns på familjens andra enheter.
-  document.querySelectorAll('#names input[data-i]').forEach((el) => (el.onchange = () => { const p = S.profiles[+el.dataset.i]; sync.record(pid(p), 'prefs', { reading: p.reading !== false, name: p.name }); adopt(p); sync.sync(); }));
+  document.querySelectorAll('#names input[data-i]').forEach((el) => (el.onchange = () => { savePrefs(S.profiles[+el.dataset.i]); sync.sync(); }));
 }
 function renderParent(msg = '') {
   const s = sync.status(), box = $('parent-box');
@@ -423,5 +546,5 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
     const go = () => { S.seenIntro = true; save(); renderWho(); show('who'); };
     if (S.seenIntro) go(); else playIntro(root, { play, look: looks[0], onDone: go });
   } });
-  window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, levelUp, pick: (n) => { P = S.profiles[n]; enterMap(true); } };
+  window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, gate: (k) => bossGate(k), practice: (k) => practiceTarget(k), openBook, mapInfo: pushMapInfo, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, levelUp, pick: (n) => { P = S.profiles[n]; enterMap(true); } };
 })();

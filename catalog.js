@@ -1,21 +1,10 @@
 // Föremålskatalogen genereras: varje föremålstyp finns i varje material.
 // Ny rad i MATS = ett nytt föremål per typ. Ny rad i TYPES (plus ritfunktion i hero.js) = tio nya föremål.
 
-// Balansens siffror för föremål, hjälte och nivåer, samlade på ett ställe. Stridens siffror står i rules.js.
-// Värdena är satta med simulatorn i sim/ (se docs/research/balans.md). Simulatorn byter ut hela TUNE
-// när den prövar andra värden, så håll raden som en ren lista med tal.
-// Ändrat 2026-11-11: powerBase 3 -> 4 (de första föremålen märks mer), priceBase 120 -> 300 (första köpet
-// kommer senare), priceGrowth 1,45 -> 1,22 (de finaste materialen blir inte ouppnåeliga när starten är dyrare).
-export const TUNE = {
-  powerBase: 4, powerPerTier: 1.8,     // föremålets styrka = (powerBase + materialnivå * powerPerTier) * typens faktor * platsens faktor
-  hpPower: 1.6,                        // ett föremål som ger liv ger så här många gånger mer än ett som ger attack
-  priceBase: 300, priceGrowth: 1.22,   // pris = priceBase * priceGrowth^materialnivå * typens faktor * platsens faktor
-  pricePet: 1.6, priceBack: 1.3,       // prisfaktor för följeslagare och ryggsaker (övriga platser använder sin styrkefaktor)
-  levelPerTier: 4,                     // nivåkrav = 1 + materialnivå * levelPerTier + typens extra krav
-  heroAtk: 10, heroAtkPerLevel: 1,     // hjältens attack utan utrustning
-  heroHp: 24, heroHpPerLevel: 3,       // hjältens liv utan utrustning
-  xpBase: 20, xpPerLevel: 12,          // xp till nästa nivå = xpBase + nivå * xpPerLevel
-};
+// Här står bara formler. Talen för föremål, hjälte och nivåer ligger i balance.js (TUNE), stridens tal i K.
+// Simulatorn bygger en egen katalog med andra tal genom makeCatalog(TUNE, shopRules).
+import { TUNE as BT, K as BK, history } from './balance.js';
+export const TUNE = BT;
 
 export const MATS = [
   { id: 'tra', pre: 'Wooden', hex: '#a9743f' },
@@ -48,45 +37,73 @@ const TYPES = {
   pet: [['slime', 'Slime', 0.8, 2], ['bat', 'Bat', 1, 2], ['ghost', 'Ghost', 1.2, 3], ['drone', 'Drone', 1.4, 4], ['dragon', 'Baby Dragon', 1.7, 4]],
 };
 
-export const ITEMS = [];
-for (const slot of SLOTS) for (const [type, name, p, lv] of TYPES[slot.id]) MATS.forEach((m, tier) => {
-  ITEMS.push({
-    id: `${slot.id}.${type}.${m.id}`, slot: slot.id, type, mat: m.id, hex: m.hex, fx: m.fx, tier,
-    name: m.pre + ' ' + name, rarity: Math.floor(tier / 2), stat: slot.stat,
-    power: Math.max(1, Math.round((TUNE.powerBase + tier * TUNE.powerPerTier) * p * slot.mult * (slot.stat === 'hp' ? TUNE.hpPower : 1))),
-    price: Math.round((TUNE.priceBase * Math.pow(TUNE.priceGrowth, tier) * p * (slot.id === 'pet' ? TUNE.pricePet : slot.id === 'back' ? TUNE.priceBack : slot.mult)) / 5) * 5,
-    level: 1 + tier * TUNE.levelPerTier + lv,
-  });
-});
-export const BY_ID = Object.fromEntries(ITEMS.map((i) => [i.id, i]));
-
-// ---------- Dagens butik: bara några få val per dag, och ingen katalog att bläddra i ----------
+export const SHOP_SIZE = 6;     // fem som nivån räcker till och ett drömföremål (var 4 till 2026-11-12)
 const hash = (str) => { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-export const SHOP_SIZE = 6;     // fem som nivån räcker till och ett drömföremål (var 4 till 2026-11-12)
-// Samma dag och samma barn ger samma hylla. Fem föremål som nivån räcker till (olika platser på kroppen om det går)
-// och ett "drömföremål" som är lite för dyrt eller kräver lite högre nivå, så att det finns något att spara mot.
-export function dailyShop(profile, day) {
-  const r = rng(hash(profile.name + '|' + day)), owned = new Set(profile.owned);
-  const pool = ITEMS.filter((i) => !owned.has(i.id) && i.level <= profile.level).sort((a, b) => b.level - a.level || b.price - a.price);
-  const picks = [], slots = new Set();
-  const recent = pool.slice(0, Math.max(12, Math.ceil(pool.length * 0.35)));       // det nyaste nivån har låst upp
-  for (let tries = 0; tries < 200 && picks.length < SHOP_SIZE - 1 && recent.length; tries++) {
-    const it = recent[Math.floor(r() * recent.length)];
-    if (picks.includes(it) || (slots.has(it.slot) && tries < 120)) continue;
-    picks.push(it); slots.add(it.slot);
+
+// Bygger katalogen ur en uppsättning tal. T = TUNE, shopRules = K.shop. Spelet använder den som byggs ur balance.js (nedan).
+export function makeCatalog(T = TUNE, shopRules = BK.shop) {
+  const ITEMS = [];
+  for (const slot of SLOTS) for (const [type, name, p, lv] of TYPES[slot.id]) MATS.forEach((m, tier) => {
+    ITEMS.push({
+      id: `${slot.id}.${type}.${m.id}`, slot: slot.id, type, mat: m.id, hex: m.hex, fx: m.fx, tier,
+      name: m.pre + ' ' + name, rarity: Math.floor(tier / 2), stat: slot.stat,
+      power: Math.max(1, Math.round((T.powerBase * Math.pow(T.powerGrowth, tier)) * p * slot.mult * (slot.stat === 'hp' ? T.hpPower : 1))),
+      price: Math.round((T.priceBase * Math.pow(T.priceGrowth, tier) * p * (slot.id === 'pet' ? T.pricePet : slot.id === 'back' ? T.priceBack : slot.mult)) / 5) * 5,
+      level: 1 + tier * T.levelPerTier + lv,
+    });
+  });
+  const BY_ID = Object.fromEntries(ITEMS.map((i) => [i.id, i]));
+
+  // ---------- Dagens butik: bara några få val per dag, och ingen katalog att bläddra i ----------
+  // Samma dag och samma barn ger samma hylla. Fem föremål som nivån räcker till (olika platser på kroppen om det går)
+  // och ett "drömföremål" som är lite för dyrt eller kräver lite högre nivå, så att det finns något att spara mot.
+  function baseShop(profile, day) {
+    const r = rng(hash(profile.name + '|' + day)), owned = new Set(profile.owned);
+    const pool = ITEMS.filter((i) => !owned.has(i.id) && i.level <= profile.level).sort((a, b) => b.level - a.level || b.price - a.price);
+    const picks = [], slots = new Set();
+    const recent = pool.slice(0, Math.max(12, Math.ceil(pool.length * 0.35)));       // det nyaste nivån har låst upp
+    for (let tries = 0; tries < 200 && picks.length < SHOP_SIZE - 1 && recent.length; tries++) {
+      const it = recent[Math.floor(r() * recent.length)];
+      if (picks.includes(it) || (slots.has(it.slot) && tries < 120)) continue;
+      picks.push(it); slots.add(it.slot);
+    }
+    const dream = ITEMS.filter((i) => !owned.has(i.id) && i.level > profile.level && i.level <= profile.level + 6 && !picks.includes(i)).sort((a, b) => b.price - a.price);
+    if (dream.length) picks.push(dream[Math.floor(r() * Math.ceil(dream.length / 3))]);   // bland den dyraste tredjedelen
+    return picks.map((i) => i.id);
   }
-  const dream = ITEMS.filter((i) => !owned.has(i.id) && i.level > profile.level && i.level <= profile.level + 6 && !picks.includes(i)).sort((a, b) => b.price - a.price);
-  if (dream.length) picks.push(dream[Math.floor(r() * Math.ceil(dream.length / 3))]);   // bland den dyraste tredjedelen
-  return picks.map((i) => i.id);
+  // Så länge hjälten inte äger något vapen finns alltid ett vapen på hyllan: saknas ett som nivån räcker till
+  // byter hyllans första föremål plats med ett av de två billigaste vapnen.
+  function dailyShop(profile, day) {
+    const ids = baseShop(profile, day), isW = (id) => BY_ID[id].slot === 'weapon';
+    if (!(shopRules && shopRules.weaponFirst) || profile.owned.some(isW) || ids.some((id) => isW(id) && BY_ID[id].level <= profile.level)) return ids;
+    const ws = ITEMS.filter((it) => it.slot === 'weapon' && it.level <= profile.level).sort((a, b) => a.price - b.price);
+    if (ws.length) ids[0] = ws[String(day).charCodeAt(String(day).length - 1) % Math.min(2, ws.length)].id;
+    return ids;
+  }
+
+  // ---------- Nivåer och hjältens värden ----------
+  const xpToLevel = (level) => Math.round(T.xpBase * Math.min(level, T.xpRamp) / T.xpRamp * Math.pow(T.xpGrowth, level - 1));
+  // Hjältens värden: det mesta kommer från nivån (alltså från att spela), utrustningen lägger till en mindre del.
+  function heroStats(profile) {
+    const pw = (slot) => (profile.eq[slot] ? BY_ID[profile.eq[slot]].power : 0);
+    const baseAtk = Math.round(T.heroAtk * Math.pow(T.heroGrowth, profile.level - 1)), baseHp = Math.round(T.heroHp * Math.pow(T.heroGrowth, profile.level - 1));
+    const gearAtk = pw('weapon') + pw('pet'), gearHp = pw('armor') + pw('helmet') + pw('shield') + pw('back');
+    return { atk: baseAtk + gearAtk, maxHp: baseHp + gearHp, baseAtk, baseHp, gearAtk, gearHp };
+  }
+  return { TUNE: T, MATS, RARITY, SLOTS, SHOP_SIZE, ITEMS, BY_ID, dailyShop, xpToLevel, heroStats };
 }
 
-// ---------- Nivåer och hjältens värden (siffrorna står i TUNE överst) ----------
-export const xpToLevel = (level) => TUNE.xpBase + level * TUNE.xpPerLevel;
-// Hjältens värden: det mesta kommer från nivån (alltså från att spela), utrustningen lägger till en mindre del.
-export function heroStats(profile) {
-  const pw = (slot) => (profile.eq[slot] ? BY_ID[profile.eq[slot]].power : 0);
-  const baseAtk = TUNE.heroAtk + profile.level * TUNE.heroAtkPerLevel, baseHp = TUNE.heroHp + profile.level * TUNE.heroHpPerLevel;
-  const gearAtk = pw('weapon') + pw('pet'), gearHp = pw('armor') + pw('helmet') + pw('shield') + pw('back');
-  return { atk: baseAtk + gearAtk, maxHp: baseHp + gearHp, baseAtk, baseHp, gearAtk, gearHp };
+const C = makeCatalog();
+export const ITEMS = C.ITEMS, BY_ID = C.BY_ID, dailyShop = C.dailyShop, xpToLevel = C.xpToLevel, heroStats = C.heroStats;
+
+// ---------- Nivåskydd vid kurvbyte (balans version 2) ----------
+// Nivån räknas alltid fram ur summan av xp. När kurvan byttes hade en del nivåer kunnat sjunka ett steg. Den här
+// funktionen ger gåvan som hindrar det: skillnaden mellan vad barnets nivå kostar med nya och gamla kurvan, och
+// för nivån efter (ifall en annan enhet hunnit en nivå längre), aldrig mindre än noll. oldXp = xp tjänad före bytet.
+export function levelKeepGrant(oldXp, newCurve = xpToLevel, old = history.v1) {
+  const was = (l) => old.xpBase + l * old.xpPerLevel;
+  let level = 1, x = oldXp; while (x >= was(level)) { x -= was(level); level++; }
+  const cum = (f, n) => { let t = 0; for (let l = 1; l < n; l++) t += f(l); return t; }, diff = (n) => cum(newCurve, n) - cum(was, n);
+  return { level, xp: Math.max(0, diff(level), diff(level + 1)) };
 }

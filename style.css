@@ -209,3 +209,20 @@ header h2 { flex:1; margin:0; font-size:18px; } header .back { background:var(--
 header { padding-left:max(64px, env(safe-area-inset-left)); }
 header .back, #parent-back { min-height:46px; min-width:96px; padding:10px 18px; font-size:17px; border-radius:14px; background:linear-gradient(#ffd66b, #f0a020); color:#3a2500; box-shadow:0 3px 0 #9a6200; }
 @media (max-height: 500px) { header .back, #parent-back { min-height:38px; padding:6px 16px; font-size:15px; } }
+
+/* Balans version 2: ord som blir starkare, ordmätare, nya knappar */
+.btn.big { min-height:56px; min-width:56px; }
+.fl.grow { animation-duration:1.5s; font-size:clamp(15px, 3vw, 24px); }
+.hud .hp > span { white-space:nowrap; } .hud .me > span { min-width:2ch; text-align:right; font-variant-numeric:tabular-nums; }
+#result .box { max-height:calc(100vh - 12px); max-height:calc(100dvh - 12px); overflow-y:auto; }
+#result .lines b.grow { color:#8dffb0; } #result .lines b.warn { color:#ffb23e; }
+.meter { height:10px; border-radius:999px; background:#0f1120; overflow:hidden; margin-top:6px; box-shadow:inset 0 0 0 1px #0008; }
+.meter i { display:block; height:100%; min-width:4px; border-radius:999px; background:linear-gradient(90deg, #8793a3, #c3d0de); }
+#book-meter { padding:6px 12px 9px; background:#2c2219; font-size:13px; font-weight:500; color:#e8dcc0; border-top:1px solid #0004; } #book-meter b { color:#fff; font-weight:700; margin-right:6px; }
+#names .kid { flex:1; min-width:150px; display:flex; flex-direction:column; gap:4px; } #names .kid > input { flex:none; }
+#names .chk { min-height:56px; font-size:15px; color:var(--text); display:flex; align-items:center; gap:10px; cursor:pointer; } #names .chk input { width:26px; height:26px; }
+#names .kid small { color:var(--dim); font-size:12px; line-height:1.35; } #names .kid .btn { font-size:14px; padding:8px 10px; }
+@media (max-height: 500px) {
+  #result .box { padding:8px 16px; } #result .lines { margin:6px 0 10px; font-size:14px; } #result .stars { font-size:26px; line-height:1.1; }
+  #book-meter { padding:4px 12px 6px; }
+}

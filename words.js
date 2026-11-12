@@ -22,10 +22,17 @@ export function nextNeed(rec) {
   return { tier: TIERS[t + 1], score: Math.max(0, Math.ceil(NEED_SCORE[t + 1] - rec.s)), days: Math.max(0, NEED_DAYS[t + 1] - rec.d) };
 }
 
-// book: { ordId: { s: poäng, d: dagar med rätt, last: senaste dag, ld: senaste dag med rätt, td: rätt i dag, r: rätt totalt, w: fel totalt } }
-export function meet(book, id, day) { if (!book[id]) book[id] = { s: 0, d: 0, last: day, ld: -1, td: 0, r: 0, w: 0 }; return book[id]; }
-export function record(book, id, right, type, day) {
-  const rec = meet(book, id, day), before = tierOf(rec);
+export const STEEL = 2;      // "inlärt för nu": nivån som ordmätaren och kartans räknare använder
+
+// book: { ordId: { s: poäng, d: dagar med rätt, last: senaste dag, ld: senaste dag med rätt, td: rätt i dag, r: rätt totalt, w: fel totalt,
+//                  mt: högsta nivå ordet har nått } }
+// mt sjunker aldrig, även om poängen gör det. Den finns för att xp för en ordnivå bara ska ges en gång per ord och nivå.
+export function meet(book, id, day) { if (!book[id]) book[id] = { s: 0, d: 0, last: day, ld: -1, td: 0, r: 0, w: 0, mt: 0 }; return book[id]; }
+// start: försprång. Är det här första gången ordet möts och svaret är rätt får ordet minst så många poäng.
+// Returnerar { before, after, top, up }: nivån före och efter, högsta nivån före svaret, och up = ordet nådde en ny högsta nivå.
+export function record(book, id, right, type, day, start = 0) {
+  const first = !book[id], rec = meet(book, id, day), before = tierOf(rec);
+  if (rec.mt === undefined) rec.mt = Math.max(0, before);    // bok från före balans v2: nivåer som redan nåtts räknas som nådda
   if (rec.last !== day) rec.td = 0;
   rec.last = day;
   if (right) {
@@ -33,8 +40,30 @@ export function record(book, id, right, type, day) {
     if (rec.ld !== day) { if (rec.ld >= 0 && day - rec.ld >= INTERVAL[before]) gain *= 2; rec.d++; rec.ld = day; }   // ny dag, och extra om det gått lagom lång tid
     gain /= 1 + rec.td;                                  // avtagande samma dag: första rätta svaret är värt mest
     rec.s += gain; rec.td++; rec.r++;
+    if (first && start > 0) rec.s = Math.max(rec.s, start);
   } else { rec.s = Math.max(0, rec.s * 0.75 - 1); rec.w++; }
-  return { before, after: tierOf(rec) };
+  const after = tierOf(rec), top = rec.mt;
+  if (after > top) rec.mt = after;
+  return { before, after, top, up: after > top };
+}
+
+// ---------- Ordmätare ----------
+// Hur många av orden i en lista som har nått en nivå, och andelen. Används av bossens mätare, kartan och boken.
+export const countAt = (book, items, tier = STEEL) => items.filter((it) => tierOf(book[it.id]) >= tier).length;
+export const learnedShare = (book, items, tier = STEEL) => (items.length ? countAt(book, items, tier) / items.length : 1);
+
+// Färre ord per värld: behåller bara den första andelen (share) av varje banas nya ord och fraser. Ord som faller bort
+// försvinner också ur världens ordlista (alltså ur bossens ord och ur repetitionen), och meningar som använder dem tas bort.
+// Innehållet ändras inte, en ny kopia returneras. Används för ung-läget och för K.wordShare i balance.js.
+export function thinContent(content, share) {
+  if (!(share < 1)) return content;
+  const drop = new Set();
+  const nodes = content.nodes.map((n) => { const o = { ...n }; for (const key of ['introduce', 'phrases']) { const a = n[key] || [], keep = Math.ceil(a.length * share); a.slice(keep).forEach((id) => drop.add(id)); o[key] = a.slice(0, keep); } return o; });
+  const en = new Map(content.items.map((i) => [String(i.en).toLowerCase(), i.id]));
+  const uses = (s) => (s.uses && s.uses.length ? s.uses : [...new Set((s.tiles || []).map((t) => en.get(String(t).toLowerCase().replace(/[^a-z' ]/g, ''))).filter(Boolean))]);
+  const gone = new Set((content.sentences || []).filter((s) => uses(s).some((u) => drop.has(u))).map((s) => s.id));
+  for (const n of nodes) n.sentences = (n.sentences || []).filter((id) => !gone.has(id));
+  return { ...content, nodes, items: content.items.filter((i) => !drop.has(i.id)), sentences: (content.sentences || []).filter((s) => !gone.has(s.id)) };
 }
 
 // Vilka övningar som passar ordet just nu. Ord med bild börjar med att lyssna och peka; ord utan bild börjar

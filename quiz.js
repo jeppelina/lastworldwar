@@ -2,13 +2,17 @@
 // frågepanelen och rapporterar rätt eller fel till striden. Innehållet kommer från content/world<N>.json.
 import { record, meet, tasksFor, tierOf, isDue } from './words.js';
 import { pic } from './pics.js';
+import { K } from './balance.js';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
 export class Quiz {
-  // o: { content, prior (ord från tidigare världar), nodeIdx, book (profilens ordbok, ändras på plats), day, play(url), save() }
+  // o: { content, prior (ord från tidigare världar), nodeIdx, book (profilens ordbok, ändras på plats), day, play(url), save(),
+  //      onAnswer(task, right, up) där up = { before, after, top, up } från words.js (ordets nivå före och efter) }
+  // Färre ord per bana (ung-läget, K.wordShare) görs av anroparen: content och prior skickas in redan gallrade med thinContent.
+  // knownStart och firstOptions går att skicka in, annars gäller balance.js.
   constructor(o) {
     Object.assign(this, o);
     this.node = o.content.nodes[o.nodeIdx] || o.content.nodes[o.content.nodes.length - 1];
@@ -19,6 +23,8 @@ export class Quiz {
     this.earlier = this.reach.filter((i) => !this.own.includes(i));
     this.sentences = (this.node.sentences || []).map((id) => o.content.sentences.find((s) => s.id === id)).filter(Boolean);
     if (this.reading === undefined) this.reading = true;
+    if (this.knownStart === undefined) this.knownStart = K.knownStart || 0;
+    if (this.firstOptions === undefined) this.firstOptions = K.firstOptions || 2;
     if (!this.reading) {          // utan läsning: ord utan bild tas nästan inte med (ungefär vart sjunde), och inga meningar
       const keep = (i) => !!i.pic || Math.random() < 0.15, hasPic = this.own.some((i) => i.pic);
       if (hasPic) this.own = this.own.filter(keep); this.earlier = this.earlier.filter((i) => !!i.pic); this.sentences = [];
@@ -49,13 +55,17 @@ export class Quiz {
     const rest = shuffle(this.reach.filter((i) => ok(i) && !out.includes(i) && !same.includes(i)));
     return shuffle([...out, ...same, ...rest].slice(0, n));
   }
+  // Försprång: rätt svar första gången ordet möts ger ordet minst knownStart poäng (barnet kunde det redan).
+  // Gäller bara om frågan hade minst firstOptions kort, annars skulle en gissning ge försprånget varannan gång.
+  headStart(task, right) { return task.free && right && this.knownStart > 0 && (task.shown || 0) >= this.firstOptions ? this.knownStart : 0; }
   done(task, right) {
     if (task.item) {
+      let up = null; const start = this.headStart(task, right);
       if (task.free && !right) meet(this.book, task.item.id, this.day);
-      else record(this.book, task.item.id, right, task.type, this.day);
+      else up = record(this.book, task.item.id, right, task.type, this.day, start);
       if (!right) this.requeue.push({ item: task.item, at: this.asked });
-      this.log.push({ id: task.item.id, type: task.type, right, free: !!task.free });
-      if (this.onAnswer) this.onAnswer(task, right);
+      this.log.push({ id: task.item.id, type: task.type, right, free: !!task.free, start });
+      if (this.onAnswer) this.onAnswer(task, right, up);
     }
     this.save();
   }
@@ -78,6 +88,7 @@ export class Quiz {
 
     // Flerval: ett kort är rätt. Vid fel visas rätt kort och ordet läses långsamt.
     const choice = (opts, txt) => {
+      task.shown = opts.length;
       frame(`<div class="cards n${opts.length}"></div>`, promptAudio !== null);
       const box = quizEl.querySelector('.cards');
       for (const o of opts) {
@@ -88,8 +99,9 @@ export class Quiz {
       if (promptAudio) P(promptAudio);
     };
     const withFoils = (n, needPic, html) => shuffle([it, ...this.foils(it, n, needPic)]).map((o) => ({ html: html(o), ok: o === it }));
-    const nOpt = task.free ? 1 : 3;                                       // första mötet: bara två val
-    const nTxt = task.free || !this.reading ? 1 : 3;                      // skrivna alternativ: två val för den som inte läser än
+    const nFirst = Math.max(1, this.firstOptions - 1);                   // första mötet: firstOptions kort (balance.js), så att en gissning sällan ger försprång
+    const nOpt = task.free ? nFirst : 3;                                  // bildkort
+    const nTxt = !this.reading ? 1 : task.free ? nFirst : 3;              // skrivna alternativ: alltid två val för den som inte läser än
 
     if (T === 'listen_pick_picture') { word(esc(it.en) + newTag); return choice(withFoils(nOpt, true, (o) => pic(o))); }
     if (T === 'read_pick_picture') { promptAudio = null; word(esc(it.en)); return choice(withFoils(3, true, (o) => pic(o))); }

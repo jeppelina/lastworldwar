@@ -43,14 +43,15 @@ const ATTACKS = {
   axe: { dur: 0.95, ev: [{ at: 0.5, hit: 0, fx: 'slash' }], pose: (p, D) => ({ dx: dash(p, D, 0.3, 0.65), wAng: 0.35 + (p < 0.2 ? 0 : p < 0.6 ? seg(p, 0.2, 0.6) * (Math.PI * 2 + 1.6) : (1 - seg(p, 0.6, 1)) * 1.6) }) },
   spear: { dur: 0.75, ev: [{ at: 0.45, hit: 0, fx: 'slash' }], pose: (p, D) => ({ dx: dash(p, D - 12, 0.3, 0.58), wAng: 1.5, hand: [p > 0.38 && p < 0.56 ? 11 : -4, -4] }) },
   hammer: { dur: 1.05, shake: 6, ev: [{ at: 0.6, hit: 0, fx: 'shock' }], pose: (p, D) => ({ dx: dash(p, D, 0.5, 0.74), dy: p < 0.6 ? -bump(p / 0.6) * 26 : 0, wAng: p < 0.45 ? lerp(0.3, -1.3, ease(p / 0.45)) : p < 0.6 ? lerp(-1.3, 2.3, seg(p, 0.45, 0.6)) : p < 0.78 ? 2.3 : lerp(2.3, 0.3, seg(p, 0.78, 1)) }) },
-  great: { dur: 1.15, shake: 8, ev: [{ at: 0.62, hit: 0, fx: 'bigslash' }], drag: true, pose: (p, D) => ({ dx: dash(p, D, 0.45, 0.76), wAng: p < 0.45 ? -2.08 : p < 0.62 ? lerp(-2.08, 2.15, seg(p, 0.45, 0.62)) : p < 0.8 ? 2.15 : lerp(2.15, -2.08, seg(p, 0.8, 1)) }) },
+  great: { dur: 1.15, shake: 8, ev: [{ at: 0.62, hit: 0, fx: 'bigslash' }], drag: true, pose: (p, D) => ({ dx: dash(p, D, 0.45, 0.76), wAng: p < 0.12 ? lerp(0.3, -2.08, ease(p / 0.12)) : p < 0.45 ? -2.08 : p < 0.62 ? lerp(-2.08, 2.15, seg(p, 0.45, 0.62)) : p < 0.8 ? 2.15 : lerp(2.15, 0.3, seg(p, 0.8, 1)) }) },   // vilar upprätt (HOLD.great = 0.3) och svingar därifrån
   staff: { dur: 1.1, ev: [{ at: 0.5, shoot: { r: 5, dur: 0.3, from: 'tip' } }, { at: 0.8, hit: 0, fx: 'boom' }], charge: { from: 0.08, to: 0.5, r0: 1, r1: 5, at: 'tip' }, pose: (p) => ({ wAng: p < 0.5 ? lerp(0.12, -0.35, ease(p / 0.5)) : p < 0.6 ? lerp(-0.35, 0.9, seg(p, 0.5, 0.6)) : lerp(0.9, 0.12, seg(p, 0.6, 1)), hand: [0, p < 0.5 ? -4 * ease(p / 0.5) : 0] }) },
   orb: { dur: 1.45, shake: 5, ev: [{ at: 0.62, shoot: { r: 15, dur: 0.26, from: 'over' } }, { at: 0.88, hit: 0, fx: 'bigboom' }], charge: { from: 0.05, to: 0.62, r0: 3, r1: 15, at: 'over' }, pose: (p) => ({ wAng: 0, noW: p > 0.05 && p < 0.95, hand: [p < 0.62 ? 0 : 5, p < 0.62 ? -9 * ease(p / 0.3) : -3] }) },
   bow: { dur: 0.85, ev: [{ at: 0.42, shoot: { arrow: true, dur: 0.18, from: 'hand' } }, { at: 0.6, hit: 0, fx: 'slash' }], pose: (p) => ({ wAng: 0, hand: [p < 0.42 ? 3 - 3 * ease(p / 0.42) : 4, -5] }) },
 };
 
 export class Battle {
-  // el: tomt element. o: { profile, worldIdx, nodeIdx, node, words, play(url), onEnd(result) }
+  // el: tomt element. o: { profile, worldIdx, nodeIdx, node (med rec och ease), words, play(url), onEnd(result),
+  //   rewardMult (avtrappningen: andel av fiendernas guld som delas ut, bara för siffran som flyger upp) }
   constructor(el, o) {
     Object.assign(this, o); this.el = el;
     this.gear = Object.fromEntries(Object.entries(o.profile.eq).filter(([, id]) => id).map(([k, id]) => [k, BY_ID[id]]));
@@ -111,6 +112,8 @@ export class Battle {
     this.el.querySelectorAll('.streak i').forEach((p, i) => p.classList.toggle('on', i < this.run.streak));
     this.$('.streak').classList.toggle('full', this.run.streak >= R.K.superStreak);
   }
+  // Ett ord blev starkare i boken: en rad som stiger över hjälten, i ordnivåns färg.
+  note(text, color) { const f = document.createElement('div'); f.className = 'fl grow'; f.textContent = text; f.style.left = '50%'; f.style.top = '34%'; if (color) f.style.color = color; this.$('.floaters').appendChild(f); setTimeout(() => f.remove(), 1500); }
   float(text, x, y, cls = '') { const f = document.createElement('div'); f.className = 'fl ' + cls; f.textContent = text; f.style.left = (100 * x / this.W) + '%'; f.style.top = (100 * y / this.H) + '%'; this.$('.floaters').appendChild(f); setTimeout(() => f.remove(), 900); }
 
   // ----- frågan -----
@@ -192,7 +195,8 @@ export class Battle {
     const next = R.afterHeroAttack(this.run);
     if (next === 'next' || next === 'won') {
       const f = this.enemy.f;
-      this.float(`+${f.gold} gold`, this.enemy.members[0].x, this.groundY - f.def.h - 14, 'gold');
+      const gold = Math.round(f.gold * (this.rewardMult ?? 1));      // samma avtrappning som resultatskärmen räknar med (reward i rules.js)
+      if (gold > 0) this.float(`+${gold} gold`, this.enemy.members[0].x, this.groundY - f.def.h - 14, 'gold');
       setTimeout(() => { if (this.over) return; if (next === 'next') this.nextFight(); else this.finish(true); }, 900);
       return;
     }
@@ -231,7 +235,7 @@ export class Battle {
       g.flash = false; this.tip = g.anchor.tip || g.anchor.hand; this.hand = g.anchor.hand; this.over3 = [this.hand[0] - 4, this.hand[1] - 34]; g.pop();
     }
     // storsvärdet river upp gnistor när det släpas
-    if (a && a.who === 'hero' && a.A.drag && p < 0.45 && this.tip) this.fx.push({ kind: 'p', t0: now, dur: 0.25, x: this.tip[0], y: groundY, vx: -30 - Math.random() * 30, vy: -20 - Math.random() * 30, rp: SPARK, lv: 5 });
+    if (a && a.who === 'hero' && a.A.drag && p > 0.12 && p < 0.45 && this.tip) this.fx.push({ kind: 'p', t0: now, dur: 0.25, x: this.tip[0], y: groundY, vx: -30 - Math.random() * 30, vy: -20 - Math.random() * 30, rp: SPARK, lv: 5 });
     // fienderna
     const f = this.enemy.f, d = f.def, ea = a && a.who === 'enemy' ? Math.min(1, p) : 0, al = this.alive();
     this.enemy.members.forEach((m, i) => {

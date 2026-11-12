@@ -15,6 +15,15 @@
 
   // ---------- tillstånd ----------
   const state = { gold: 0, done: {} };
+  // Det spelets skal räknar fram åt kartan (setInfo): hjältens nivå och per nod rekommenderad nivå (rec), belöningsfaktor (f),
+  // banbonus, antal ord som inte är inlärda (left), och per värld bossens ordmätare (gate) och banan med flest ord kvar (best).
+  // Kartan har inga egna regler. Utan skal (kartan öppnad för sig) är INFO null och inget av det ritas.
+  let INFO = null;
+  const nodeInf = (w, i) => (INFO && INFO.worlds[w.id] && INFO.worlds[w.id].nodes[i]) || null;
+  const worldInf = (w) => (INFO && INFO.worlds[w.id]) || null;
+  // Färgen på "Lv N": grön = hjälten är på banans nivå eller över, gul = en eller två nivåer under, röd = längre under,
+  // grå = banan är så lätt att belöningen är nedsatt.
+  const lvColor = (inf) => (inf.f < 1 ? '#b4b4cc' : INFO.level >= inf.rec ? '#8dff9a' : INFO.level >= inf.rec - 2 ? '#ffd84a' : '#ff7a6a');
   const isStar = (nd) => nd.type === 'level' || nd.type === 'boss';
   const DEMO_STARS = [3, 2, 3, 3, 1, 3, 2, 3, 3, 2, 3, 3];
   function resetState() {
@@ -382,6 +391,17 @@
     if (b) { const bx = (w - bw) >> 1; if (star) g.drawImage(C.star.cv, bx, 13); g.drawImage(b, bx + (star ? 8 : 0), 11); }
     bannerCache.set(key, c); return c;
   }
+  // Mörk platta bakom text på kartan, så att den går att läsa mot skog och sand. gold = guldkant (banan med flest ord kvar).
+  function plate(x, y, w, h, dim, gold) {
+    ctx.fillStyle = dim ? 'rgba(27,22,48,0.6)' : 'rgba(27,22,48,0.85)'; rect(x + 1, y, w - 2, h); rect(x, y + 1, w, h - 2);
+    if (gold) { ctx.fillStyle = '#ffd84a'; rect(x + 1, y, w - 2, 1); rect(x + 1, y + h - 1, w - 2, 1); }
+  }
+  // Liten uppslagen bok (8 x 6 punkter): märket för "ord". gold = banan med flest ord kvar.
+  function wordIcon(x, y, gold) {
+    ctx.fillStyle = '#1b1630'; rect(x, y, 8, 6);
+    ctx.fillStyle = gold ? '#ffd84a' : '#c3d0de'; rect(x + 1, y + 1, 3, 4); rect(x + 4, y + 1, 3, 4);
+    ctx.fillStyle = '#1b1630'; rect(x + 4, y + 1, 1, 4);
+  }
   function stars3(x, y, n) { for (let s = 0; s < 3; s++) img(s < n ? C.star : C.starOff, x - 10 + s * 7 + 3, y + 6 - (s === 1 ? 2 : 0)); }
 
   let lastT = now();
@@ -465,6 +485,22 @@
       } else if (nd.type === 'chest') img(st === 'done' ? C.chestOpen : st === 'lock' ? C.chestDark : C.chest, p.x, p.y - (st === 'cur' ? ((t * 3) | 0) % 2 : 0));
       else if (nd.type === 'shop') img(st === 'lock' ? C.shopDark : C.shop, p.x, p.y);
       else { img(st === 'done' ? C.nodeDone : st === 'cur' ? C.nodeCur : C.nodeLock, p.x, p.y); if (st === 'done') stars3(p.x, p.y - 20, done[i]); }
+      // Rekommenderad nivå under banan, och på klarade banor hur många av banans ord som inte är inlärda än.
+      const inf = nodeInf(w, i), wi = worldInf(w);
+      if (inf && inf.rec != null) {
+        const boss = nd.type === 'boss', ly = p.y + (boss ? 9 : 6), tc = PX.text('Lv ' + inf.rec, st === 'lock' ? '#b4b4cc' : lvColor(inf), '#1b1630');
+        plate(p.x - (tc.width >> 1) - 1, ly, tc.width + 2, 11, st === 'lock'); img(tc, p.x - (tc.width >> 1), ly);
+        if (boss && st === 'cur' && wi.gate && !wi.gate.open) {      // bossens ordmätare är stängd: lås och hur långt det är kvar
+          img(C.lock, p.x + 11, p.y + 1);
+          const g = wi.gate, gt = PX.text(g.have + '/' + g.need, '#c3d0de', '#1b1630'), bx = p.x - ((gt.width + 9) >> 1);
+          plate(bx - 2, ly + 11, gt.width + 12, 11); wordIcon(bx, ly + 13, false); img(gt, bx + 9, ly + 11);
+        }
+        if (st === 'done' && inf.left > 0) {
+          const best = wi.best === i, lt = PX.text(inf.left, best ? '#ffd84a' : '#c3d0de', '#1b1630'), bx = p.x - ((lt.width + 9) >> 1), bob = best ? ((t * 3) | 0) % 2 : 0;
+          if (best) ring(p.x, p.y, 9 + ((t * 1.6) % 1) * 4, 5.5 + ((t * 1.6) % 1) * 2.5, '#c3d0de');      // här finns flest ord kvar att lära
+          plate(bx - 2, ly + 11 - bob, lt.width + 12, 11, false, best); wordIcon(bx, ly + 13 - bob, best); img(lt, bx + 9, ly + 11 - bob);
+        }
+      }
     }
     const step = walking ? ((t * 9) | 0) % 2 : 0, bob = walking ? step : ((t * 2.5) | 0) % 2;
     img(heroSprite || C.hero[step], hp.x, hp.y - 3 - bob);
@@ -504,10 +540,29 @@
     el.querySelector('h2').textContent = nd.name;
     el.querySelector('.row i').textContent = isStar(nd) ? 'Words' : 'Inside';
     el.querySelector('.trains').textContent = nd.trains;
-    el.querySelector('.reward').innerHTML = nd.gold ? icon('coin', 'coin') + nd.gold + ' gold' : 'None';
+    const inf = nodeInf(w, i), wi = worldInf(w), gate = nd.type === 'boss' && !d && wi ? wi.gate : null, shut = !!(gate && !gate.open && !locked);
+    // Rekommenderad nivå och belöning kommer från spelets skal (balance.js). Utan skal visas kartans egna tal.
+    const lvRow = el.querySelector('.lvrow'); lvRow.hidden = !(inf && inf.rec != null);
+    if (!lvRow.hidden) el.querySelector('.lv').innerHTML = `<b style="color:${lvColor(inf)}">Lv ${inf.rec}</b> <span>(you are Lv ${INFO.level})</span>`;
+    const coin = (n) => icon('coin', 'coin') + n + ' gold';
+    el.querySelector('.reward').innerHTML = !inf ? (nd.gold ? coin(nd.gold) : 'None')
+      : nd.type === 'chest' ? coin(inf.gold) : nd.type === 'shop' ? 'None'
+      : inf.bonus ? coin(inf.bonus) + ' the first time' : inf.f < 1 ? 'Small (' + Math.round(inf.f * 100) + '%)' : 'Gold and XP';
     el.querySelector('.stars').innerHTML = isStar(nd) ? [0, 1, 2].map((s) => icon(s < d ? 'star' : 'starOff')).join('') : 'No stars here';
-    el.querySelector('.note').textContent = locked ? 'Locked. Finish the levels before this one.' : d ? 'Done. Play again for more stars and gold.' : nd.type === 'boss' ? 'Beat the boss to open the next world.' : 'You are here.';
-    const play = el.querySelector('.play');
+    const notes = [];
+    if (locked) notes.push('Locked. Finish the levels before this one.');
+    else if (shut) notes.push(gate.text, 'Make more words ' + gate.tier + ' to wake the boss.');
+    else {
+      if (inf && inf.f < 1) notes.push('Too easy now: small reward.');
+      if (d && inf && inf.left > 0) notes.push(inf.left + (inf.left === 1 ? ' word here is' : ' words here are') + ' not learned yet. Play again to make ' + (inf.left === 1 ? 'it' : 'them') + ' stronger.');
+      else if (d && !(inf && inf.f < 1)) notes.push(isStar(nd) && inf && inf.left === 0 ? 'Done. All words here are learned!' : 'Done. Play again for more stars and gold.');
+      if (!d) notes.push(nd.type === 'boss' ? (gate ? gate.text + ' ' : '') + 'Beat the boss to open the next world.' : 'You are here.');
+    }
+    const note = el.querySelector('.note'); note.textContent = ''; notes.forEach((tx) => { const ln = document.createElement('div'); ln.textContent = tx; note.appendChild(ln); });
+    const meter = el.querySelector('.meter'); meter.hidden = !gate || locked;
+    if (gate) meter.firstElementChild.style.width = Math.min(100, Math.round(100 * gate.have / Math.max(1, gate.need))) + '%';
+    const play = el.querySelector('.play'), practice = el.querySelector('.practice');
+    play.hidden = shut; practice.hidden = !shut;
     play.disabled = locked; play.textContent = locked ? 'Locked' : nd.type === 'shop' ? 'Enter' : nd.type === 'chest' ? 'Open' : d ? 'Play again' : 'Play';
     el.classList.add('on');
   }
@@ -571,6 +626,8 @@
   $('#demo').onclick = () => { if (view.mode !== 'world' && curWorld() >= 0) setView('world', curWorld()); };
   $('#reset').onclick = () => { resetState(); unlockAnim = owalk = walk = null; busy = false; demoCount = 0; updateHud(); toast('Demon är nollställd.'); };
   $('#card .close').onclick = closeCard;
+  // Bossens ordmätare är stängd: knappen leder till banan där flest ord kan växa (spelets skal väljer banan).
+  $('#card .practice').onclick = () => { const k = view.world; closeCard(); if (window.parent && window.parent.GAME && window.parent.GAME.practice) window.parent.GAME.practice(k); };
   $('#card .play').onclick = () => { const k = view.world, i = cardNode; closeCard(); if (window.parent && window.parent.GAME) window.parent.GAME.play(k, i, worlds[k].nodes[i], !!state.done[worlds[k].id][i]); };
 
   // ---------- start ----------
@@ -600,6 +657,13 @@
     if (i === curNode(w)) { if (view.mode !== 'world' || view.world !== k) setView('world', k, true); completeCurrent(stars); }
     else { state.done[w.id][i] = Math.max(state.done[w.id][i], stars || 1); updateHud(); }
   }
+  function setInfo(info) { INFO = info || null; if (cardNode >= 0 && view.mode === 'world') openCard(cardNode); }
+  // Visar en viss bana: byter till världen, ställer kameran på noden och öppnar dess ruta.
+  function focus(k, i) {
+    setView('world', k, true);
+    const p = getWorld(k).pts[i]; if (!p) return;
+    view.follow = false; centerOn({ x: p.x, y: p.y + vh * 0.24 }, true); openCard(i);      // noden hamnar ovanför rutan, inte bakom den
+  }
   load({}, 0);
   resize();
   if (qs.get('view') === 'world') setView('world', PX.clamp(+qs.get('w') || 0, 0, worlds.length - 1), true);
@@ -607,6 +671,6 @@
   // setInterval i stället för requestAnimationFrame: tickar även när rutan är dold.
   setInterval(frame, 50);
   frame();
-  window.__map = { state, view, setView, completeCurrent, worlds, unlocked, load, finish, curWorld, curNode, updateHud, setHero };
+  window.__map = { state, view, setView, completeCurrent, worlds, unlocked, load, finish, curWorld, curNode, updateHud, setHero, setInfo, focus, openCard, closeCard, world: (k) => getWorld(k), scale: () => S };
   if (window.parent && window.parent.GAME && window.parent.GAME.mapReady) window.parent.GAME.mapReady(window.__map);
 })();

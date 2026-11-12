@@ -30,24 +30,29 @@ export function dayKey(now = Date.now(), offsetDays = 0, timeZone = 'Europe/Stoc
 }
 
 // ---------- Från händelser till tillstånd ----------
-const defaultXpToLevel = (level) => 20 + level * 12;   // samma kurva som catalog.js, används om ingen skickas in
+// Samma kurva som catalog.js räknar ur balance.js (TUNE.xpBase 85, xpRamp 5, xpGrowth 1,05). Används bara om ingen kurva
+// skickas in. Modulen ska inte ha några beroenden, så talen står här också: sync.test.mjs kontrollerar att de stämmer.
+const defaultXpToLevel = (level) => Math.round(85 * Math.min(level, 5) / 5 * Math.pow(1.05, level - 1));
 const int = (v) => (Number.isFinite(+v) ? Math.round(+v) : 0);
 const order = (a, b) => a.ts - b.ts || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
 // Ren funktion. Samma mängd händelser ger samma tillstånd på alla enheter, oavsett i vilken ordning de kom.
 // Händelserna spelas upp i ordningen (ts, id). Reglerna:
 //   stage  : guld och xp läggs till. Vinst ger banan max(stjärnor). En kista ger guld bara första gången.
-//   grant  : guld och xp läggs till (felsökning, flytt av gamla framsteg, förälderns rättning).
+//   grant  : guld och xp läggs till (felsökning, flytt av gamla framsteg, förälderns rättning, xp för ordnivåer).
+//            Har gåvan en nyckel (payload.once) räknas bara den första med den nyckeln, så att samma sak aldrig
+//            betalas två gånger även om två enheter skulle ha bokfört den under olika id.
 //   buy    : gäller bara om guldet räcker just då och föremålet inte redan ägs. Annars underkänns köpet
 //            (ingen kostnad, inget föremål). Guldet kan därför aldrig bli negativt.
 //   equip  : senaste i ordningen vinner per plats. Föremål man inte äger går inte att ta på.
 //   shop   : första hyllan som skapats för en dag gäller för den dagen.
+//   Okända typer och okända fält hoppas över (en äldre klient ser nyare händelser utan att gå sönder).
 // Returnerar samma form som profilerna i main.js (utan name, look och heard som stannar på enheten).
 export function fold(events, opts = {}) {
   const xpToLevel = opts.xpToLevel || defaultXpToLevel, day = opts.day || dayKey();
   const evs = [...events].sort(order);
   let earned = 0, spent = 0, xpTotal = 0, runs = 0, defeats = 0, shop = null;
-  const owned = [], has = new Set(), eq = {}, done = {}, chests = new Set(), rejected = [];
+  const owned = [], has = new Set(), eq = {}, done = {}, chests = new Set(), rejected = [], once = new Set();
   for (const e of evs) {
     const p = e.payload || {};
     if (e.type === 'stage') {
@@ -62,6 +67,7 @@ export function fold(events, opts = {}) {
         arr[node] = Math.max(arr[node], Math.min(3, Math.max(1, int(p.stars))));
       }
     } else if (e.type === 'grant') {
+      if (p.once != null) { const k = String(p.once); if (once.has(k)) continue; once.add(k); }
       earned += int(p.gold); xpTotal += int(p.xp);
     } else if (e.type === 'buy') {
       const item = String(p.item || ''), price = Math.max(0, int(p.price));
@@ -141,6 +147,18 @@ function makeUuid() {
   const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
+
+// Ett bestämt id (i uuid-form, tabellens id-kolumn är uuid) ur en text. Samma text ger samma id på alla enheter.
+// Fyra 32-bitarshashar med olika frön, alltså 122 slumpmässiga bitar som i ett vanligt uuid.
+export function uuidFrom(text) {
+  const h = (seed) => { let a = 0xdeadbeef ^ seed, b = 0x41c6ce57 ^ seed; for (let i = 0; i < text.length; i++) { const c = text.charCodeAt(i); a = Math.imul(a ^ c, 2654435761); b = Math.imul(b ^ c, 1597334677); }
+    a = Math.imul(a ^ (a >>> 16), 2246822507) ^ Math.imul(b ^ (b >>> 13), 3266489909); b = Math.imul(b ^ (b >>> 16), 2246822507) ^ Math.imul(a ^ (a >>> 13), 3266489909); return [a >>> 0, b >>> 0]; };
+  const x = [...h(1), ...h(2)].map((n) => n.toString(16).padStart(8, '0')).join('').split('');
+  x[12] = '5'; x[16] = '89ab'[parseInt(x[16], 16) & 3];
+  const t = x.join('');
+  return `${t.slice(0, 8)}-${t.slice(8, 12)}-${t.slice(12, 16)}-${t.slice(16, 20)}-${t.slice(20)}`;
+}
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // ---------- Synkmotorn ----------
 // createSync ger en fristående instans (testerna skapar en per låtsasenhet). Spelet använder de
@@ -305,9 +323,24 @@ export function createSync(config = {}) {
   // Lägger händelsen i loggen och utkorgen direkt (tillståndet är uppdaterat när funktionen returnerar)
   // och försöker skicka strax efteråt. type 'answer' är ett svar på en fråga och går till en egen tabell,
   // eftersom svaren är många och inte påverkar guld eller nivå.
-  function record(profileId, type, payload = {}) {
+  //
+  // opts.once = en nyckel för något som bara får hända en gång per barn (xp för ett ord som nått en nivå, en
+  // engångsgåva vid en balansändring). Händelsen får då ett bestämt id ur hushåll, profil och nyckel, så att två
+  // enheter eller en omstart skapar samma rad (servern tar emot den första, id är primärnyckel). Nyckeln skrivs
+  // också i payload.once, som fold() använder för att aldrig räkna samma nyckel två gånger. Finns händelsen redan
+  // här returneras null och inget skrivs. Före inloggning är hushållet okänt, då används enhetens id i stället:
+  // skulle samma nyckel senare komma från en annan enhet under ett annat id räknas den ändå bara en gång av fold().
+  // opts.id = ett eget id i uuid-form (samma regel: finns det redan returneras null).
+  function record(profileId, type, payload = {}, opts = null) {
     need();
-    const device = meta.deviceId, id = cfg.uuid();
+    const device = meta.deviceId;
+    let id = cfg.uuid();
+    if (opts && type !== 'answer' && (opts.once != null || opts.id)) {
+      if (opts.once != null) payload = { ...payload, once: String(opts.once) };
+      id = opts.id ? String(opts.id).toLowerCase() : uuidFrom(`${meta.householdId || meta.deviceId}|${profileId}|${opts.once}`);
+      if (!UUID.test(id)) throw new Error('sync: id måste vara ett uuid');
+      if (events.has(id)) return null;
+    }
     let item;
     if (type === 'answer') {
       const p = payload;
@@ -457,13 +490,17 @@ export function createSync(config = {}) {
     return meta.session ? pull({ full: true }) : { ok: true, sent: 0, received: 0 };
   }
 
+  // En profils händelser i den ordning fold() spelar upp dem. Används av main.js för det som räknas fram utanför
+  // fold(): ordboken, inställningar per barn och vilka engångsnycklar som redan finns.
+  const eventsFor = (profileId) => { need(); return eventsOf(profileId).sort(order); };
+
   // Allt som finns lokalt, för en säkerhetskopia som pappan kan ladda ner från föräldraskärmen.
   const exportLocal = () => ({ exportedAt: cfg.now(), deviceId: meta.deviceId, events: [...events.values()].sort(order), outbox: outbox.map((o) => o.row), rejected: dead });
 
   // Väntar tills pågående skrivningar och synkar är klara. Används av testerna.
   const idle = async () => { await queue; await writes; };
 
-  return { start, signIn, signOut, status, record, importLegacy, push, pull, sync, stateFor, subscribe, resetLocal, exportLocal, idle };
+  return { start, signIn, signOut, status, record, importLegacy, push, pull, sync, stateFor, eventsFor, subscribe, resetLocal, exportLocal, idle };
 }
 
 // ---------- Spelets gränssnitt: en delad instans ----------
@@ -475,12 +512,13 @@ export async function init(config = {}) { if (!main) main = createSync(config); 
 export const signIn = (email, password) => inst().signIn(email, password);
 export const signOut = () => inst().signOut();
 export const status = () => inst().status();
-export const record = (profileId, type, payload) => inst().record(profileId, type, payload);
+export const record = (profileId, type, payload, opts) => inst().record(profileId, type, payload, opts);
 export const importLegacy = (profileId, oldProfile) => inst().importLegacy(profileId, oldProfile);
 export const pull = (opts) => inst().pull(opts);
 export const push = () => inst().push();
 export const sync = (opts) => inst().sync(opts);
 export const stateFor = (profileId, day) => inst().stateFor(profileId, day);
+export const eventsFor = (profileId) => inst().eventsFor(profileId);
 export const subscribe = (fn) => inst().subscribe(fn);
 export const resetLocal = (opts) => inst().resetLocal(opts);
 export const exportLocal = () => inst().exportLocal();

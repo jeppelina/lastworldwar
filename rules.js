@@ -2,45 +2,12 @@
 // Både striden i webbläsaren (battle.js) och simulatorn (sim/) kör den här filen, så att balansen
 // som mäts i simulatorn är den som spelas. Hjältens värden och priserna ligger i catalog.js.
 //
-// Alla siffror som går att skruva på står i K. Simulatorn kan byta ut dem med setConstants()
-// för att jämföra före och efter. Slumpen skickas in som funktion (rnd) så att körningar går att upprepa.
+// Här står bara formler. Alla tal ligger i balance.js (K). Simulatorn kan byta ut dem med setConstants()
+// för att jämföra andra förslag. Slumpen skickas in som funktion (rnd) så att körningar går att upprepa.
+import { K as BK, nodes as NODES, version } from './balance.js';
 
-export const K = {
-  lossXp: 0.25,                     // andel av erfarenheten man får behålla när man förlorar (beslutat: en fjärdedel)
-  // Fiendens grundvärden växer rakt med banans löpnummer L = världsindex * 10 + nodindex.
-  // Balanserat med simulatorn 2026-11-11 (docs/research/balans.md): fienderna tål mer och slår svagare än i
-  // första utkastet (22 + 6 L liv, 2,5 + 0,9 L skada). Striderna blir längre, så att andelen rätta svar
-  // avgör mer och enstaka slag mindre, och en bana kräver inte längre flera nivåer mer än man har när man kommer dit.
-  enemy: {
-    hpBase: 40, hpPerL: 5,          // sammanlagt liv för en fiende av normalstorlek
-    atkBase: 1.3, atkPerL: 0.25,    // skada per slag
-    goldBase: 2, goldPerL: 0.35,    // guld per slagen fiende (gånger nivåfaktorn nedan)
-    xpBase: 5, xpPerL: 1,           // xp per slagen fiende (gånger nivåfaktorn nedan)
-  },
-  // Fiendetyper: 1 = liten, 2 = mellan, 3 = stor, boss.
-  tier: {
-    hp: { 1: 0.8, 2: 1.15, 3: 1.6, boss: 4.2 },
-    atk: { 1: 0.8, 2: 1, 3: 1.3, boss: 1.7 },
-    every: { 1: 4, 2: 3, 3: 3, boss: 3 },     // fienden slår var N:e tur även om man svarar rätt
-    gold: { 1: 1, 2: 2, 3: 3, boss: 6 },
-    xp: { 1: 1, 2: 2, 3: 3, boss: 5 },
-  },
-  // Vilka fiendetyper en bana har, efter hur långt in i världen den ligger (nodindex / 10).
-  waves: [[0.25, [1, 1, 1]], [0.5, [1, 1, 2]], [0.75, [1, 2, 2]], [Infinity, [2, 2, 3]]],
-  bossWaves: [2, 'boss'],
-  swarmHp: 1.4,        // en svärm har så här mycket mer liv sammanlagt, delat på medlemmarna
-  swarmAtk: 0.25,      // varje extra levande medlem lägger så här mycket på slaget
-  superStreak: 3,      // så många rätt i rad laddar superattacken
-  superMult: 2,        // superattackens skada
-  spreadLo: 0.9, spreadWidth: 0.2,   // slumpen i varje slag: 0,9 till 1,1 gånger skadan
-  stars: [0.66, 0.33], // andel liv kvar som ger tre respektive två stjärnor
-  // Banbonusen (nodens guld i världsdatan gånger en faktor). OBS: main.js räknar bonusen själv med
-  // samma två tal (0,7 och 0,4). Ändras de här måste main.js ändras också, se docs/research/balans.md.
-  bonusFactor: 0.7,    // andel av nodens guld första gången banan klaras
-  replayFactor: 0.4,   // andel av bonusen när en redan klarad bana spelas om
-  requeueGap: 2,       // ett missat ord kommer tillbaka tidigast efter så här många frågor
-  options: 4,          // antal svarskort
-};
+export const K = BK;                       // samma objekt som i balance.js
+export const BALANCE_VERSION = version;    // skrivs i varje stage-händelse (bv), så att belopp går att härleda i efterhand
 
 // Byter ut konstanter (djupt, bara de nycklar som anges). Används av simulatorn, inte av spelet.
 export function setConstants(patch, into = K) {
@@ -49,6 +16,18 @@ export function setConstants(patch, into = K) {
     else into[k] = v;
   }
   return K;
+}
+
+// ---------- Banornas rekommenderade nivå ----------
+export const WORLD_IDS = Object.keys(NODES.rec);     // världarna i kartans ordning
+export const nodeCount = (world) => (NODES.rec[typeof world === 'number' ? WORLD_IDS[world] : world] || []).length;
+// world: index eller id. Returnerar { rec, ease, own }. Kistor och butiker saknar egen nivå (own = false)
+// och räknas efter närmast föregående bana.
+export function nodeInfo(world, i, src = NODES) {
+  const id = typeof world === 'number' ? Object.keys(src.rec)[world] : world, recs = src.rec[id] || [], eases = (src.ease || {})[id] || [];
+  let rec = recs[i] ?? null; const own = rec != null;
+  if (!own) { for (let j = i; j >= 0 && rec == null; j--) rec = recs[j] ?? null; if (rec == null) rec = recs.find((x) => x != null) ?? 1; }
+  return { rec, ease: eases[i] ?? 1, own };
 }
 
 // Hur varje vapentyp träffar. hits = skadefaktor per träff i attacken, cleave = antal fiender som träffas,
@@ -69,33 +48,33 @@ export const WEAPON_RULES = {
 
 // ---------- Banans strider ----------
 const pick = (a, rnd) => a[Math.floor(rnd() * a.length)];
-export const levelNumber = (worldIdx, nodeIdx) => worldIdx * 10 + nodeIdx;
 export function wavesFor(nodeIdx, node) {
   if (node.type === 'boss') return K.bossWaves;
   const frac = nodeIdx / 10;
   return K.waves.find(([lim]) => frac < lim)[1];
 }
-// En fiendes värden. def är posten i ROSTER (behöver bara id och count).
-export function enemyStats(L, t, def) {
-  const e = K.enemy, T = K.tier, n = def.count || 1, total = Math.round((e.hpBase + L * e.hpPerL) * T.hp[t]);
+// En fiendes värden ur banans rekommenderade nivå (rec) och lättnad (ease). def är posten i ROSTER (behöver bara id och count).
+export function enemyStats(rec, ease, t, def) {
+  const E = K.enemy, T = K.tier, n = def.count || 1, g = Math.pow(E.growth, rec - 1), total = Math.round(E.hp * g * ease * T.hp[t]);
   return {
     def, tier: t, n,
     hpEach: Math.max(1, Math.round((total * (n > 1 ? K.swarmHp : 1)) / n)),
-    atk: Math.max(1, Math.round((e.atkBase + L * e.atkPerL) * T.atk[t])),
+    atk: Math.max(1, Math.round(E.atk * g * ease * T.atk[t])),
     every: T.every[t],
-    gold: Math.round((e.goldBase + L * e.goldPerL) * T.gold[t]),
-    xp: Math.round((e.xpBase + L * e.xpPerL) * T.xp[t]),
+    gold: Math.max(1, Math.round(E.gold * Math.pow(E.goldGrowth, rec - 1) * T.gold[t])),
+    xp: Math.max(1, Math.round(E.xp * Math.pow(E.xpGrowth, rec - 1) * T.xp[t])),
   };
 }
 // roster: listan med fiender (world, tier, count). Väljer en fiende per strid, helst olika.
+// Banans nivå och lättnad läses ur node.rec och node.ease. Saknas de slås de upp i balance.js.
 export function buildRun(worldIdx, nodeIdx, node, roster, rnd = Math.random) {
-  const L = levelNumber(worldIdx, nodeIdx);
+  const info = node.rec != null ? node : nodeInfo(worldIdx, nodeIdx), rec = info.rec, ease = info.ease ?? 1;
   const inWorld = roster.filter((e) => e.world === worldIdx || e.world === -1);
   const byTier = (t) => { const c = inWorld.filter((e) => e.tier === t); return c.length ? c : roster.filter((e) => e.tier === t); };
   const used = new Set();
   return wavesFor(nodeIdx, node).map((t) => {
     let def = pick(byTier(t), rnd); for (let i = 0; i < 6 && used.has(def.id); i++) def = pick(byTier(t), rnd); used.add(def.id);
-    return enemyStats(L, t, def);
+    return enemyStats(rec, ease, t, def);
   });
 }
 
@@ -169,15 +148,42 @@ export function nextWord(q, words, rnd = Math.random) {
 export function missWord(q) { q.queue.push({ w: q.target, at: q.asked }); }
 
 // ---------- Belöning efter banan ----------
-// first = banan var inte klarad förut. Speglar endBattle i main.js.
-export function levelBonus(node, first, win) { return win ? Math.round(node.gold * (first ? 1 : K.replayFactor) * K.bonusFactor) : 0; }
-// Bokför guld och xp på profilen och räknar nivåer. xpToLevel kommer från catalog.js. Returnerar { bonus, ups }.
-export function applyResult(profile, res, node, first, xpToLevel) {
-  const bonus = levelBonus(node, first, res.win);
-  profile.gold += res.gold + bonus; profile.xp += res.xp;
+// Avtrappning: hur stor del av guld och xp från slagna fiender som delas ut, efter hur långt hjältens nivå
+// ligger över banans rekommenderade nivå. 1 = full belöning.
+export function rewardFactor(heroLevel, rec) {
+  const F = K.falloff;
+  if (!F || F.type !== 'level' || rec == null) return 1;
+  const over = heroLevel - rec - F.free;
+  return over <= 0 ? 1 : Math.max(F.floor, +(1 - F.step * over).toFixed(4));
+}
+const enemyGold = (rec) => K.enemy.gold * Math.pow(K.enemy.goldGrowth, rec - 1);
+// Banbonus: bara första gången banan klaras (first). node behöver type och rec.
+export function levelBonus(node, first, win) {
+  if (!win) return 0;
+  return Math.round((first ? (node.type === 'boss' ? K.bossBonus : K.firstBonus) : K.replayBonus || 0) * enemyGold(node.rec));
+}
+export const chestGold = (rec) => Math.round(K.chestBonus * enemyGold(rec));
+// Xp när ett ord når en ny högsta nivå (tier) i ordboken: en andel av xp-kravet för hjältens nivå. mult: se learnMult.
+export function learnXp(tier, level, xpToLevel, mult = 1) {
+  const L = K.learn, share = L ? L.share[Math.min(tier, L.share.length - 1)] : 0;
+  return share > 0 ? Math.max(1, Math.round(share * mult * xpToLevel(level))) : 0;
+}
+export const learnMult = (young) => (K.learn ? K.learn.mult ?? 1 : 0) * (young && K.young ? K.young.learnMult : 1);
+// Andel av fiendernas xp som delas ut: lägre i världar där orden ger xp (de som har innehållsfil).
+export const killXpFactor = (hasContent) => (hasContent && K.learn ? K.learn.kill : 1);
+// Vad en omgång ger. res kommer från result(). node behöver type och rec. first = banan var inte klarad förut.
+// Returnerar { factor, bonus, gold (fiender efter avtrappning + bonus), xp (fiender efter avtrappning) }.
+export function reward(res, node, first, heroLevel, hasContent = false) {
+  const factor = rewardFactor(heroLevel, node.rec), bonus = levelBonus(node, first, res.win);
+  return { factor, bonus, gold: Math.round(res.gold * factor) + bonus, xp: Math.round(res.xp * factor * killXpFactor(hasContent)) };
+}
+// Bokför guld och xp på profilen och räknar nivåer. xpToLevel kommer från catalog.js. Returnerar { bonus, ups, gold, xp, factor }.
+export function applyResult(profile, res, node, first, xpToLevel, hasContent = false) {
+  const r = reward(res, node, first, profile.level, hasContent);
+  profile.gold += r.gold; profile.xp += r.xp;
   let ups = 0; while (profile.xp >= xpToLevel(profile.level)) { profile.xp -= xpToLevel(profile.level); profile.level++; ups++; }
   if (!res.win) profile.defeats = (profile.defeats || 0) + 1;
-  return { bonus, ups };
+  return { ...r, ups };
 }
 
 // ---------- En hel tur i ett svep, för simulatorn ----------

@@ -3,6 +3,8 @@
 //
 // Nodformat: [typ, namn, vad som tränas, guld]
 //   typ: 'level' (vanlig bana), 'chest' (kista), 'shop' (butik), 'boss' (sist i världen)
+//   guld: visas bara när kartan öppnas för sig (demo). I spelet räknas banbonus och kistor ur game/balance.js
+//   (rekommenderad nivå per bana står där, i samma ordning som noderna här), och spelets skal skickar talen till kartan.
 // Nodernas positioner räknas ut automatiskt längs en slingrande stig, i den ordning de står.
 window.GAME_DATA = {
   continent: { name: 'Wordland', subtitle: 'English: from words to sentences' },
@@ -79,7 +81,7 @@ window.GAME_DATA = {
         ['shop', 'Mountain Shop', 'Buy gear with your gold', 0],
         ['level', 'The Glacier', 'seven, eight, nine, ten', 22],
         ['level', 'The Peak', 'Mixed words', 22],
-        ['boss', 'The Ice Giant', 'All words from Frost Mountains', 160]
+        ['boss', 'The Shivering Giant', 'All words from Frost Mountains', 160]
       ]
     },
     {
