@@ -424,7 +424,9 @@ function levelUp(before, then) {
 // ---------- Utrustning: hjälten i mitten med platserna runt om, och det man äger för vald plats ----------
 let gFilter = 'weapon', gSel = null, gTab = 'items';
 const HAIRS = Object.entries(HAIR_STYLES).map(([id, st]) => [id, st.name]);
-const HAIR_COL = ['#2a2a33', '#5a3a22', '#6b4426', '#8a5a34', '#b5532a', '#d98a3a', '#e9c463', '#f4e6b0', '#c8ccd8', '#e56aa8', '#4a8ad8', '#3fae6a'];
+// Naturliga färger först (mörkt till ljust, sedan grått), därefter starka färger. De tolv första värdena fanns redan och får inte ändras.
+const HAIR_COL = ['#17171d', '#2a2a33', '#3d2817', '#5a3a22', '#6b4426', '#8a5a34', '#7a2e1c', '#b5532a', '#d98a3a', '#e0a070', '#b89a5a', '#e9c463', '#f4e6b0', '#f5f5f0', '#c8ccd8', '#8b8f9c',
+  '#e56aa8', '#ff3f8e', '#d8262e', '#ff7a1f', '#ffd83a', '#8fd63a', '#3fae6a', '#1fb8a6', '#5ac8f0', '#4a8ad8', '#2b3f8f', '#8a4fd8', '#c39bf0'];
 const SKIN_COL = ['#fbe0c8', '#f3c7a2', '#e9b48c', '#d49a6a', '#b97a50', '#8a5a3a', '#6a4028'];
 const SLOT_SIDE = { L: ['helmet', 'armor', 'back'], R: ['weapon', 'shield', 'pet'] };
 function openGear() { gSel = null; show('gear'); paintGearBg(); renderGear(); }
