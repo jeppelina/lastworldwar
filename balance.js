@@ -49,7 +49,11 @@
 //   v7  2026-11-12  Guld när ett ord når en ny nivå i ordboken (K.learn.gold, i fiendeguld på hjältens nivå), så att det
 //                   lönar sig att träna ord och inte bara att vinna banor. Mål: ungefär ett föremål extra per speldag.
 //                   Butiken fyller på dagens hylla om den är kortare än den nya storleken. Inte simulerat.
-export const version = 7;
+//   v8  2026-11-12  Steel går att nå samma dag: kravet på två olika dagar flyttat till Gold (NEED_DAYS i words.js), Steel 7 -> 5
+//                   poäng och svagare avtagande för rätta svar samma dag (1 + 0,25 * antal i stället för 1 + antal). Barnen stod vid
+//                   bossen med 37 och 48 ord på Iron och inget på Steel, och inget de gjorde samma dag kunde ändra det.
+//                   Kartans stjärnor visar nu ordens nivå på banan (1 = klarad, 2 = hälften Steel, 3 = nästan alla Steel). Inte simulerat.
+export const version = 8;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {

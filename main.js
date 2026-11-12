@@ -174,7 +174,7 @@ function passMinis() {
   }
   if (any) adopt(P);
 }
-function syncMap(jump) { passMinis(); mapHero(); MAP.load(P.done, P.gold); pushMapInfo(); if (jump) { const cw = MAP.curWorld(); MAP.setView('world', cw < 0 ? MAP.worlds.length - 1 : cw, true); } }
+function syncMap(jump) { passMinis(); mapHero(); MAP.load(starDone(), P.gold); pushMapInfo(); if (jump) { const cw = MAP.curWorld(); MAP.setView('world', cw < 0 ? MAP.worlds.length - 1 : cw, true); } }
 function enterMap(jump) {
   show('map'); renderBar();
   if (!$('map-frame').src) $('map-frame').src = 'map/index.html?v=6'; else if (MAP) syncMap(jump);
@@ -189,6 +189,10 @@ const counts = (it, p) => p.reading !== false || !!it.pic;            // den som
 // Orden som en bana inför (det är dem barnet övar mest när banan spelas om).
 function nodeWords(k, i, p = P) { const c = contentFor(k, p), nd = c && c.nodes[i]; if (!nd) return []; const by = c._by || (c._by = Object.fromEntries(c.items.map((it) => [it.id, it]))); return [...(nd.introduce || []), ...(nd.phrases || [])].map((id) => by[id]).filter((it) => it && counts(it, p)); }
 const unlearned = (k, i, p = P) => nodeWords(k, i, p).filter((it) => tierOf((p.words || {})[it.id]) < STEEL).length;
+// Stjärnor på kartan: hur väl banans ord sitter. 1 = klarad, 2 = minst hälften av orden på Steel, 3 = minst nio av tio.
+// Banor utan ord (värld 4 till 6, bossar) behåller stridens stjärnor.
+const wordStars = (k, i, fallback, p = P) => { const n = nodeWords(k, i, p).length; if (!n) return fallback; const s = n - unlearned(k, i, p); return s >= 0.9 * n ? 3 : s >= 0.5 * n ? 2 : 1; };
+function starDone() { const out = {}; MAP.worlds.forEach((w, k) => { const arr = (P.done || {})[w.id]; if (arr) out[w.id] = arr.map((v, i) => (v && w.nodes[i] && w.nodes[i].type === 'level' ? wordStars(k, i, v) : v)); }); for (const key of Object.keys(P.done || {})) if (!(key in out)) out[key] = P.done[key]; return out; }
 const isDone = (k, i, p = P) => !!((p.done || {})[R.WORLD_IDS[k]] || [])[i];
 // Den klarade banan i världen med flest ord som inte är inlärda (under Steel). -1 om ingen finns.
 function practiceNode(k, p = P) { const c = contentFor(k, p); let best = -1, bn = 0; if (c) c.nodes.forEach((nd, i) => { if (nd.type !== 'level' || !isDone(k, i, p)) return; const u = unlearned(k, i, p); if (u > bn) { bn = u; best = i; } }); return best; }
@@ -307,14 +311,15 @@ function endBattle(r, k, i, node, w) {
   rec('stage', { world: w.id, node: i, kind: 'battle', win: r.win, stars: r.stars, gold: rw.gold, xp: rw.xp, bv: BV, lv: st.level, gaveUp: r.gaveUp ? true : undefined, kills: r.kills });
   const ups = P.level - st.level, before = st.stats; run = null;
   const el = $('result'); el.hidden = false; el.className = (r.win ? 'win' : 'lose') + (bs && r.win ? ' boss' : '');
-  el.querySelector('.stars').innerHTML = r.win ? [0, 1, 2].map((s) => (s < r.stars ? '★' : '<i>★</i>')).join('') : '';
+  const nW = node.type === 'level' ? nodeWords(k, i).length : 0, ws = nW ? wordStars(k, i, r.stars) : r.stars;      // stjärnorna visar ordens nivå på banan
+  el.querySelector('.stars').innerHTML = r.win ? [0, 1, 2].map((s) => (s < ws ? '★' : '<i>★</i>')).join('') : '';
   const target = r.win ? null : practiceTarget(k), canPractice = target && !(target[0] === k && target[1] === i), under = !r.win && P.level < node.rec, pushy = canPractice && (under || (LOSSES[w.id + ':' + i] || 0) >= 2);
   // Boss med ordstenar: stenraden, och vid förlust bossens replik, stenarna som står kvar och orden som är värda att öva.
   const stoneRow = bs ? `<span class="stones rstones">${Array.from({ length: bs.stones }, (_, j) => `<i class="${j < bs.lit ? 'lit' : ''}"></i>`).join('')}</span>` : '';
   const bossTop = !bs ? '' : r.win ? `You helped ${node.name}.\n${stoneRow}` :
     `<span class="bquote">"${esc(bs.lose[0])}"<small>${esc(bs.lose[1])}</small></span>${stoneRow}You lit ${bs.lit} of ${bs.stones} stones.` + (bs.keep ? ` <b>${bs.keep} ${bs.keep === 1 ? 'stays' : 'stay'} lit</b> for next time.` : '') + '\n';
   const missed = bs && !r.win ? bs.missed || [] : [];
-  el.querySelector('.lines').innerHTML = (bs ? bossTop : r.win ? `You won at ${node.name}.\n` : `You reached fight ${Math.min(r.kills + 1, r.fights)} of ${r.fights}.\n`) +
+  el.querySelector('.lines').innerHTML = (bs ? bossTop : r.win ? `You won at ${node.name}.\n` + (nW ? `<b class="grow">${nW - unlearned(k, i)} of ${nW} words here are strong.</b>` + (ws < 3 ? ' Play again for more stars.' : '') + '\n' : '') : `You reached fight ${Math.min(r.kills + 1, r.fights)} of ${r.fights}.\n`) +
     `<b>+${fmt(rw.gold)} gold</b>   <b>+${fmt(rw.xp)} XP</b>` +
     (st.words ? `\n<b class="grow">${st.words} ${st.words === 1 ? 'word' : 'words'} got stronger</b>   <b>+${fmt(st.wordXp)} XP</b>` + (st.wordGold ? `   <b>+${fmt(st.wordGold)} gold</b>` : '') : '') +
     (rw.factor < 1 ? '\nToo easy now: small reward.' : '') +
@@ -329,7 +334,7 @@ function endBattle(r, k, i, node, w) {
   const btn = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = label; b.onclick = () => { el.hidden = true; if (battle) battle.destroy(); battle = null; if (ups) levelUp(before, fn); else fn(); }; acts.appendChild(b); };
   if (canPractice) btn('Practice words', pushy ? 'big' : 'alt big', () => goPractice(target[0], target[1]));
   if (!r.win) btn('Try again', pushy ? 'alt' : '', () => startBattle(k, i, node, w));
-  btn('Map', r.win ? '' : 'alt', () => { enterMap(false); if (r.win) { MAP.state.gold = P.gold; MAP.finish(k, i, r.stars); } afterMapChange(); });
+  btn('Map', r.win ? '' : 'alt', () => { enterMap(false); if (r.win) { MAP.state.gold = P.gold; MAP.finish(k, i, node.type === 'level' ? wordStars(k, i, r.stars) : r.stars); } afterMapChange(); });
   if (bs && r.win) sfx('level');                              // en boss som är hjälpt är värd en fanfar
   play(r.win ? 'audio/en-good-job.mp3' : 'audio/en-try-again.mp3');
 }

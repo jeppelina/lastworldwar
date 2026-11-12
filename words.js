@@ -7,8 +7,8 @@ export const TIERS = [
   { name: 'Gold', color: '#f2b632', ink: '#3a2600' }, { name: 'Emerald', color: '#2fbf71', ink: '#062a16' }, { name: 'Crystal', color: '#ee7fd8', ink: '#3a0a32' },
   { name: 'Star', color: '#fff0a0', ink: '#4a3a00' }, { name: 'Neutron Star', color: '#9fe8ff', ink: '#06283a' },
 ];
-const NEED_SCORE = [0, 3, 7, 12, 18, 26, 36, 50];     // poäng som krävs för varje nivå
-const NEED_DAYS = [0, 1, 2, 3, 5, 7, 10, 14];         // antal olika dagar med rätt svar som krävs
+const NEED_SCORE = [0, 3, 5, 12, 18, 26, 36, 50];     // poäng som krävs för varje nivå
+const NEED_DAYS = [0, 1, 1, 2, 3, 5, 7, 10];          // Steel går att nå första dagen (2026-11-12). Från Gold krävs flera dagar.         // antal olika dagar med rätt svar som krävs
 const INTERVAL = [1, 1, 2, 3, 5, 8, 13, 21];          // dagar tills ordet vill repeteras igen, per nivå
 
 // Hur mycket ett rätt svar är värt per övningstyp: känna igen < koppla ord och skrift < plocka fram < stava.
@@ -52,7 +52,7 @@ export function record(book, id, right, type, day, start = 0) {
   if (right) {
     let gain = WEIGHT[type] || 1;
     if (rec.ld !== day) { if (rec.ld >= 0 && day - rec.ld >= INTERVAL[before]) gain *= 2; rec.d++; rec.ld = day; }   // ny dag, och extra om det gått lagom lång tid
-    gain /= 1 + rec.td;                                  // avtagande samma dag: första rätta svaret är värt mest
+    gain /= 1 + 0.25 * rec.td;                                  // avtagande samma dag: första rätta svaret är värt mest
     rec.s += gain; rec.td++; rec.r++;
     if (first && start > 0) rec.s = Math.max(rec.s, start);
   } else { rec.s = Math.max(0, rec.s * 0.75 - 1); rec.w++; }
