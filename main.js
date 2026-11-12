@@ -225,7 +225,8 @@ function pushMapInfo() {
         const info = R.nodeInfo(w.id, i);
         if (nd.type === 'chest') return { gold: R.chestGold(info.rec) };
         if (nd.type === 'mini') return miniInfo(w, nd, i);
-        return { rec: info.rec, f: R.rewardFactor(P.level, info.rec), bonus: done[i] ? 0 : R.levelBonus({ type: nd.type, rec: info.rec }, true, true), left: hasC && nd.type === 'level' ? unlearned(k, i) : null };
+        return { rec: info.rec, f: R.rewardFactor(P.level, info.rec), bonus: done[i] ? 0 : R.levelBonus({ type: nd.type, rec: info.rec }, true, true), left: hasC && nd.type === 'level' ? unlearned(k, i) : null, n: hasC && nd.type === 'level' ? nodeWords(k, i).length : null,
+          weak: hasC && nd.type === 'level' ? nodeWords(k, i).filter((it) => tierOf((P.words || {})[it.id]) < STEEL).slice(0, 8).map((it) => it.en) : null };
       }),
     };
   });

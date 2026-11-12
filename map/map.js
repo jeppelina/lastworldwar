@@ -535,9 +535,8 @@
           plate(bx - 2, ly + 11, gt.width + 12, 11); wordIcon(bx, ly + 13, false); img(gt, bx + 9, ly + 11);
         }
         if (st === 'done' && inf.left > 0) {
-          const best = wi.best === i, lt = PX.text(inf.left, best ? '#ffd84a' : '#c3d0de', '#1b1630'), bx = p.x - ((lt.width + 9) >> 1), bob = best ? ((t * 3) | 0) % 2 : 0;
-          if (best) ring(p.x, p.y, 9 + ((t * 1.6) % 1) * 4, 5.5 + ((t * 1.6) % 1) * 2.5, '#c3d0de');      // här finns flest ord kvar att lära
-          plate(bx - 2, ly + 11 - bob, lt.width + 12, 11, false, best); wordIcon(bx, ly + 13 - bob, best); img(lt, bx + 9, ly + 11 - bob);
+          const best = wi.best === i, bob = ((t * 3) | 0) % 2;
+          if (best) { ring(p.x, p.y, 9 + ((t * 1.6) % 1) * 4, 5.5 + ((t * 1.6) % 1) * 2.5, '#ffd84a'); plate(p.x - 7, ly + 11 - bob, 14, 11, false, true); wordIcon(p.x - 4, ly + 13 - bob, true); }      // träna här: flest ord kvar att lära. Inga siffror på kartan, de står i rutan.
         }
       }
     }
@@ -612,7 +611,8 @@
     else if (shut) notes.push(gate.text, 'Make more words ' + gate.tier + ' to wake the boss.');
     else {
       if (inf && inf.f < 1) notes.push('Too easy now: small reward.');
-      if (d && inf && inf.left > 0) notes.push(inf.left + (inf.left === 1 ? ' word here is' : ' words here are') + ' not learned yet. Play again to make ' + (inf.left === 1 ? 'it' : 'them') + ' stronger.');
+      if (d && inf && inf.left > 0) { notes.push((inf.n != null ? (inf.n - inf.left) + ' of ' + inf.n + ' words here are strong.' : inf.left + ' words here are not strong yet.') + (wi && wi.best === i ? ' Best place to practise now!' : ' Play again to make them stronger.'));
+        if (inf.weak && inf.weak.length) notes.push('Not strong yet: ' + inf.weak.join(', ') + (inf.left > inf.weak.length ? ' ...' : '')); }
       else if (d && !(inf && inf.f < 1)) notes.push(isStar(nd) && inf && inf.left === 0 ? 'Done. All words here are learned!' : 'Done. Play again for more stars and gold.');
       if (!d) notes.push(nd.type === 'boss' ? (gate ? gate.text + ' ' : '') + 'Beat the boss to open the next world.' : 'You are here.');
     }

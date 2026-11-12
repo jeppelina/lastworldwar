@@ -43,7 +43,9 @@ export class Quiz {
     const due = this.earlier.filter((i) => isDue(this.book[i.id], this.day) && i !== this.last);
     if (due.length && Math.random() < 0.4) return this.task(pick(due));                                                             // gamla ord som vill repeteras
     const pool = known.filter((i) => i !== this.last);
-    if (pool.length) { const weak = pool.slice().sort((a, b) => this.book[a.id].s - this.book[b.id].s); return this.task(Math.random() < 0.6 ? weak[Math.floor(Math.random() * Math.ceil(weak.length / 2))] : pick(pool)); }
+    if (pool.length) { const weak = pool.slice().sort((a, b) => this.book[a.id].s - this.book[b.id].s), low = weak.filter((i) => tierOf(this.book[i.id]) < 2);
+      if (low.length && Math.random() < 0.85) return this.task(low[Math.floor(Math.random() * Math.min(low.length, 4))]);          // ord under Steel först, de svagaste fyra
+      return this.task(Math.random() < 0.6 ? weak[Math.floor(Math.random() * Math.ceil(weak.length / 2))] : pick(pool)); }
     const any = this.reach.filter((i) => met(i) && i !== this.last);
     return this.task(any.length ? pick(any) : fresh[0] || this.own[0]);
   }
