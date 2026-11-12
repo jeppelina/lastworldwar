@@ -799,7 +799,7 @@ function namesForm() {
       const k = curWorldIdx(p), g = bossGate(k, p), wid = R.WORLD_IDS[k], forced = !!(p.open && p.open[wid]), bossDone = isDone(k, R.nodeCount(k) - 1, p);
       const gate = !g || bossDone ? '' : `<small>${worldTitle(k)}: ${g.have} av ${g.n} ord är ${g.tier} eller bättre, bossen öppnar vid ${g.need}.</small><button type="button" class="btn alt big" data-o="${i}">${forced ? 'Bossen är öppnad för hand. Stäng igen' : 'Öppna bossen för hand'}</button>`;
       const sp = p.sparks || { earned: 0, level: 0, bosses: 0, book: 0 }, used = p.skills ? SK.spent(p.skills) : 0;
-      const powers = `<small>Krafter: ${sp.earned} sparks tjänade (nivå ${sp.level}, bossar ${sp.bosses}, boken ${sp.book}), ${used} använda, ${Object.keys((p.skills || {}).worn || {}).length} steg på.</small>`;
+      const powers = `<small>Krafter: ${sp.earned} sparks tjänade (nivå ${sp.level}, bossar ${sp.bosses}, boken ${sp.book}), ${used} använda, ${Object.keys((p.skills || {}).worn || {}).length} steg på.</small>` + (used ? `<button type="button" class="btn alt big" data-k="${i}">Nollställ krafter (alla sparks tillbaka)</button>` : '');
       return `<div class="kid"><input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}"><label class="chk"><input type="checkbox" data-r="${i}" ${p.reading !== false ? 'checked' : ''}> Läser</label><label class="chk"><input type="checkbox" data-y="${i}" ${p.young ? 'checked' : ''}> Yngre barn</label>${gate}${powers}</div>`;
     }).join('') + `</div><p class="dim">Utan "Läser" får barnet nästan bara bilduppgifter, och högst två val när något ska läsas.</p>
     <p class="dim">"Yngre barn": ${pct(K.young.thin)} procent av orden på varje bana, bossen öppnar när ${pct(K.young.bossShare)} procent av världens ord är Steel (annars ${pct(K.gate.boss.share)}), och varje ord som blir starkare ger ${K.young.learnMult} gånger så mycket xp.</p>
@@ -807,6 +807,8 @@ function namesForm() {
     <p class="dim">Krafter (fliken Powers på Gear) ändrar bara hur hjälten ser ut. En spark på nivå ${K.skill.levelFirst} och sedan var ${K.skill.levelEvery}:e nivå, en per slagen världsboss och en per ${K.skill.bookStep} ord som nått Steel i boken (högst ${K.skill.bookMax}).</p>`;
 }
 function bindNames() {
+  // Nollställ ett barns krafter: alla valda steg tas bort och alla sparks kommer tillbaka. Synkas som en vanlig händelse.
+  document.querySelectorAll('#names button[data-k]').forEach((el) => (el.onclick = () => { const p = S.profiles[+el.dataset.k]; if (!confirm(`Nollställa krafterna för ${p.name}? Alla sparks kommer tillbaka och barnet får välja om.`)) return; sync.record(pid(p), 'skill', { op: 'respec' }); adopt(p); sync.sync(); renderParent(); if (P) renderBar(); }));
   document.querySelectorAll('#names input[data-r]').forEach((el) => (el.onchange = () => { savePrefs(S.profiles[+el.dataset.r], { reading: el.checked }); renderParent(); }));
   document.querySelectorAll('#names input[data-y]').forEach((el) => (el.onchange = () => { savePrefs(S.profiles[+el.dataset.y], { young: el.checked }); renderParent(); }));
   // Öppna (eller stäng) bossen för hand: en egen händelse per värld, senaste gäller, så att den synkas som allt annat.
