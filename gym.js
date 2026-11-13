@@ -65,6 +65,7 @@ export function openGym(o) {
   const content = { items: o.items.map((it) => ({ ...it, node: 1 })), sentences: o.tier >= 0 ? [] : o.sentences || [], nodes: [{ n: 1, type: 'level', introduce: mine.map((it) => it.id), phrases: [], sentences: o.tier >= 0 ? [] : (o.sentences || []).map((s) => s.id) }] };
   quiz = new GymQuiz({ content, nodeIdx: 0, book: o.book, day: o.day, reading: o.reading, play: o.play, save: o.save, sfx: o.sfx, newCap: 0, onAnswer: o.onAnswer });
   quiz.seen = new Set();
+  quiz.onSlip = () => {};                 // i gymmet finns ingen fiende: ett fel ord i en mening kostar inget, barnet fortsätter
   $('.gym-tip').innerHTML = (o.tier >= 0 ? `${TIERS[o.tier].name} → ${TIERS[o.tier + 1].name}: ` : '') + 'Train your words to make them stronger. <small>(Träna dina ord så blir de starkare.)</small>';
 
   const dots = () => { $('.gym-dots').innerHTML = Array.from({ length: total }, (_, i) => `<i class="${i < asked ? 'on' : ''}"></i>`).join(''); $('.gym-count').textContent = `${Math.min(asked + 1, total)} / ${total}`; };

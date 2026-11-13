@@ -303,11 +303,13 @@ function startBattle(k, i, node, w) {
   run = { level: P.level, stats: heroStats(P), words: 0, wordXp: 0, sparks: P.sparks ? P.sparks.earned : 0 };
   const C = contentFor(k);                                   // världar med innehållsfil har byggd pedagogik, övriga kör enkla frågor tills vidare
   const quiz = C ? new Quiz({ sfx, newCap: P.young ? K.newPerRunYoung : K.newPerRun, content: C, prior: Object.keys(CONTENT).filter((j) => +j < k).flatMap((j) => contentFor(+j).items), nodeIdx: i, book: P.words, day: dayNum(), reading: P.reading !== false, play, save,
-    onAnswer: (t, right, up) => { sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.ex || t.type, correct: right, stage: w.id + ':' + i, ms: t.ms, chosen: right ? null : t.chosen }); if (up && up.up) wordUp(t.item, up); } }) : null;      // t.ex = bossuppgiftens eget namn
+    onAnswer: (t, right, up) => { if (!t.item) { sync.record(pid(P), 'answer', { word: 's:' + t.sentence.id, exercise: t.type, correct: right && !t.slips, stage: w.id + ':' + i, ms: t.ms, chosen: t.slips ? 'slips:' + t.slips : null }); return; }      // en mening: antal felsteg sparas
+      sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.ex || t.type, correct: right, stage: w.id + ':' + i, ms: t.ms, chosen: right ? null : t.chosen }); if (up && up.up) wordUp(t.item, up); } }) : null;      // t.ex = bossuppgiftens eget namn
   // Bossar med egen mekanik (boss/index.js, K.boss.on i balance.js). kept = ordstenar som står kvar från förra försöket:
   // de sparas bara på den här enheten (P.bossKeep), inte i händelseloggen.
   const bossFor = quiz && node.type === 'boss' ? (bt, def) => makeBoss(bt, def, { kept: (P.bossKeep || {})[w.id] || 0, young: !!P.young, data: BOSSDATA, svShow: heardFew, tempo: TEMPO }) : null;
   battle = new Battle($('battle-root'), { profile: P, worldIdx: k, nodeIdx: i, node, words: wordsFor(k, i), quiz, bossFor, rewardMult: R.rewardFactor(P.level, node.rec), play, sfx, voiceIdle, army: ST.armyFor(P.story, ARMY, ARMY_TEST), onEnd: (r) => endBattle(r, k, i, node, w) });
+  if (quiz) quiz.onSlip = () => { if (battle) battle.slip(); };      // fel ord i en mening: fienden slår, uppgiften fortsätter
   if ((P.runs || 0) < 3) { play('audio/en-listen.mp3'); toast('Listen, and choose the picture.' + sv('listen', 'Lyssna och välj bilden.')); }
 }
 // Ett ord har nått en ny högsta nivå i boken: xp bokförs direkt som en egen händelse, så att den finns kvar även om

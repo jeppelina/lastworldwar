@@ -233,6 +233,13 @@ export class Battle {
     this.hero.flashUntil = this.now() + 0.14; this.hero.hurtAt = this.now(); this.shake = Math.max(this.shake, this.bf ? 6 : 4);
     this.float(dmg > 0 ? `-${dmg}` : 'Phew!', this.heroX, this.groundY - 56, 'hurt'); this.burst(this.heroX, this.groundY - 26, 8, RED, 60); this.hud();
   }
+  // Ett snedsteg mitt i en uppgift (fel ord när en mening byggs): fienden slår, men uppgiften står kvar och nedräkningen rörs inte.
+  slip() {
+    if (this.over || this.phase !== 'ask' || this.bf) return;
+    if (this.anim) { this.enemyHit(); return this.afterSlip(); }               // redan mitt i ett slag: skadan direkt
+    this.anim = { who: 'enemy', t0: this.now(), dur: 0.7, fired: new Set(), kind: 0, slip: true };
+  }
+  afterSlip() { if (R.defeated(this.run)) { this.phase = 'anim'; this.hero.deadAt = this.now(); setTimeout(() => this.finish(false), 900); } else this.hud(); }
   afterEnemy() { if (this.bf) return this.bf.afterEnemy(); if (R.defeated(this.run)) { this.hero.deadAt = this.now(); setTimeout(() => this.finish(false), 900); } else { this.hud(); this.phase = 'wait'; this.askSoon(3200); } }
   finish(win) {
     if (this.over) return; this.over = true; this.phase = 'over';
@@ -296,7 +303,7 @@ export class Battle {
       } else if (a.who === 'cheer') { if (p >= 1) this.anim = null; }
       else {
         if (p >= 0.5 && !a.fired.has(0)) { a.fired.add(0); this.enemyHit(); }
-        if (p >= 1) { this.anim = null; this.afterEnemy(); }
+        if (p >= 1) { const slip = a.slip; this.anim = null; if (slip) this.afterSlip(); else this.afterEnemy(); }
       }
     }
     // effekter

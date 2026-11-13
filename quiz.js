@@ -69,7 +69,7 @@ export class Quiz {
       if (!right) this.requeue.push({ item: task.item, at: this.asked });
       this.log.push({ id: task.item.id, type: task.type, right, free: !!task.free, start });
       if (this.onAnswer) this.onAnswer(task, right, up);
-    }
+    } else if (task.sentence && this.onAnswer) this.onAnswer(task, right, null);     // meningar sparas också i svarsloggen (inte i ordboken)
     this.save();
   }
 
@@ -137,7 +137,11 @@ export class Quiz {
     for (const p of shuffle(pieces.map((p, i) => ({ p, i })))) {
       const b = document.createElement('button'); b.className = 'tile'; b.textContent = p.p;
       b.onclick = () => { if (locked || b.disabled) return;
-        if (p.p.toLowerCase() === pieces[at].toLowerCase()) { slots[at].textContent = pieces[at]; slots[at].classList.add('ok'); b.disabled = true; at++; if (at === pieces.length) { P(en); finish(true); } }
+        if (p.p.toLowerCase() === pieces[at].toLowerCase()) { slots[at].textContent = pieces[at]; slots[at].classList.add('ok'); b.disabled = true; b.classList.remove('hint'); at++; if (at === pieces.length) { P(en); finish(true); } }
+        else if (T === 'build_sentence' && this.onSlip) {                       // fel ord i meningen: fienden slår (onSlip), men barnet får fortsätta bygga
+          task.slips = (task.slips || 0) + 1; b.classList.add('wrong'); setTimeout(() => b.classList.remove('wrong'), 650); if (this.sfx) this.sfx('wrong'); this.onSlip(task);
+          if (task.slips >= 2) { const next = [...tiles.children].find((x) => !x.disabled && x.textContent.toLowerCase() === pieces[at].toLowerCase()); if (next) next.classList.add('hint'); }   // efter två fel visas nästa ord
+          if (task.slips === 1 || task.slips === 3) P(slow); }
         else { b.classList.add('wrong'); slots.forEach((sl, i) => { sl.textContent = pieces[i]; if (i >= at) sl.classList.add('shown'); }); P(slow); finish(false); } };
       tiles.appendChild(b);
     }
