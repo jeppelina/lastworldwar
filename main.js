@@ -8,7 +8,7 @@ import { showTitle, playIntro, drawPage } from './intro.js';
 import { pic, preloadPics } from './pics.js';
 import { TIERS, STEEL, tierOf, isDue, nextNeed, countAt, thinContent, logRows, replayRows } from './words.js';
 import * as R from './rules.js';
-import { K, version as BV } from './balance.js';
+import { K, version as BV, nodes as BAL_NODES } from './balance.js';
 import * as sync from './sync.js';
 import { SYNC_CONFIG } from './sync-config.js';
 import { openGym } from './gym.js';
@@ -33,6 +33,15 @@ function fresh() {
   return { dayOffset: 0, profiles: [mk('Player 1', { skin: '#f3c7a2', hair: '#6b4426', style: 'spiky' }), mk('Player 2', { skin: '#f0bd93', hair: '#e9c463', style: 'short' }), mk('Player 3', { skin: '#e9b48c', hair: '#b5532a', style: 'bowl' })] };
 }
 let S; try { S = JSON.parse(localStorage.getItem(KEY)) || fresh(); } catch (e) { S = fresh(); }
+// Demospelaren (profil p4): låst med lösenord, allt öppet, gott om guld och hög nivå. För att visa spelet, inte för barnen.
+// Lösenordet står inte i koden, bara en kontrollsumma. Det är ett lätt lås, inget riktigt skydd: koden är publik.
+const DEMO_HASH = '287abcb6', demoHash = (s) => { let x = 2166136261 >>> 0; for (const c of 'lv-demo|' + s) { x ^= c.charCodeAt(0); x = Math.imul(x, 16777619) >>> 0; } for (let i = 0; i < 4000; i++) { x ^= x >>> 13; x = Math.imul(x, 2246822519) >>> 0; x ^= x >>> 16; } return x.toString(16); };
+if (S.profiles.length < 4) S.profiles.push({ name: 'Demo', look: { skin: '#e9b48c', hair: '#17171d', style: 'undercut' }, level: 1, xp: 0, gold: 0, owned: [], eq: {}, done: {}, bought: {}, seenShop: '', runs: 0, defeats: 0 });
+S.profiles[3].demo = true;
+function demoFill(p) {      // allt öppet för demon: alla banor klarade med tre stjärnor, alla bossar öppna, guld och nivå
+  for (const w of Object.keys(BAL_NODES.rec)) { const n = BAL_NODES.rec[w].length; p.done[w] = Array.from({ length: n }, (_, i) => Math.max(3, (p.done[w] || [])[i] || 0)); p.open[w] = true; }
+  p.gold = Math.max(p.gold, 99999); if (p.level < 30) { p.level = 30; p.xp = 0; }
+}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 let P = null, MAP = null, battle = null, words = [];
 const CONTENT = {};                                    // världsindex -> innehåll (content/worldN.json)
@@ -79,6 +88,7 @@ const adopt = (p) => {
   levelKeep(p, evs);
   p.sparks = SK.pointsBreakdown(SK.sparkSrc(p)); p.skills = SK.foldSkills(evs, p.sparks.earned);      // efter levelKeep, som kan höja nivån
   p.story = ST.foldStory(evs);
+  if (p.demo) { demoFill(p); p.sparks = { ...p.sparks, earned: SK.TOTAL }; p.skills = SK.foldSkills(evs, SK.TOTAL); }
   save();
 };
 // Sparks som inte är använda. Hur många som är tjänade räknas i skills.js (sparkSrc: nivån, slagna världsbossar, boken).
@@ -167,7 +177,10 @@ function renderWho() {
     const b = document.createElement('button'), c = document.createElement('canvas');
     stage(c, 2, () => gearOf(p), () => p.look, () => p.skills);
     b.append(c, p.name); const sm = document.createElement('small'); sm.textContent = `Level ${p.level}`; b.appendChild(sm);
-    b.onclick = () => { unlock(); P = p; adopt(P); sync.sync(); enterMap(true); greetSparks(); storyEnter(); };
+    if (p.demo) { b.classList.add('demo'); const lk = document.createElement('i'); lk.className = 'lock'; lk.textContent = '🔒'; b.appendChild(lk); }
+    b.onclick = () => {
+      if (p.demo && sessionStorage.getItem('lv-demo') !== '1') { const pw = prompt('Demo: password'); if (pw == null) return; if (demoHash(pw) !== DEMO_HASH) return toast('Wrong password.'); try { sessionStorage.setItem('lv-demo', '1'); } catch (e) {} }
+      unlock(); P = p; adopt(P); sync.sync(); enterMap(true); greetSparks(); storyEnter(); };
     list.appendChild(b);
   });
 }
@@ -285,7 +298,7 @@ function renderBar() {
   const full = document.createElement('canvas'); full.width = W; full.height = H; g.paint(full.getContext('2d'));
   const ctx = $('b-gear-c').getContext('2d'); ctx.clearRect(0, 0, 24, 24); ctx.drawImage(full, 27, 12, 24, 24, 0, 0, 24, 24);
   // Players: familjens tre hjältar bredvid varandra. Shop: ett marknadsstånd med randig markis och guldmynt.
-  const pg = new G(40, 24); S.profiles.forEach((p, i) => { pg.push(i * 12 - 15, 2, 0, 0.55); SFX.drawHeroWithSkills(pg, p.look, gearOf(p), { t: 0.9, noShadow: true, noPet: true, noFx: true, busy: true }, lookOf(p.skills), null); pg.pop(); });
+  const pg = new G(40, 24); S.profiles.filter((q) => !q.demo).forEach((p, i) => { pg.push(i * 12 - 15, 2, 0, 0.55); SFX.drawHeroWithSkills(pg, p.look, gearOf(p), { t: 0.9, noShadow: true, noPet: true, noFx: true, busy: true }, lookOf(p.skills), null); pg.pop(); });
   pg.paint($('b-who-c').getContext('2d'));
   const sg = new G(24, 24), RED = ramp('#d8433b'), CREAM = ramp('#f4ead0'), WOOD = ramp('#9a6b3f'), GOLD = ramp('#f2b632');
   sg.begin(); sg.rect(3, 9, 2, 13, WOOD, 2); sg.rect(19, 9, 2, 13, WOOD, 2); sg.end();

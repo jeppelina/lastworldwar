@@ -409,3 +409,4 @@ button.teach.meet .big .pimg { width:clamp(60px, 17vmin, 124px); height:clamp(60
 button.teach.meet b { font-size:clamp(26px, 5vmin, 44px); } button.teach.meet span { font-size:clamp(17px, 3vmin, 26px); }
 button.teach.meet.noread span { display:none; }
 .quiz .speak .svq { font-size:26px; }
+#who-list button.demo { position:relative; border-style:dashed; opacity:.85; } #who-list button.demo .lock { position:absolute; top:8px; right:10px; font-style:normal; font-size:22px; }
