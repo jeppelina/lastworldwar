@@ -4,14 +4,15 @@ import { W, H, drawHero, drawIcon, HAIR_STYLES } from './hero.js';
 import { ITEMS, BY_ID, SLOTS, RARITY, dailyShop, heroStats, xpToLevel, levelKeepGrant } from './catalog.js';
 import { Battle, loadArt } from './battle.js';
 import { Quiz } from './quiz.js';
-import { showTitle, playIntro } from './intro.js';
+import { showTitle, playIntro, drawPage } from './intro.js';
 import { pic, preloadPics } from './pics.js';
-import { TIERS, STEEL, tierOf, isDue, nextNeed, countAt, thinContent, record as wordRecord, meet as wordMeet } from './words.js';
+import { TIERS, STEEL, tierOf, isDue, nextNeed, countAt, thinContent, logRows, replayRows } from './words.js';
 import * as R from './rules.js';
 import { K, version as BV } from './balance.js';
 import * as sync from './sync.js';
 import { SYNC_CONFIG } from './sync-config.js';
 import { openGym } from './gym.js';
+import { openWordPage } from './wordpage.js';
 import { MINI, miniFor } from './minigames/index.js';
 import { usable, esc } from './minigames/shared.js';
 import { makeBoss, bossFiles } from './boss/index.js';
@@ -42,7 +43,10 @@ const today = () => sync.dayKey(Date.now(), S.dayOffset);
 // ---------- Synk: händelseloggen är facit, P är en kopia som fylls på efter varje ändring ----------
 const pid = (p) => 'p' + (S.profiles.indexOf(p) + 1);           // p1, p2, p3 i den ordning profilerna står i fresh(). Ändra aldrig ordningen. Namnen finns bara på enheten.
 // Det här räknas fram ur profilens händelser varje gång något ändras (utöver guld, nivå och föremål som sync.fold ger):
-//   boken        händelser av typen 'words', en per spelad bana: [ord, övningstyp, 1 rätt | 0 fel | -1 första mötet, försprång]
+//   boken        händelser av typen 'words', en per spelad bana: [ord, övningstyp, 1 rätt | 0 fel | -1 mött utan poäng, försprång]
+//                (replayRows i words.js. Försprånget skrivs inte längre, men gamla rader som har det spelas upp som förut.)
+//   pages        banans boksida (wordpage.js): händelser av typen 'page' med engångsnyckeln 'page:<värld>:<nod>' säger att sidan
+//                har visats för barnet på den banan. En äldre klient känner inte typen och hoppar över den.
 //   paid         engångsnycklar som redan har gett något (payload.once): 'w:<ord>:<nivå>' = xp för en ordnivå, 'bal-2' = nivåskyddet
 //   look, prefs  senaste händelsen av typen gäller. young (ung-läge) läses ur den senaste prefs som har fältet, eftersom en
 //                äldre klient skriver prefs utan det
@@ -57,10 +61,11 @@ const pid = (p) => 'p' + (S.profiles.indexOf(p) + 1);           // p1, p2, p3 i 
 const adopt = (p) => {
   const id = pid(p), evs = sync.eventsFor(id);
   Object.assign(p, sync.stateFor(id, today()));
-  const book = {}, paid = {}, open = {}; let look = null, prefs = null, young = false;
+  const book = {}, paid = {}, open = {}, pages = {}; let look = null, prefs = null, young = false;
   for (const e of evs) {
     const pl = e.payload || {};
-    if (e.type === 'words') for (const [w, type, r, hs] of pl.a || []) { if (r < 0) wordMeet(book, w, pl.day); else wordRecord(book, w, r > 0, type, pl.day, +hs || 0); }
+    if (e.type === 'words') replayRows(book, pl.a, pl.day);
+    else if (e.type === 'page') { if (pl.stop) pages[pl.stop] = 1; }
     else if (e.type === 'grant' && pl.once != null) paid[pl.once] = 1;
     else if (e.type === 'look') look = pl;
     else if (e.type === 'prefs') { prefs = pl; if (typeof pl.young === 'boolean') young = pl.young; }
@@ -68,7 +73,7 @@ const adopt = (p) => {
   }
   // En ordnivå som redan har gett xp räknas som nådd, även om svaren som ledde dit aldrig sparades (strid som avbröts).
   for (const k of Object.keys(paid)) { const m = /^w:(.+):(\d+)$/.exec(k); if (m && book[m[1]]) book[m[1]].mt = Math.max(book[m[1]].mt || 0, +m[2]); }
-  p.words = book; p.paid = paid; p.open = open; p.young = young;
+  p.words = book; p.paid = paid; p.open = open; p.young = young; p.pages = pages;
   if (look && look.skin) p.look = look; p.reading = prefs ? prefs.reading !== false : true;
   if (prefs && prefs.name) p.name = prefs.name;                 // namnet följer med mellan enheter (ligger i hushållets skyddade data, inte i koden)
   levelKeep(p, evs);
@@ -106,17 +111,24 @@ let actx; const buffers = new Map();
 function unlock() { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {} }
 // Röstklipp spelas i tur och ordning, aldrig ovanpå varandra (en instruktion hinner bli klar innan ordet sägs).
 // Högst ett klipp får vänta bakom det som spelas, så att upprepade tryck inte bygger en lång kö.
-let voice = Promise.resolve(), waiting = 0;
-function playNow(url) {
+// hush() tystar allt: klippet som spelas bryts och kön töms (vgen byts, så att det som väntade aldrig börjar).
+// say(...) tystar först och säger sedan klippen i tur och ordning: boksidan använder den, så att ett tryck svarar direkt.
+let voice = Promise.resolve(), waiting = 0, vgen = 0, vcur = null;
+function playNow(url, g = vgen) {
   return new Promise(async (res) => {
     try {
       unlock(); if (!buffers.has(url)) buffers.set(url, await actx.decodeAudioData(await (await fetch(url)).arrayBuffer()));
-      const s = actx.createBufferSource(); s.buffer = buffers.get(url); s.connect(actx.destination); s.onended = res; s.start();
-      setTimeout(res, (s.buffer.duration + 0.4) * 1000);
+      if (g !== vgen) return res();                              // tystat medan klippet hämtades
+      const s = actx.createBufferSource(); s.buffer = buffers.get(url); s.connect(actx.destination);
+      let done = false; const end = () => { if (done) return; done = true; if (vcur && vcur.s === s) vcur = null; res(); };
+      s.onended = end; vcur = { s, end }; s.start();
+      setTimeout(end, (s.buffer.duration + 0.4) * 1000);
     } catch (e) { res(); }
   });
 }
-function play(url) { if (waiting >= 2) return voice; waiting++; voice = voice.then(() => playNow(url)).then(() => new Promise((r) => setTimeout(r, 180))).then(() => { waiting--; }); return voice; }
+function play(url) { const g = vgen; if (waiting >= 2) return voice; waiting++; voice = voice.then(() => (g === vgen ? playNow(url, g) : null)).then(() => (g === vgen ? new Promise((r) => setTimeout(r, 180)) : null)).then(() => { if (g === vgen) waiting--; }); return voice; }
+function hush() { vgen++; if (vcur) { const c = vcur; try { c.s.onended = null; c.s.stop(); } catch (e) {} c.end(); } waiting = 0; voice = Promise.resolve(); }
+function say(...urls) { hush(); let p = voice; for (const u of urls) p = play(u); return p; }
 const voiceIdle = () => voice;
 // Korta ljudeffekter som skapas direkt i webbläsaren: ett ljust pling för rätt, ett mörkt dunk för fel.
 // BLIP är minispelens små ljud (tryck, vänd kort, vrid, rätt, mjukt fel, klart): [frekvens, start, längd].
@@ -296,6 +308,7 @@ function wordsFor(k, i) { const n = words.length, off = (k * 6 + Math.floor(i / 
 let run = null;                                              // den pågående omgången: nivå och värden vid start, ord som blivit starkare
 function startBattle(k, i, node, w) {
   if (battle) { battle.destroy(); battle = null; }          // aldrig två strider samtidigt
+  closeStopPage();
   $('result').hidden = true;
   show('battle');
   P.words = P.words || {};
@@ -304,13 +317,71 @@ function startBattle(k, i, node, w) {
   const C = contentFor(k);                                   // världar med innehållsfil har byggd pedagogik, övriga kör enkla frågor tills vidare
   const quiz = C ? new Quiz({ sfx, newCap: P.young ? K.newPerRunYoung : K.newPerRun, content: C, prior: Object.keys(CONTENT).filter((j) => +j < k).flatMap((j) => contentFor(+j).items), nodeIdx: i, book: P.words, day: dayNum(), reading: P.reading !== false, play, save,
     onAnswer: (t, right, up) => { if (!t.item) { sync.record(pid(P), 'answer', { word: 's:' + t.sentence.id, exercise: t.type, correct: right && !t.slips, stage: w.id + ':' + i, ms: t.ms, chosen: t.slips ? 'slips:' + t.slips : null }); return; }      // en mening: antal felsteg sparas
-      sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.ex || t.type, correct: right, stage: w.id + ':' + i, ms: t.ms, chosen: right ? null : t.chosen }); if (up && up.up) wordUp(t.item, up); } }) : null;      // t.ex = bossuppgiftens eget namn
+      // t.ex = bossuppgiftens eget namn, eller 'meet' för ett möt-kort (då är ms tiden kortet stod uppe). Ett svar som fick hjälp av boken står med 'book' i chosen.
+      const chosen = t.helped ? ('book' + (right || !t.chosen ? '' : ':' + t.chosen)).slice(0, 64) : right ? null : t.chosen;
+      sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.ex || t.type, correct: right, stage: w.id + ':' + i, ms: t.ms, chosen }); if (up && up.up) wordUp(t.item, up); } }) : null;
   // Bossar med egen mekanik (boss/index.js, K.boss.on i balance.js). kept = ordstenar som står kvar från förra försöket:
   // de sparas bara på den här enheten (P.bossKeep), inte i händelseloggen.
   const bossFor = quiz && node.type === 'boss' ? (bt, def) => makeBoss(bt, def, { kept: (P.bossKeep || {})[w.id] || 0, young: !!P.young, data: BOSSDATA, svShow: heardFew, tempo: TEMPO }) : null;
-  battle = new Battle($('battle-root'), { profile: P, worldIdx: k, nodeIdx: i, node, words: wordsFor(k, i), quiz, bossFor, rewardMult: R.rewardFactor(P.level, node.rec), play, sfx, voiceIdle, army: ST.armyFor(P.story, ARMY, ARMY_TEST), onEnd: (r) => endBattle(r, k, i, node, w) });
-  if (quiz) quiz.onSlip = () => { if (battle) battle.slip(); };      // fel ord i en mening: fienden slår, uppgiften fortsätter
-  if ((P.runs || 0) < 3) { play('audio/en-listen.mp3'); toast('Listen, and choose the picture.' + sv('listen', 'Lyssna och välj bilden.')); }
+  // Banans boksida (wordpage.js, K.page): bara vanliga banor i världar med innehållsfil. pg = det som sparas om sidan i
+  // stage-händelsen (se pageLog), heard = nya ord som har hörts på sidan (delas mellan öppningarna under striden).
+  const stop = w.id + ':' + i, pageOn = !!(quiz && K.page && K.page.on && node.type !== 'boss' && quiz.own.length), heard = new Set();
+  const pg = run.pg = pageOn ? { pre: 0, s: 0, t: 0, w: 0, nw: 0, hd: 0, pw: 0, pk: 0, ps: 0, pt: 0 } : null, me = run;
+  const pageOf = (o) => openStopPage({ title: node.name, words: quiz.own, book: P.words, fresh: quiz.newNow(), reading: P.reading !== false, heard, ...o });
+  // Bokknappen under striden: striden väntar medan sidan är öppen. Är en fråga på ett av sidans ord uppe gäller K.page.peek:
+  // 'helped' = svaret spelas som vanligt men ger ordet inga poäng den gången (ett bokmärke vid ordet), 'free' = kostar inget.
+  const peek = () => {
+    if (!battle || pageUp || !battle.pause()) return;
+    hush();
+    const q = battle.openQuestion(), mine = !!(q && q.item && quiz.own.includes(q.item));
+    if (mine && K.page.peek === 'helped' && !q.helped) { q.helped = true; battle.markHelped(); }
+    pageOf({ mode: 'peek', helped: mine && !!q.helped, onClose: (st) => {
+      pg.pk++; pg.ps += st.secs; pg.pt += st.taps;
+      if (!battle || run !== me) return;
+      battle.resume();
+      const again = $('battle-root').querySelector('.quiz .speak .again');      // frågans ljud en gång till
+      if (battle.phase === 'ask' && again && again.parentNode.style.visibility !== 'hidden') again.click();
+    } });
+  };
+  const begin = (power) => {
+    battle = new Battle($('battle-root'), { profile: P, worldIdx: k, nodeIdx: i, node, words: wordsFor(k, i), quiz, bossFor, rewardMult: R.rewardFactor(P.level, node.rec), play, sfx, voiceIdle, army: ST.armyFor(P.story, ARMY, ARMY_TEST), onEnd: (r) => endBattle(r, k, i, node, w),
+      onBook: pageOn ? peek : null, bookCount: pageOn ? () => quiz.newNow().length : null, power: !!power, powerMult: K.powerStart ? K.powerStart.mult : 1 });
+    if (quiz) quiz.onSlip = () => { if (battle) battle.slip(); };      // fel ord i en mening: fienden slår, uppgiften fortsätter
+    if (power) battle.note('⚡ Power start!', '#ffe14d');
+    if ((P.runs || 0) < 3) { play('audio/en-listen.mp3'); toast('Listen, and choose the picture.' + sv('listen', 'Lyssna och välj bilden.')); }
+  };
+  // Sidan öppnas före striden första gången banan spelas efter att sidan kom (en gång per bana och barn, även om banan
+  // redan är klarad), och därefter bara så länge banan har ord som barnet inte har mött. Annars börjar striden direkt.
+  const firstTime = !(P.pages || {})[stop];
+  if (!pageOn || !(firstTime || quiz.own.some((it) => !P.words[it.id]))) return begin(false);
+  if (firstTime) { sync.record(pid(P), 'page', { stop, bv: BV }, { once: 'page:' + stop }); (P.pages || (P.pages = {}))[stop] = 1; save(); }
+  const charge = !!(K.powerStart && K.powerStart.on);
+  const shut = (st) => { pg.pre = 1; pg.s = st.secs; pg.t = st.taps; pg.w = st.words; pg.hd = st.heard; pg.pw = st.power ? 1 : 0; };
+  pg.nw = quiz.newNow().length;
+  pageOf({ mode: 'pre', charge, onClose: (st) => { shut(st); if (run === me) begin(st.power); },
+    onLeave: () => { if (run === me) run = null; enterMap(false); } });      // tillbaka till kartan utan strid: inget bokförs utöver att sidan är visad
+}
+// Sidan som är öppen (wordpage.js), eller null. Högst en åt gången, och den ligger över stridens skärm.
+let pageUp = null, PAGE_IMG = null;
+function closeStopPage() { if (pageUp) { const p = pageUp; pageUp = null; p.close(); } }
+function openStopPage(o) {
+  closeStopPage();
+  if (PAGE_IMG === null) {      // Page, bokens ägare, i rubriken (samma ritning som i introfilmen)
+    try { const g = new G(24, 22); g.push(12, 21); drawPage(g, 0.4, {}); g.pop(); const c = document.createElement('canvas'); c.width = 24; c.height = 22; g.paint(c.getContext('2d')); PAGE_IMG = c.toDataURL(); } catch (e) { PAGE_IMG = ''; }
+  }
+  const done = (fn) => (st) => { pageUp = null; if (fn) fn(st); };
+  pageUp = openWordPage($('battle'), { ...o, say, hush, sfx, img: PAGE_IMG, svShow: heardFew, onClose: done(o.onClose), onLeave: o.onLeave ? done(o.onLeave) : null });
+  return pageUp;
+}
+// Det som sparas om boksidan i stage-händelsen (fältet pg), för att kunna se i efterhand hur sidan används. Fältet saknas
+// när sidan varken visades eller öppnades. pre 1 = sidan visades före striden, s = sekunder på den, t = tryck på rader
+// och flaggor, w = olika ord som hördes, nw = nya ord på sidan, hd = så många av dem som hördes, pw 1 = Power start
+// tjänades, pk = antal gånger boken öppnades under striden, ps och pt = sekunder och tryck då, h = svar som fick hjälp av boken.
+function pageLog(st, log) {
+  const g = st && st.pg, h = log.filter((l) => l.helped).length; if (!g || !(g.pre || g.pk)) return undefined;
+  const o = {}; if (g.pre) Object.assign(o, { pre: 1, s: g.s, t: g.t, w: g.w, nw: g.nw, hd: g.hd }); if (g.pw) o.pw = 1;
+  if (g.pk) Object.assign(o, { pk: g.pk, ps: g.ps, pt: g.pt }); if (h) o.h = h;
+  return o;
 }
 // Ett ord har nått en ny högsta nivå i boken: xp bokförs direkt som en egen händelse, så att den finns kvar även om
 // striden sedan förloras eller avbryts. Nyckeln per ord och nivå gör att samma nivå aldrig betalas två gånger, varken
@@ -332,12 +403,13 @@ const LOSSES = {};      // förluster i rad per bana (bara i minnet): efter två
 function endBattle(r, k, i, node, w) {
   const first = !(P.done[w.id] && P.done[w.id][i]), st = run || { level: P.level, stats: heroStats(P), words: 0, wordXp: 0 };
   const rw = R.reward(r, node, first, st.level, !!CONTENT[k]), log = battle && battle.quiz ? battle.quiz.log : [];
-  for (let c = 0; c < log.length; c += 30) sync.record(pid(P), 'words', { day: dayNum(), a: log.slice(c, c + 30).map((l) => { const a = [l.id, l.type, l.free && !l.right ? -1 : l.right ? 1 : 0]; if (l.start) a.push(l.start); return a; }) });
+  closeStopPage();                                            // striden tog slut medan boken var öppen (ska inte kunna hända, men då stängs den)
+  for (let c = 0; c < log.length; c += 30) sync.record(pid(P), 'words', { day: dayNum(), a: logRows(log.slice(c, c + 30)) });
   // Boss med ordstenar: efter en förlust står en del av stenarna kvar till nästa försök (K.boss.keep). Efter en seger börjar raden om.
   const bs = r.boss && r.boss.id ? r.boss : null;
   if (r.boss) { P.bossKeep = P.bossKeep || {}; if (!r.win && r.boss.keep > 0) P.bossKeep[w.id] = r.boss.keep; else delete P.bossKeep[w.id]; }
   const lkey = w.id + ':' + i; if (r.win) delete LOSSES[lkey]; else if (!r.gaveUp) LOSSES[lkey] = (LOSSES[lkey] || 0) + 1;
-  rec('stage', { world: w.id, node: i, kind: 'battle', win: r.win, stars: r.stars, gold: rw.gold, xp: rw.xp, bv: BV, lv: st.level, gaveUp: r.gaveUp ? true : undefined, kills: r.kills });
+  rec('stage', { world: w.id, node: i, kind: 'battle', win: r.win, stars: r.stars, gold: rw.gold, xp: rw.xp, bv: BV, lv: st.level, gaveUp: r.gaveUp ? true : undefined, kills: r.kills, pg: pageLog(st, log) });
   const ups = P.level - st.level, before = st.stats; run = null;
   const newSparks = st.sparks != null && P.sparks ? Math.max(0, P.sparks.earned - st.sparks) : 0;      // nivå, slagen världsboss eller ord i boken gav en spark
   if (newSparks) P.sparkTold = P.sparks.earned;
@@ -749,7 +821,7 @@ function startGym(k) {
     items, sentences, book, day, reading: P.reading !== false, play, sfx, save, questions: K.gym ? K.gym.questions : 15,
     onAnswer: (t, right, up) => { if (!t.item) return; sync.record(pid(P), 'answer', { word: 'en:' + t.item.id, exercise: t.type, correct: right, stage: 'gym', ms: t.ms, chosen: right ? null : t.chosen }); if (up && up.up) wordUp(t.item, up); },
     onDone: (log) => {
-      for (let c = 0; c < log.length; c += 30) sync.record(pid(P), 'words', { day, a: log.slice(c, c + 30).map((l) => { const a = [l.id, l.type, l.free && !l.right ? -1 : l.right ? 1 : 0]; if (l.start) a.push(l.start); return a; }) });
+      for (let c = 0; c < log.length; c += 30) sync.record(pid(P), 'words', { day, a: logRows(log.slice(c, c + 30)) });
       const st = run || { words: 0, wordXp: 0 }; run = null;
       let bonus = 0; const key = 'gym:' + today();
       if (K.gym && K.gym.daily && log.length >= 5 && !P.paid[key]) { bonus = Math.round(K.gym.daily * R.enemyGoldAt(lv0)); if (sync.record(pid(P), 'grant', { gold: bonus, xp: 0, reason: 'gym', bv: BV }, { once: key })) P.paid[key] = 1; else bonus = 0; }
@@ -952,6 +1024,8 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
     if (S.seenIntro) go(); else playIntro(root, { play, look: looks[0], onDone: go });
   } });
   window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, gate: (k) => bossGate(k), practice: (k) => practiceTarget(k), openBook, mapInfo: pushMapInfo, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, levelUp, mini: () => mini, openMini: (k, slot) => { const w = MAP.worlds[k], nd = typeof slot === 'number' ? w.nodes[slot] : w.side.find((x) => x.slot === slot); openMini(k, slot, nd); }, miniWords, pick: (n) => { P = S.profiles[n]; enterMap(true); }, tempo: (x) => (TEMPO = x), bossData: () => BOSSDATA,
+    // banans boksida: sidan som är öppen (eller null), vredena i balance.js, och ljudkön (för provkörning)
+    page: () => pageUp, K, hush, voice: () => ({ waiting, gen: vgen, playing: !!vcur }),
     // berättelsen: tabellen, barnets tillstånd, vad som står på tur, och krokar för att spela upp, frysa tiden (fix) och tvinga fram armén (army = sannolikhet)
     story: { ST, state: () => P && P.story, due: storyDue, on: () => (storyOn ? storyOn.id : null), enter: storyEnter, after: storyAfter, replay: (id, p = P) => storyReplay(p, id), stop: () => { if (storyOn) storyOn.stop(); }, fix: (t) => (storyFixed = t), army: (x) => (ARMY_TEST = x), pool: () => ARMY },
     // skillträdet: reglerna, fliken, provscenen (step fryser klockan vid t sekunder och ritar en bildruta, run släpper den)

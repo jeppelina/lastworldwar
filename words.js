@@ -43,6 +43,7 @@ export const STEEL = 2;      // "inlärt för nu": nivån som ordmätaren och ka
 // mt sjunker aldrig, även om poängen gör det. Den finns för att xp för en ordnivå bara ska ges en gång per ord och nivå.
 export function meet(book, id, day) { if (!book[id]) book[id] = { s: 0, d: 0, last: day, ld: -1, td: 0, r: 0, w: 0, mt: 0 }; return book[id]; }
 // start: försprång. Är det här första gången ordet möts och svaret är rätt får ordet minst så många poäng.
+// Spelet ger inget försprång längre (balans v13). Parametern finns kvar för att gamla svar i loggen ska spelas upp exakt som förut.
 // Returnerar { before, after, top, up }: nivån före och efter, högsta nivån före svaret, och up = ordet nådde en ny högsta nivå.
 export function record(book, id, right, type, day, start = 0) {
   const first = !book[id], rec = meet(book, id, day), before = tierOf(rec);
@@ -59,6 +60,17 @@ export function record(book, id, right, type, day, start = 0) {
   const after = tierOf(rec), top = rec.mt;
   if (after > top) rec.mt = after;
   return { before, after, top, up: after > top };
+}
+
+// ---------- Svarsloggen i händelser av typen 'words' ----------
+// En rad per svar: [ord, övningstyp, 1 rätt | 0 fel | -1 mött utan poäng, försprång]. -1 skrivs för möt-kortet, för ett
+// fel svar på en riskfri första fråga och för ett rätt svar som fått hjälp av boken (helped): ordet finns då i boken men
+// får inga poäng. Försprånget (fjärde talet) skrivs inte längre (balans v13), men rader som har det spelas upp som förut.
+// Formatet är oförändrat, så en äldre klient räknar samma ordbok ur samma rader.
+export const logRows = (log) => log.map((l) => [l.id, l.type, (l.free && !l.right) || (l.helped && l.right) ? -1 : l.right ? 1 : 0]);
+export function replayRows(book, rows, day) {
+  for (const [w, type, r, hs] of rows || []) { if (r < 0) meet(book, w, day); else record(book, w, r > 0, type, day, +hs || 0); }
+  return book;
 }
 
 // ---------- Ordmätare ----------

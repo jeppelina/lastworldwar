@@ -109,10 +109,11 @@ export function answerRight(run) {
 export function answerWrong(run) { run.streak = 0; }
 
 // En träff i hjältens attack. hitIdx = vilken av vapnets träffar. Returnerar [{ m, dmg, died }].
-export function heroHit(run, weaponType, hitIdx, sup, rnd = Math.random) {
+// mult: extra faktor på skadan (Power start, K.powerStart.mult). 1 om inget anges, och då räknas allt som förut.
+export function heroHit(run, weaponType, hitIdx, sup, rnd = Math.random, mult = 1) {
   const W = WEAPON_RULES[weaponType] || WEAPON_RULES.none, al = alive(run), targets = W.aoe ? al : al.slice(0, W.cleave || 1), out = [];
   for (const m of targets) {
-    const dmg = Math.max(1, Math.round(run.hero.atk * W.hits[hitIdx] * (sup ? K.superMult : 1) * (K.spreadLo + rnd() * K.spreadWidth)));
+    const dmg = Math.max(1, Math.round(run.hero.atk * W.hits[hitIdx] * (sup ? K.superMult : 1) * mult * (K.spreadLo + rnd() * K.spreadWidth)));
     m.hp -= dmg;
     out.push({ m, dmg, died: m.hp <= 0 });
   }
@@ -120,11 +121,13 @@ export function heroHit(run, weaponType, hitIdx, sup, rnd = Math.random) {
 }
 // Efter hjältens attack. Antingen är fienden slagen (belöningen bokförs), eller så tickar fiendens
 // nedräkning: 'enemy' = fienden slår nu, 'ask' = nästa fråga.
-export function afterHeroAttack(run) {
+// free: ett gratis slag (möt-kortet för ett nytt ord). Fienden kan falla, men nedräkningen tickar inte.
+export function afterHeroAttack(run, free = false) {
   if (!alive(run).length) {
     const f = run.enemy.f; run.gold += f.gold; run.xp += f.xp; run.kills++;
     return run.fi + 1 < run.fights.length ? 'next' : 'won';
   }
+  if (free) return 'ask';
   return --run.enemy.cd <= 0 ? 'enemy' : 'ask';
 }
 // Fienden börjar slå: nedräkningen börjar om (gäller både fel svar och när nedräkningen gått ut).

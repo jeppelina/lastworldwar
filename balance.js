@@ -67,7 +67,17 @@
 //                   (K.story.army.chance per bana, högst K.story.army.max per bana, aldrig i en bossbana). Fiendens liv, skada,
 //                   guld och xp räknas som förut ur banans rek och typ, så inga andra tal är ändrade. Inte simulerat:
 //                   simulatorn skickar inte in någon armé och drar därför exakt samma slumptal som före ändringen.
-export const version = 12;
+//   v13  2026-11-13  Banans boksida (K.page, game/wordpage.js): sidan ur barnets ordbok för just den banan visas före striden,
+//                   och nås med bokknappen under striden. Nya ord kommer först som ett "möt ordet"-kort (K.meet): ett tryck är
+//                   ett gratis slag utan risk (fiendens nedräkning tickar inte), ordet hamnar i boken utan poäng och kommer
+//                   tillbaka som en vanlig fråga med alla kort efter K.meet.gap frågor. Det ersätter den riskfria första
+//                   frågan och lär in-kortet. Försprånget K.knownStart 2,5 -> 0 (förälderns beslut: det är bara bra att
+//                   repetera ord man kan). Gäller bara nya svar: försprång som redan står sparade per svar i loggen spelas upp
+//                   som förut. Power start (K.powerStart): har barnet hört alla banans nya ord på sidan slår första rätta
+//                   svaret dubbelt. Ordbokens poäng påverkas inte av det. Bokknappen mitt i en fråga på ett av sidans ord
+//                   (K.page.peek 'helped'): svaret spelas som vanligt i striden men ger ordet inga poäng den gången.
+//                   Simulering: node game/sim/learn.mjs --exp R (se PLAN.md, tillägget 2026-11-13, för hur talen rörde sig).
+export const version = 13;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -119,8 +129,19 @@ export const K = {
   // föräldern har inte bett om den och ett lås på vanliga banor kan stänga in ett barn. `on` läses bara av simulatorn.
   gate: { boss: { share: 0.5, tier: 2 }, node: { on: false, share: 0.6, tier: 1 } },
   gym: { questions: 15, daily: 5 },   // ordgymmet: frågor per pass, och dagsbonus (fiendeguld på hjältens nivå) för första passet varje dag
-  knownStart: 2.5,       // rätt svar första gången barnet möter ett ord ger ordet minst så här många poäng (försprång)
-  firstOptions: 4,     // antal kort vid första mötet (skrivna val för barn som inte läser är alltid två, och ger då inget försprång)
+  knownStart: 0,       // försprånget är borttaget (v13). Var 2,5 poäng för rätt svar vid första mötet. Gamla svar i loggen har sitt försprång sparat och spelas upp som förut.
+  firstOptions: 4,     // antal kort vid en riskfri första fråga. Används bara när K.meet.on är false (annars möts nya ord som kort).
+  // Banans boksida och det som hör till den (game/wordpage.js, quiz.js, battle.js, startBattle i main.js). Gäller vanliga banor.
+  // Bossbanor har varken sidan eller bokknappen. Trollets och sfinxens egna uppgifter, ordgymmet och minispelen berörs inte.
+  page: {
+    on: true,          // false: ingen sida före striden och ingen bokknapp i striden
+    peek: 'helped',    // boken öppnas mitt i en fråga på ett av sidans ord: 'helped' = svaret ger ordet inga poäng den gången, 'free' = kostar inget
+  },
+  // "Möt ordet": första gången ett ord kommer upp är det ett kort att trycka på, inte en fråga. gap = så många frågor senare
+  // kommer ordet tillbaka som en riktig fråga. on false ger tillbaka den riskfria första frågan med lär in-kort vid fel svar.
+  meet: { on: true, gap: 2 },
+  // Power start: alla banans nya ord hörda på sidan före striden ger första rätta svaret mult gånger skadan. Bara skadan.
+  powerStart: { on: true, mult: 2 },
   wordShare: 1,        // andel av varje banas ord som används (introduce och phrases, de första i listan). 1 = alla.
   // Minispel (noderna av typen 'mini' i map/data.js och sidostoppen). Guldet räknas som fiendeguld på nodens rek, så att det
   // växer med världarna: first = så många fienders guld första gången noden spelas klart (vinst eller inte), daily = första

@@ -349,3 +349,63 @@ header .back, #parent-back { min-height:46px; min-width:96px; padding:10px 18px;
 #gym .gym-opt { min-height:64px; border-radius:14px; padding:8px 12px; background:#39446e; color:#fff; font-weight:800; font-size:17px; box-shadow:0 3px 0 rgba(0, 0, 0, .35); }
 #gym .gym-opt small { display:block; font-weight:600; opacity:.85; font-size:13px; }
 .tile.hint { box-shadow:0 0 0 4px #ffd84a, 0 4px 0 #8f8266; animation:pop .5s; }
+
+/* ---------- Banans boksida (wordpage.js, 2026-11-13): orden i den här striden, ur barnets egen ordbok ---------- */
+.wpage { position:absolute; inset:0; z-index:8; display:grid; grid-template:"head" auto "note" auto "rows" 1fr "foot" auto / 1fr; background:#221a14; color:#e8dcc0; }
+.wpage .head { grid-area:head; display:flex; align-items:center; gap:10px; padding:6px 12px; padding-top:max(6px, env(safe-area-inset-top)); background:#2c2219; min-width:0; }
+.wpage .head img { width:36px; height:33px; image-rendering:pixelated; flex:none; } .wpage .head .bk { font-size:28px; }
+.wpage .head .leave { flex:none; width:56px; height:56px; border-radius:14px; background:#3a2d1f; color:#e8dcc0; font-size:22px; }
+.wpage .head .t { display:flex; flex-direction:column; line-height:1.15; min-width:0; } .wpage .head .t b { font-size:19px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .wpage .head .t small { font-size:12px; font-weight:500; }
+.wpage .legend { margin-left:auto; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; }
+.wpage .legend span { border-radius:999px; padding:2px 9px; font-size:12px; white-space:nowrap; } .wpage .legend .nw { background:#ff5a8a; color:#fff; }
+.wpage .note { grid-area:note; padding:5px 12px; font-size:13px; font-weight:500; background:#3a2d1f; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.wpage .note:empty { display:none; } .wpage .note small { opacity:.75; } .wpage .note b { color:#ffe14d; }
+.wpage .note.warn { background:#5a3a12; color:#ffe2b0; }
+.wpage .pips { display:flex; gap:4px; } .wpage .pips i { width:24px; height:24px; border-radius:50%; background:#1a1410; border:2px solid #6b5a3a; display:grid; place-items:center; font-style:normal; font-size:12px; opacity:.6; }
+.wpage .pips i.on { background:#ffe14d; border-color:#fff; opacity:1; }
+.wpage .rows { grid-area:rows; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:10px 12px; background:linear-gradient(#f4ead0, #e6d8b4); display:grid; grid-template-columns:repeat(auto-fill, minmax(270px, 1fr)); gap:8px; align-content:start; }
+.wrow { display:flex; align-items:stretch; min-height:62px; border-radius:12px; overflow:hidden; box-shadow:inset 0 2px 0 #fff6, inset 0 -3px 0 #0003, 0 2px 0 #0004; }
+.wrow button { background:none; color:inherit; }
+.wrow .main { flex:1; min-width:0; min-height:58px; display:flex; align-items:center; gap:10px; padding:4px 6px 4px 10px; text-align:left; }
+.wrow .p { flex:none; width:46px; text-align:center; font-size:32px; line-height:1; } .wrow .p .pimg { width:46px; height:46px; }
+.wrow .p.none { font-size:22px; opacity:.55; }
+.wrow .txt { flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.15; }
+.wrow .txt b { font-size:20px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wrow .txt .sv { font-size:15px; font-weight:600; opacity:.8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wrow .tag { flex:none; font-style:normal; font-size:12px; font-weight:800; border-radius:999px; padding:2px 9px; white-space:nowrap; }
+.wrow .turtle { flex:none; width:22px; font-size:18px; visibility:hidden; } .wrow.sel .turtle { visibility:visible; }
+.wrow .svb { flex:none; width:58px; min-height:58px; font-size:26px; border-left:2px solid #0002; }
+.wrow.fresh { background:#fffdf4; color:#3a2a14; box-shadow:inset 0 0 0 3px #ffc83d, 0 2px 0 #0004; } .wrow.fresh .tag { background:#ff5a8a; color:#fff; }
+.wrow.fresh.heard .tag::before { content:"⚡ "; }
+.wrow.later { background:#e9dfc6; color:#6b5a3a; box-shadow:inset 0 0 0 2px #c9b78a; opacity:.62; } .wrow.later .tag { background:#b8a882; color:#fff; }
+.wrow.sel { outline:3px solid #3a2a14; outline-offset:-3px; }
+.wpage.noread .txt .sv { display:none; } .wpage.noread .txt b { font-size:17px; opacity:.75; } .wpage.noread .wrow .p { width:54px; } .wpage.noread .wrow .p .pimg { width:54px; height:54px; }
+.wpage.noread .readme span { display:none; }
+.wpage .foot { grid-area:foot; display:flex; gap:10px; justify-content:center; padding:8px 12px max(8px, env(safe-area-inset-bottom)); background:#2c2219; }
+.wpage .foot .btn { min-height:60px; min-width:72px; font-size:20px; padding:8px 22px; white-space:nowrap; }
+.wpage .foot .fight { flex:1; max-width:340px; font-size:24px; }
+.wpage .foot .readme.on { background:#7c6cff; color:#fff; }
+.wpage .foot .fight.power { box-shadow:0 4px 0 #9a6200, 0 0 0 4px #ffe14d, 0 0 26px #ffe14d; }
+/* Låg skärm (mobil i liggande läge): listan får hela höjden, rubrik och knappar står i en kolumn till höger */
+@media (max-height: 500px) {
+  .wpage { grid-template:"rows head" auto "rows note" auto "rows foot" 1fr / 1fr 184px; }
+  .wpage .head { flex-wrap:wrap; padding:6px 8px; } .wpage .head img, .wpage .head .bk { display:none; } .wpage .legend { margin-left:0; justify-content:flex-start; } .wpage .head .t b { font-size:16px; }
+  .wpage .note { padding:4px 8px; font-size:12px; }
+  .wpage .foot { flex-direction:column-reverse; justify-content:flex-start; padding:8px; } .wpage .foot .fight { flex:none; max-width:none; } .wpage .foot .btn { padding:6px 8px; font-size:18px; }
+  .wpage .rows { padding:8px; padding-left:max(8px, env(safe-area-inset-left)); }
+}
+/* Bokknappen i striden (med antal nya ord kvar) och bokmärket vid ordet när boken har hjälpt till */
+.bookbtn { position:absolute; right:8px; bottom:8px; width:68px; height:60px; border-radius:16px; background:linear-gradient(#f4ead0, #d9c796); box-shadow:0 4px 0 #6b5a3a; font-size:30px; line-height:1; z-index:2; }
+.bookbtn:active { transform:translateY(3px); box-shadow:0 1px 0 #6b5a3a; }
+.bookbtn i { position:absolute; right:-4px; top:-6px; min-width:24px; height:24px; padding:0 6px; border-radius:12px; background:#ff5a8a; color:#fff; font-size:14px; line-height:24px; font-style:normal; font-weight:800; }
+.bookbtn i:empty, .bookbtn[hidden] { display:none; }
+.word .helped { font-size:.5em; margin-left:8px; vertical-align:middle; background:#6b5a3a; border-radius:6px; padding:1px 5px; }
+/* Möt-kortet: ett nytt ord i frågepanelen, ett tryck är ett gratis slag */
+button.teach.meet { cursor:pointer; text-align:left; box-shadow:0 5px 0 #8f8266, 0 0 0 4px #ff5a8a; font:inherit; color:#1d1b2e; min-height:56px; }
+button.teach.meet .tap { font-style:normal; flex:none; min-width:64px; height:64px; border-radius:16px; display:grid; place-items:center; font-size:34px; background:linear-gradient(#ffd66b, #f0a020); box-shadow:0 4px 0 #9a6200; }
+button.teach.meet.done { background:linear-gradient(#5fe39a, #27b866); box-shadow:0 5px 0 #12924a; } button.teach.meet.done .tap { visibility:hidden; }
+button.teach.meet .big.none { font-size:40px; opacity:.6; }
+button.teach.meet .big .pimg { width:clamp(60px, 17vmin, 124px); height:clamp(60px, 17vmin, 124px); }
+button.teach.meet b { font-size:clamp(26px, 5vmin, 44px); } button.teach.meet span { font-size:clamp(17px, 3vmin, 26px); }
+button.teach.meet.noread span { display:none; }
+.quiz .speak .svq { font-size:26px; }
