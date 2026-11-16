@@ -117,7 +117,8 @@ function levelKeep(p, evs) {
   p.paid['bal-2'] = 1;
 }
 const rec = (type, payload) => { sync.record(pid(P), type, payload); adopt(P); };
-const gearOf = (p, preview) => { const eq = { ...p.eq }; if (preview) eq[preview.slot] = preview.id; return Object.fromEntries(Object.entries(eq).filter(([, id]) => id).map(([k, id]) => [k, BY_ID[id]])); };
+// Okända id (ett föremål från en nyare klient) hoppas över: gubben ritas utan det, inget går sönder och inget försvinner ur loggen.
+const gearOf = (p, preview) => { const eq = { ...p.eq }; if (preview) eq[preview.slot] = preview.id; return Object.fromEntries(Object.entries(eq).filter(([, id]) => id && BY_ID[id]).map(([k, id]) => [k, BY_ID[id]])); };
 
 // ---------- Ljud: en AudioContext som låses upp av första trycket (krav i Safari på iOS) ----------
 let actx; const buffers = new Map();
@@ -158,8 +159,14 @@ function sfx(kind) {
 }
 
 // ---------- Ikoner ----------
-const ICON = {};
-{ const c = document.createElement('canvas'); c.width = c.height = 32; const ctx = c.getContext('2d'), g = new G(32, 32); for (const it of ITEMS) { g.clear(); drawIcon(g, it); ctx.clearRect(0, 0, 32, 32); g.paint(ctx); ICON[it.id] = c.toDataURL(); } }
+// Ritas när de behövs och sparas (förut alla vid start). Ett okänt id (från en nyare klient) får en tom ruta.
+const ICON = {}, ICON_C = document.createElement('canvas'), ICON_G = new G(32, 32); ICON_C.width = ICON_C.height = 32;
+function icon(id) {
+  if (ICON[id]) return ICON[id];
+  const it = BY_ID[id], ctx = ICON_C.getContext('2d'); ICON_G.clear(); ctx.clearRect(0, 0, 32, 32);
+  if (it) { try { drawIcon(ICON_G, it); } catch (e) { console.error('ikon', id, e); } ICON_G.paint(ctx); }
+  return (ICON[id] = ICON_C.toDataURL());
+}
 
 function show(id) { document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id)); screen = id; if (stale && id !== 'battle' && id !== 'mini') location.reload(); }
 let screen = 'who', toastT;
@@ -601,7 +608,7 @@ function renderGear() {
       const s = SLOTS.find((x) => x.id === sid), id = P.eq[sid], it = id && BY_ID[id], b = document.createElement('button');
       b.className = 'slot' + (gFilter === sid ? ' on' : '') + (it ? '' : ' empty');
       if (it) b.style.setProperty('--rc', RARITY[it.rarity].color);
-      b.innerHTML = (it ? `<img src="${ICON[id]}" alt="">` : `<span class="ghost">${s.stat === 'atk' ? '⚔' : '♥'}</span>`) + `<small>${s.name}</small>`;
+      b.innerHTML = (it ? `<img src="${icon(id)}" alt="">` : `<span class="ghost">${s.stat === 'atk' ? '⚔' : '♥'}</span>`) + `<small>${s.name}</small>`;
       b.onclick = () => { gFilter = sid; gSel = null; gTab = 'items'; renderGear(); }; col.appendChild(b);
     }
   }
@@ -630,13 +637,13 @@ function renderGear() {
   for (const it of list) {
     const eq = P.eq[it.slot] === it.id, c = document.createElement('button');
     c.className = 'cell' + (eq ? ' eq' : '') + (gSel === it ? ' sel' : ''); c.style.setProperty('--rc', RARITY[it.rarity].color);
-    c.innerHTML = `<img src="${ICON[it.id]}" alt="${it.name}"><small>${statTag(it)}</small>` + (eq ? '<span class="worn">✓</span>' : '');
+    c.innerHTML = `<img src="${icon(it.id)}" alt="${it.name}"><small>${statTag(it)}</small>` + (eq ? '<span class="worn">✓</span>' : '');
     c.onclick = () => { gSel = gSel === it ? null : it; renderGear(); }; grid.appendChild(c);
   }
   const sh = $('gear-sheet'); sh.hidden = !gSel;
   if (gSel) {
     const it = gSel, eq = P.eq[it.slot] === it.id; sh.style.setProperty('--rc', RARITY[it.rarity].color);
-    sh.innerHTML = `<img src="${ICON[it.id]}" alt=""><div><b>${it.name}</b><small style="color:${RARITY[it.rarity].color}">${RARITY[it.rarity].name}</small><small>${statLine(it)}</small></div>`;
+    sh.innerHTML = `<img src="${icon(it.id)}" alt=""><div><b>${it.name}</b><small style="color:${RARITY[it.rarity].color}">${RARITY[it.rarity].name}</small><small>${statLine(it)}</small></div>`;
     const b = document.createElement('button'); b.className = 'btn'; b.textContent = eq ? 'Take off' : 'Put on';
     b.onclick = () => { rec('equip', { slot: it.slot, item: eq ? null : it.id }); gSel = null; renderGear(); }; sh.appendChild(b);
   }
@@ -854,7 +861,8 @@ function storyReplay(p, id) {
 // Vad ett föremål ger, skrivet så att det går att jämföra: "+5 ⚔" eller "+8 ♥", och skillnaden mot det man har på sig.
 const statTag = (it) => `+${it.power} ${it.stat === 'atk' ? '⚔' : '♥'}`;
 function statLine(it) {
-  const cur = P.eq[it.slot] && P.eq[it.slot] !== it.id ? BY_ID[P.eq[it.slot]].power : P.eq[it.slot] === it.id ? it.power : 0, d = it.power - cur;
+  const now = P.eq[it.slot] ? BY_ID[P.eq[it.slot]] : null;       // null också när det burna är okänt (från en nyare klient)
+  const cur = now && now.id !== it.id ? now.power : P.eq[it.slot] === it.id ? it.power : 0, d = it.power - cur;
   return `<b style="color:#fff">+${it.power} ${it.stat === 'atk' ? '⚔ Attack' : '♥ Health'}</b>` + (d ? ` <span style="color:${d > 0 ? '#8dffb0' : '#ef7d7d'}">(${d > 0 ? '+' : ''}${d} vs now)</span>` : '');
 }
 // Engelska fraser får svensk översättning de fem första gångerna, sedan står de på egna ben.
@@ -950,7 +958,7 @@ function renderShop() {
   for (const it of shelf) {
     const own = P.owned.includes(it.id), locked = it.level > P.level, poor = P.gold < it.price, lucky = isLucky(k, it);
     const c = document.createElement('div'); c.className = 'offer' + (sSel === it ? ' sel' : '') + (own ? ' sold' : '') + (lucky ? ' lucky' : ''); c.style.setProperty('--rc', RARITY[it.rarity].color);
-    c.innerHTML = (lucky ? '<span class="tag">Lucky find!</span>' : locked ? '<span class="tag">Dream item</span>' : '') + `<img src="${ICON[it.id]}" alt=""><b>${it.name}</b><small style="color:${RARITY[it.rarity].color}">${RARITY[it.rarity].name}</small><small class="statline">${statLine(it)}</small>`;
+    c.innerHTML = (lucky ? '<span class="tag">Lucky find!</span>' : locked ? '<span class="tag">Dream item</span>' : '') + `<img src="${icon(it.id)}" alt=""><b>${it.name}</b><small style="color:${RARITY[it.rarity].color}">${RARITY[it.rarity].name}</small><small class="statline">${statLine(it)}</small>`;
     c.onclick = () => { sSel = sSel === it ? null : it; renderShop(); };
     const b = document.createElement('button'); b.className = 'btn';
     b.innerHTML = own ? 'Bought' : locked ? `Level ${it.level}` : `<span class="coin"></span>${fmt(it.price)}`; b.disabled = own || locked || poor;

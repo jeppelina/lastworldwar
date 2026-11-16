@@ -159,7 +159,7 @@ export class Battle {
   // väntetider och pausas aldrig: bokknappen finns inte i bossbanor.
   constructor(el, o) {
     Object.assign(this, o); this.el = el;
-    this.gear = Object.fromEntries(Object.entries(o.profile.eq).filter(([, id]) => id).map(([k, id]) => [k, BY_ID[id]]));
+    this.gear = Object.fromEntries(Object.entries(o.profile.eq).filter(([, id]) => id && BY_ID[id]).map(([k, id]) => [k, BY_ID[id]]));      // okända id (nyare klient) hoppas över
     // run = regeltillståndet (liv, strid, rad, guld, xp). Scenen lägger bara till det som behövs för att rita.
     this.run = R.newRun(heroStats(o.profile), buildRun(o.worldIdx, o.nodeIdx, o.node, o.army || null, miniOdds(o)));
     this.hero = Object.assign(this.run.hero, { flashUntil: 0, hurtAt: -9 });
@@ -317,7 +317,7 @@ export class Battle {
   // ----- hjältens attack -----
   // x.free: gratis slag (möt-kortet), nedräkningen tickar inte efteråt. x.mult: Power start, skadan gånger mult.
   heroAttack(sup, x = {}) {
-    const type = this.gear.weapon ? this.gear.weapon.type : 'none', A = ATTACKS[type];
+    const type = this.gear.weapon && ATTACKS[this.gear.weapon.type] ? this.gear.weapon.type : 'none', A = ATTACKS[type];      // en sort utan attack här slår som tomma händer
     this.anim = { who: 'hero', type, A, t0: this.now(), dur: A.dur * (sup ? 1.15 : 1), sup, free: !!x.free, mult: x.mult > 1 ? x.mult : 1, fired: new Set(), D: Math.max(0, this.enemy.front - this.heroX - 24) };
     if (sup) this.banner('SUPER!', true); else if (this.anim.mult > 1) this.banner('POWER!', true);
     // Superattackens utseende följer det burna steget på nivå 5. until = sekunder till första träffen, så att effekten landar med skadan.

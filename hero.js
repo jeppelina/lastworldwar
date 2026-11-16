@@ -800,15 +800,15 @@ export function drawHero(g, look, gear, a = {}) {
   const skin = R(look.skin), ar = gear.armor ? R(gear.armor.hex) : skin, type = gear.armor ? gear.armor.type : 'rags';
   const as = gear.armor ? mat(gear.armor) : PLAIN, hr = 2.6 + (bd > 1 ? 0.4 : 0);
   if (!a.noShadow) { g.begin(); g.ell(39.5, 62.5, 15 - hover, 2.6, C.shadow, false, null, 1); g.end({ outline: false, edge: false }); }   // markskugga
-  if (gear.pet && !a.noPet) drawPet(g, gear.pet, P.pet[0], P.pet[1], t);
+  if (gear.pet && !a.noPet && PET[gear.pet.type]) drawPet(g, gear.pet, P.pet[0], P.pet[1], t);
   T = t;
   g.push(0, -hover);          // allt nedan ritas i svävade koordinater, därför läggs hover tillbaka på lägena ur P
-  if (gear.back) BACK[gear.back.type](g, gear.back, R(gear.back.hex), b, t, mat(gear.back));
+  if (gear.back && BACK[gear.back.type]) BACK[gear.back.type](g, gear.back, R(gear.back.hex), b, t, mat(gear.back));   // en sort utan ritfunktion ritas inte
   // bortre armen håller vapnet (a.hand flyttar handen under attacker)
   const [[bsx, bsy], [hx0, hyA]] = P.armBack, [hx, hy0] = a.handB || [hx0, hyA], hy = hy0 + hover;
   g.begin(); arm(g, type, ar, skin, as, bsx, bsy + hover, hx, hy, a.bendB || [-1.5, 1.5], 2, bd); g.end();
   g.anchor.hand = g.pt(hx + 0.5, hy + 0.5);
-  if (gear.weapon) {
+  if (gear.weapon && WEAPON[gear.weapon.type]) {
     const idle = a.wAng === undefined ? Math.sin(t * 2.6 - 0.6) * 0.035 : 0;         // vapnet väger lite i handen
     let ang = a.wAng !== undefined ? a.wAng : HOLD[gear.weapon.type] + (a.swing || 0) + idle;
     if (a.wAng === undefined && !a.swing) { const ty = gear.weapon.type, L = weaponLen(gear.weapon) * (LEN[ty] + (TOPX[ty] || 0)) / (LEN[ty] - 3), top = hy + 0.5 - hover - 3; if (L * Math.cos(ang) > top) ang = Math.acos(Math.min(1, top / L)); }   // långa vapen lutas framåt i vila så att spetsen ryms i rutan
@@ -831,17 +831,20 @@ export function drawHero(g, look, gear, a = {}) {
   else if (type === 'chain') { g.ell(px + 0.5, SH + 2 + b, 4.2 + pw, 3.2 + pw * 0.6, C.leather); g.dot(px - 0.5, SH + 2 + b, C.steel, 5); }
   else if (type === 'robe') g.poly([[28 - bw(bd), SH + b], [35, SH + b - 0.5], [35.5, SH + 4 + b], [29 - bw(bd), SH + 5.5 + b]], ar, 5);
   g.end();
-  if (gear.shield) { const gd = a.guard || [0, 0]; drawShield(g, gear.shield, 26.5 + gd[0], HIP - 2 + b + gd[1]); g.anchor.shield = g.pt(27 + gd[0], HIP - 1.5 + b + gd[1]); }
+  if (gear.shield && SHIELD[gear.shield.type]) { const gd = a.guard || [0, 0]; drawShield(g, gear.shield, 26.5 + gd[0], HIP - 2 + b + gd[1]); g.anchor.shield = g.pt(27 + gd[0], HIP - 1.5 + b + gd[1]); }
   const w = gear.weapon;
   if (w && w.fx && !a.noFx && !small) weaponFx(g, w, t);
   g.pop(); FXOK = true;
 }
 
 // ---------- Ikon (32x32) för ett föremål, ritad med samma funktioner som på gubben ----------
+// Ritbar = platsen och sorten har en ritfunktion här (rustningens okända sorter ritas som tunika).
+const iconOk = (it) => { const D = { weapon: WEAPON, shield: SHIELD, pet: PET, back: BACK, helmet: HELM }[it.slot]; return it.slot === 'armor' || !!(D && D[it.type]); };
 const ICON_K = { dagger: 1.3, club: 0.95, sword: 0.94, axe: 0.82, spear: 0.84, hammer: 0.78, staff: 0.86, great: 0.82 };
 // Ikonerna visar storleken efter material mildare än gubben (roten ur skalan), så att också Star ryms i rutan och trä syns.
 export function drawIcon(g, it, t = 0) {
   setBody(); T = t; FXOK = true;
+  if (!it || !iconOk(it)) return;                                                     // okänd sort (nyare klient): tom ikon
   const s = mat(it), m = R(it.hex), ti = tierG(it), soft = (tbl) => 1 / Math.sqrt(gr(tbl, it));     // soft: ta bort halva skalan som ritfunktionen lägger på
   if (it.slot === 'weapon') {
     g.begin();

@@ -74,8 +74,10 @@ export function makeCatalog(T = TUNE, shopRules = BK.shop) {
   }
   // Så länge hjälten inte äger något vapen finns alltid ett vapen på hyllan: saknas ett som nivån räcker till
   // byter hyllans första föremål plats med ett av de två billigaste vapnen.
+  // isW tål okända id (ett föremål från en nyare klient i owned): de räknas inte som vapen.
+  const isW = (id) => { const it = BY_ID[id]; return !!it && it.slot === 'weapon'; };
   function dailyShop(profile, day) {
-    const ids = baseShop(profile, day), isW = (id) => BY_ID[id].slot === 'weapon';
+    const ids = baseShop(profile, day);
     if (!(shopRules && shopRules.weaponFirst) || profile.owned.some(isW) || ids.some((id) => isW(id) && BY_ID[id].level <= profile.level)) return ids;
     const ws = ITEMS.filter((it) => it.slot === 'weapon' && it.level <= profile.level).sort((a, b) => a.price - b.price);
     if (ws.length) ids[0] = ws[String(day).charCodeAt(String(day).length - 1) % Math.min(2, ws.length)].id;
@@ -119,7 +121,7 @@ export function makeCatalog(T = TUNE, shopRules = BK.shop) {
     const dream = dreamOf(inR);
     if (dream.length) picks.push(dream[Math.floor(r() * Math.ceil(dream.length / 3))]);    // bland den dyraste tredjedelen
     else take(recent, true);
-    const ids = picks.map((i) => i.id), isW = (id) => BY_ID[id].slot === 'weapon';
+    const ids = picks.map((i) => i.id);
     if (!shopRules.weaponFirst || !ids.length || profile.owned.some(isW) || ids.some((id) => isW(id) && BY_ID[id].level <= L)) return ids;
     const ws = ITEMS.filter((it) => it.slot === 'weapon' && it.level <= L && !owned.has(it.id)).sort((a, b) => a.price - b.price), wr = ws.filter(inR), use = wr.length ? wr : ws;
     if (use.length) ids[0] = use[String(day).charCodeAt(String(day).length - 1) % Math.min(2, use.length)].id;
@@ -129,10 +131,13 @@ export function makeCatalog(T = TUNE, shopRules = BK.shop) {
   // ---------- Nivåer och hjältens värden ----------
   const xpToLevel = (level) => Math.round(T.xpBase * Math.min(level, T.xpRamp) / T.xpRamp * Math.pow(T.xpGrowth, level - 1));
   // Hjältens värden: det mesta kommer från nivån (alltså från att spela), utrustningen lägger till en mindre del.
+  // Summerar över SLOTS: en plats som katalogen inte känner (från en nyare klient) läses aldrig, och ett id som katalogen
+  // inte känner (en ny sort i en gammal plats) hoppas över. Så går en äldre klient aldrig sönder på en nyare logg.
   function heroStats(profile) {
-    const pw = (slot) => (profile.eq[slot] ? BY_ID[profile.eq[slot]].power : 0);
+    const eq = profile.eq || {};
     const baseAtk = Math.round(T.heroAtk * Math.pow(T.heroGrowth, profile.level - 1)), baseHp = Math.round(T.heroHp * Math.pow(T.heroGrowth, profile.level - 1));
-    const gearAtk = pw('weapon') + pw('pet'), gearHp = pw('armor') + pw('helmet') + pw('shield') + pw('back');
+    let gearAtk = 0, gearHp = 0;
+    for (const s of SLOTS) { const it = eq[s.id] ? BY_ID[eq[s.id]] : null; if (!it) continue; if (s.stat === 'atk') gearAtk += it.power; else if (s.stat === 'hp') gearHp += it.power; }
     return { atk: baseAtk + gearAtk, maxHp: baseHp + gearHp, baseAtk, baseHp, gearAtk, gearHp };
   }
   return { TUNE: T, MATS, RARITY, SLOTS, SHOP_SIZE, ITEMS, BY_ID, dailyShop, worldShop, shopRange, isLucky, typeWorld, xpToLevel, heroStats };
