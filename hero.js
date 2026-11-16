@@ -6,7 +6,8 @@ import { ramp as R } from './pixel.js';
 
 export const W = 80, H = 72;
 // Val som föräldern kan pröva i arket. tall = längre kropp, brow = bestämd blick, wscale = vapnens storlek.
-export const OPT = { tall: true, brow: true, wscale: 1.15 };
+// grand = storlek och prakt efter material (v3), aura = auran från Steel och uppåt (v3). false = som före v3.
+export const OPT = { tall: true, brow: true, wscale: 1.15, grand: true, aura: true };
 const C = {
   leather: R('#8a5a34'), bone: R('#ece4cf'), dark: R('#2b2740'), white: R('#ffffff'), gold: R('#f2b632'),
   red: R('#d8433b'), wood: R('#9a6b3f'), steel: R('#aab6c4'), fire: R('#ff7a1f'), fire2: R('#ffd84a'),
@@ -32,6 +33,54 @@ const MAT = {
 };
 const PLAIN = { trim: C.gold, gem: C.red, cloth: C.red };
 const mat = (it) => MAT[it.mat] || PLAIN;
+
+// ---------- Storlek och prakt efter material (utrustning v3, 2026-11-16) ----------
+// Storleken och prakten hör till FÖREMÅLET, efter dess material, aldrig till världen eller hjältens nivå: ett ägt föremål
+// ser alltid likadant ut. Trä är minst och enklast (men handgjort: målade ränder, en knuten fjäder), varje material ett
+// steg större och praktfullare, Star störst. 1 = storleken före v3. OPT.grand = false ritar allt som före v3 (granskningssidan).
+const TIER = { tra: 0, jarn: 1, stal: 2, guld: 3, smaragd: 4, is: 5, eld: 6, skugg: 7, kristall: 8, stjarn: 9 };
+export const tierOf = (it) => (it && TIER[it.mat] != null ? TIER[it.mat] : 4);
+export const GRAND = {
+  weapon: [0.74, 0.8, 0.86, 0.91, 0.96, 1, 1.04, 1.07, 1.1, 1.13],      // vapnets längd (hela vapnet skalas)
+  guard: [0.9, 0.95, 1, 1.06, 1.12, 1.18, 1.24, 1.3, 1.36, 1.42],       // parerstångens bredd, utöver skalan
+  shield: [0.76, 0.82, 0.88, 0.93, 0.98, 1.02, 1.06, 1.09, 1.12, 1.15],
+  crest: [0.55, 0.65, 0.75, 0.85, 0.95, 1.03, 1.1, 1.16, 1.22, 1.28],   // plym, kam, horn och kronans spetsar
+  wings: [0.6, 0.66, 0.72, 0.78, 0.84, 0.89, 0.94, 0.98, 1.02, 1.06],   // vingar och drakvingar (spann)
+  cape: [0.66, 0.72, 0.78, 0.83, 0.88, 0.92, 0.95, 0.98, 1, 1.02],      // mantelns längd och bredd
+  flutter: [0.35, 0.5, 0.65, 0.8, 0.95, 1.1, 1.25, 1.4, 1.5, 1.65],     // hur mycket manteln fladdrar
+  jet: [0.82, 0.86, 0.9, 0.93, 0.96, 0.99, 1.01, 1.03, 1.05, 1.07],     // jetpackens tankar
+  flame: [0.45, 0.58, 0.7, 0.82, 0.92, 1, 1.08, 1.16, 1.24, 1.32],       // jetpackens lågor
+  pet: [0.8, 0.83, 0.86, 0.89, 0.92, 0.95, 0.98, 1.01, 1.04, 1.07],
+};
+// Auran från Steel och uppåt: glimtar i materialets färg två pixlar utanför konturen, tätare för varje steg (0 = ingen).
+// Vapnen får hela värdet, sköldar, ryggsaker och följeslagare en antydan (HINT).
+export const AURA = [0, 0, 1, 2, 3, 4, 4, 5, 6, 7];
+const HINT = [0, 0, 1, 1, 2, 2, 2, 3, 3, 4];
+const gr = (tbl, it) => (OPT.grand === false ? 1 : tbl[tierOf(it)]);
+const tierG = (it) => (OPT.grand === false ? -1 : tierOf(it));          // -1 = inga v3-detaljer
+// Skalar kring punkten (cx, cy) i nuvarande koordinater.
+const pushAt = (g, cx, cy, k) => g.push(cx * (1 - k), cy * (1 - k), 0, k);
+
+let AU = 0;                // aurans styrka för delen som ritas just nu (sätts av drawHero, drawShield, drawPet, drawIcon)
+const HB = [];             // aurans pixlar, återanvänds
+// Avslutar en del som g.end() och tänder sedan auran: pixlar två steg ut (konturen ligger ett steg ut) i ett mönster som
+// vandrar med tiden. Ritas bara där bilden är tom, så allt som ritas senare (kropp, huvud) hamnar ovanpå.
+function auraEnd(g, rp, n, o) {
+  if (!n || OPT.aura === false || g.bx1 < 0) return g.end(o);
+  const { w, h, r } = g, x0 = Math.max(0, g.bx0 - 2), x1 = Math.min(w - 1, g.bx1 + 2), y0 = Math.max(0, g.by0 - 2), y1 = Math.min(h - 1, g.by1 + 2);
+  const f = (x, y) => x >= 0 && y >= 0 && x < w && y < h && r[y * w + x] >= 0, ph = Math.floor(T * 9);
+  HB.length = 0;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    if (r[y * w + x] >= 0 || f(x - 1, y) || f(x + 1, y) || f(x, y - 1) || f(x, y + 1)) continue;           // delen själv och konturen
+    if (!(f(x - 2, y) || f(x + 2, y) || f(x, y - 2) || f(x, y + 2) || f(x - 1, y - 1) || f(x + 1, y - 1) || f(x - 1, y + 1) || f(x + 1, y + 1))) continue;
+    const q = (x * 2 + y * 3 + ph) % 14, s = (x + y + ph) % 4;
+    const lv = n === 1 ? (q === 0 ? 4 : 0) : n === 2 ? (q % 7 === 0 ? 5 : 0) : n === 3 ? (q % 5 === 0 ? 5 : q % 5 === 2 ? 3 : 0)
+      : n === 4 ? (s === 0 ? 5 : s === 2 ? 3 : 0) : n === 5 ? (s === 3 ? 0 : s === 0 ? 5 : 3) : n === 6 ? (s === 0 ? 5 : s === 2 ? 4 : 3) : (s % 2 ? 5 : 4);
+    if (lv) HB.push(y * w + x, lv);
+  }
+  g.end(o);
+  for (let j = 0; j < HB.length; j += 2) if (g.R[HB[j]] < 0) { g.R[HB[j]] = rp; g.L[HB[j]] = HB[j + 1]; }
+}
 
 let T = 0;                 // aktuell tid, sätts av drawHero, drawPet och drawIcon så att delar kan röra sig
 let SH = 33, HIP = 47;     // axelhöjd och höft (ändras av OPT.tall)
@@ -79,7 +128,12 @@ function bladeFx(g, s, m, hw, y0, yS, yT) {
   else if (s.radiant) { g.rect(-0.5, yS - 1, 1, n, C.white, 5); g.dot(-0.5, yT + 2, C.white, 5); }
 }
 // Parerstång, lindat grepp och knopp.
-function hilt(g, s, gw, gy = -5, grip = 7) {
+let GWK = 1, WT = -1;      // parerstångens bredd och materialsteget för vapnet som ritas just nu (drawWeapon)
+function hilt(g, s, gw0, gy = -5, grip = 7) {
+  const gw = gw0 * GWK;
+  if (WT >= 6 && !s.rough) {                                                                                                    // små uppåtsvepta vingar på parerstången
+    g.poly([[-gw + 1, gy], [-gw - 2.5, gy - 4.5], [-gw - 0.5, gy - 0.5]], s.trim, 5); g.poly([[gw - 1, gy], [gw + 2.5, gy - 4.5], [gw + 0.5, gy - 0.5]], s.trim, 3);
+  }
   if (s.rough) { g.rect(-gw + 1.5, gy, gw * 2 - 3, 2.5, C.wood, 2); g.rect(-1.5, gy - 0.5, 3, 3.5, C.rope, 4); }
   else {
     g.rect(-gw, gy, gw * 2, 2.5, s.trim, 3);
@@ -186,7 +240,8 @@ const WEAPON = {
     g.ell(x, y, 5.4, 5.4, m);
     g.ell(x + 0.4, y + 0.4, 3.4, 3.4, s.smoke ? C.dark : s.ember ? C.fire2 : m, false, (dx, dy) => dx * 0.7 + dy > 0.1, s.smoke ? 1 : 5);    // inre virvel
     g.dot(x - 3, y - 3, C.white, 5); g.dot(x - 2, y - 4, C.white, 5); g.dot(x - 4, y - 2, m, 5);
-    for (let i = 0; i < 3; i++) { const a = T * 3 + i * 2.094; g.dot(x + Math.cos(a) * 8.5, y + Math.sin(a) * 2.8 - 0.5, s.gem, 5); }      // gnistor i omlopp
+    const ns = 3 + Math.max(0, WT - 4);                                                                                              // fler gnistor för varje steg från Ice (v3)
+    for (let i = 0; i < ns; i++) { const a = T * 3 + i * 6.283 / ns; g.dot(x + Math.cos(a) * 8.5, y + Math.sin(a) * 2.8 - 0.5, s.gem, 5); }      // gnistor i omlopp
     flair(g, s, m, x + 1, y + 1);
   },
 };
@@ -195,9 +250,38 @@ const WEAPON = {
 export const HOLD = { dagger: 0.9, club: 0.55, sword: 0.42, axe: 0.35, spear: 0.2, hammer: 0.3, staff: 0.12, great: 0.3, bow: 0, orb: 0 };
 // k = skala. Storsvärdet växer lite mindre så att spetsen hamnar vid marken när striden släpar det (vinkel -2.08).
 const wk = (it) => (it.type === 'great' ? Math.min(OPT.wscale, 1.1) : it.type === 'orb' ? 1 : OPT.wscale);
-export function drawWeapon(g, it, k = wk(it)) {
-  const s = mat(it); g.push(0, 0, 0, k); WEAPON[it.type](g, R(it.hex), s); g.anchor.tip = g.pt(it.type === 'orb' ? 5 : 0, -LEN[it.type] + 3); g.pop();
+// Det som växer med materialet på vapnet utöver storleken (v3). Trä: en fjäder knuten under handen och målade röda ränder.
+// Emerald och uppåt: skaftvapnen får ett band med en vimpel som blir längre för varje steg. Fire och uppåt: vingar på
+// parerstången (i hilt). Star: en stjärna i spetsen (weaponFx).
+const POLE = { axe: 1, spear: 1, hammer: 1, staff: 1 };
+function grandW(g, type, s, m, i) {
+  if (i === 0) {
+    const f = rd(Math.sin(T * 2.3) * 0.8);
+    if (type === 'bow') { g.line(5, 3, 7, 6, C.rope, 3); g.poly([[6.5, 5.5], [8.5, 5.5], [9.5 + f, 11], [7.5 + f, 10.5]], C.white, 4); g.dot(8 + f, 10, C.red, 4); g.rect(4.5, -9, 2, 1, C.red, 4); g.rect(4.5, 8, 2, 1, C.red, 3); return; }
+    if (type !== 'orb') { g.line(1, 1, 3, 4, C.rope, 3); g.poly([[2.5, 3.5], [4.5, 3.5], [5.5 + f, 9], [3.5 + f, 8.5]], C.white, 4); g.dot(4 + f, 8, C.red, 4); }
+    if (POLE[type]) for (const y of [-11, -14, -17]) g.rect(-1.5, y, 3, 1, C.red, 3);                                           // målade ränder på skaftet
+    else if (type === 'club') for (const x of [-3, 0, 3]) g.dot(x, -15, C.red, 4);
+    else if (type === 'sword' || type === 'great') { g.rect(-2, -16, 4, 1, C.red, 3); g.rect(-2, -18, 4, 1, C.red, 3); }
+    else if (type === 'dagger') g.rect(-2, -10, 3, 1, C.red, 3);
+    return;
+  }
+  if (i >= 4 && POLE[type] && type !== 'spear') {                                                                                  // band och vimpel under huvudet
+    const y = type === 'staff' ? -17 : -12.5, n = 3 + (i - 4) * 1.3, f = rd(Math.sin(T * 3 - 0.5) * (1 + (i - 4) * 0.25));
+    g.rect(-2, y, 4, 1.5, s.trim, 4);
+    g.poly([[-1.5, y + 1], [-3.5, y + 1.5], [-4.5 + f, y + 1.5 + n], [-2.5 + f, y + 1 + n * 0.8]], s.cloth, 3);
+  }
 }
+// Yxans blad sticker ut åt sidan: över storlek 1 växer den bara med 60 procent av stegen, så att Star-yxan ryms i rutan.
+const KCAP = { axe: 0.6 };
+const TOPX = { staff: 3, spear: 1 };   // så mycket vapnets översta del når ovanför LEN (isflisor, slagytor), för lutningen i vila
+const wsize = (it) => { const k = gr(GRAND.weapon, it); return k > 1 && KCAP[it.type] ? 1 + (k - 1) * KCAP[it.type] : k; };
+export function drawWeapon(g, it, k = wk(it) * wsize(it)) {
+  const s = mat(it), i = tierG(it); GWK = i < 0 ? 1 : GRAND.guard[i]; WT = i;
+  g.push(0, 0, 0, k); WEAPON[it.type](g, R(it.hex), s); if (i >= 0) grandW(g, it.type, s, R(it.hex), i); g.anchor.tip = g.pt(it.type === 'orb' ? 5 : 0, -LEN[it.type] + 3); g.pop();
+  GWK = 1; WT = -1;
+}
+// Vapnets längd från handen till spetsen i hjältens pixlar, så som det ritas (striden: storsvärdets släp mot marken).
+export const weaponLen = (it) => (LEN[it.type] - 3) * wk(it) * wsize(it);
 
 // ---------- Sköldar: varje typ har sitt eget emblem ----------
 const SHIELD = {
@@ -225,15 +309,47 @@ const SHIELD = {
     flair(g, s, m, 0, -3);
   },
 };
-export function drawShield(g, it, x, y) { g.begin(); g.push(x, y); SHIELD[it.type](g, R(it.hex), mat(it)); g.pop(); g.end(); }
+// Sköldens prakt efter material (v3). Trä: plankor med fogar och en målad rand. Golden och uppåt: fler nitar och en inre
+// kant. Ice och uppåt: ett stjärnemblem runt mitten. Crystal och Star: strålar som pulserar från mitten.
+const SH_C = { round: [0.5, 0.5], kite: [0.5, -2], tower: [0.5, -1] };
+function grandS(g, type, s, m, i) {
+  const [cx, cy] = SH_C[type], hw = type === 'round' ? 7 : 6;
+  if (i === 0) {
+    const inside = type === 'round' ? (x, y) => (x - 0.5) ** 2 + (y - 0.5) ** 2 < 52 : () => true;
+    for (const x of [-3, 3]) for (let y = -8; y <= 9; y++) if (inside(x, y) && !(type === 'kite' && Math.abs(y - 2) < 4) && !(type === 'tower' && (x === 0 || (y >= -4 && y <= -3)))) g.dot(x, y, m, 1);   // fogar mellan plankorna
+    g.rect(cx - hw + 0.5, cy + (type === 'round' ? 3 : 5), hw * 2 - 1, 1, C.red, 3);                                          // målad rand
+    return;
+  }
+  if (i >= 3) {                                                                                                                  // fler nitar längs kanten
+    const n = 4 + (i - 3) * 2, rx = type === 'round' ? 7.4 : 6.6, ry = type === 'round' ? 7.4 : 9;
+    for (let k = 0; k < n; k++) { const a = (k + 0.5) / n * 6.283; g.dot(cx + Math.cos(a) * rx - 0.5, cy + Math.sin(a) * ry - 0.5, s.trim, 5); }
+  }
+  if (i >= 5) {                                                                                                                  // stjärnemblem
+    const L = 3 + (i - 5) * 0.7;
+    g.thick(cx - L - 1.5, cy, cx + L + 1.5, cy, 1, s.gem, 4); g.thick(cx, cy - L - 2, cx, cy + L + 2, 1, s.gem, 4);
+    g.ell(cx, cy, 1.6, 1.6, s.gem, false, null, 5);
+  }
+  if (i >= 8) {                                                                                                                  // strålar som pulserar
+    const k = Math.floor(T * 4) % 3;
+    for (const [dx, dy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) g.line(cx + dx * 2, cy + dy * 2, cx + dx * (3 + k), cy + dy * (3 + k), C.white, 5);
+  }
+}
+export function drawShield(g, it, x, y) {
+  const k = gr(GRAND.shield, it), i = tierG(it), m = R(it.hex), s = mat(it);
+  g.begin(); g.push(x, y, 0, k); SHIELD[it.type](g, m, s); if (i >= 0) grandS(g, it.type, s, m, i); g.pop(); auraEnd(g, m, i < 0 || !FXOK ? 0 : HINT[i]);
+}
+let FXOK = true;           // false: ingen aura (kartmarkören, stillbilder med noFx)
 
 // ---------- Rygg: mantel, vingar, jetpack ----------
 export const HOVER = { wings: 1, dragonwings: 1, jetpack: 1 };
 const BACK = {
   cape(g, it, m, b, t, s) {
-    const y = SH + 1 + b, wv = (i) => rd(Math.sin(t * 1.7 - i * 0.9) * (0.5 + i * 0.55));      // vågen går nedåt genom tyget
+    const fl = gr(GRAND.flutter, it), ti = tierG(it);
+    const y = SH + 1 + b, wv = (i) => rd(Math.sin(t * 1.7 - i * 0.9) * (0.5 + i * 0.55) * fl);      // vågen går nedåt genom tyget
     const a = [30 + wv(1), 60], c = [22 + wv(2), 61], d = [16 + wv(3), 56 + wv(2)];
-    g.begin();
+    const k = gr(GRAND.cape, it), g0 = g; g = capeMap(g0, 44, y, 0.55 + 0.45 * k, k);                     // kortare och lite smalare mantel för enklare material
+    g0.begin();
+    if (ti >= 4) g.poly([[29, y + 3], [25 + wv(1), 42 + b], [20 + wv(2), 49], d, [18 + wv(3), 57 + wv(2)], [15 + wv(3), 54 + wv(2)], [19 + wv(2), 47], [24 + wv(1), 40 + b]], s.cloth, 2);   // fodret syns i kanten
     g.poly([[33, y], [44, y], [43, HIP + 6], [38, 58], a, c, d, [20 + wv(2), 49], [25 + wv(1), 42 + b], [29, y + 3]], m, 3);
     g.poly([[29, y + 3], [25 + wv(1), 42 + b], [20 + wv(2), 49], d, [19 + wv(3), 55], [23 + wv(2), 49], [28 + wv(1), 43 + b], [31, y + 4]], m, 5);   // ljus kant
     g.poly([[36, y + 6], [38, y + 6], [35 + wv(1), 55], [33 + wv(1), 55]], m, 2);                                                             // veck
@@ -241,35 +357,43 @@ const BACK = {
     g.thick(38, 58, a[0], a[1], 1.5, hem, s.rough ? 1 : 4); g.thick(a[0], a[1], c[0], c[1], 1.5, hem, s.rough ? 1 : 4); g.thick(c[0], c[1], d[0], d[1], 1.5, hem, s.rough ? 1 : 4);
     if (s.radiant || s.facet) for (let i = 0; i < 4; i++) if ((Math.floor(t * 2) + i) % 3) g.dot(24 + i * 4 + wv(2), 54 - i * 3, C.white, 5);          // stjärnor i tyget
     if (s.smoke) { g.dot(27 + wv(2), 52, C.purple, 5); g.dot(33, 47, C.purple, 4); }
+    if (ti === 0) for (let q = 0; q < 3; q++) g.rect(21 + q * 3 + wv(2), 53 - q * 2, 2, 1, C.bone, 4);   // trä: tre målade streck
     g.rect(32, y - 1, 12, 2.5, s.rough ? C.rope : s.trim, 3); g.dot(43, y, s.gem, 5);
-    g.end();
+    if (ti >= 6) g0.ell(43.5, y + 0.5, 2.2, 2.2, s.gem);                                               // stort spänne
+    auraEnd(g0, m, hintOf(it));
   },
   wings(g, it, m, b, t, s) {
-    g.begin(); g.push(34, SH + 4 + b, Math.sin(t * 2.2) * 0.14);
+    const ti = tierG(it);
+    g.begin(); g.push(34, SH + 4 + b, Math.sin(t * 2.2) * 0.14, gr(GRAND.wings, it));
+    if (ti >= 5) g.poly([[-13, -23], [-29, -26], [-25, -17]], m, 3);                                                          // fler och längre handpennor (v3)
+    if (ti >= 7) g.poly([[-21, -9], [-30, -10], [-25, -3]], m, 3);
     g.poly([[0, 2], [-5, -14], [-13, -23], [-26, -24], [-21, -17], [-27, -13], [-21, -9], [-25, -3], [-17, -2], [-19, 5], [-11, 4], [-10, 9], [-4, 6]], m, 2);   // handpennor
     g.poly([[0, 1], [-5, -13], [-12, -20], [-21, -20], [-16, -14], [-20, -9], [-14, -6], [-16, -1], [-8, 0], [-8, 4]], m, 3);                                    // armpennor
-    g.poly([[-1, 0], [-5, -11], [-11, -16], [-15, -14], [-11, -9], [-13, -5], [-7, -3], [-6, 1]], m, 5);                                                         // täckfjädrar
-    g.thick(0, 1, -5, -13, 1.6, s.trim, 4);
-    for (const [x, y] of [[-25, -23], [-26, -13], [-24, -3], [-18, 4]]) g.dot(x, y, s.gem, 5);
-    g.pop(); g.end();
+    if (ti !== 0 && ti !== 1) g.poly([[-1, 0], [-5, -11], [-11, -16], [-15, -14], [-11, -9], [-13, -5], [-7, -3], [-6, 1]], m, 5);   // täckfjädrar (inte på trä och järn)
+    else for (const [x, y] of [[-9, -12], [-12, -7], [-8, -4]]) g.line(x, y, x + 4, y - 1, m, 1);                                     // enkla fjäderstreck
+    g.thick(0, 1, -5, -13, 1.6, ti === 0 ? C.rope : s.trim, 4);
+    if (ti !== 0 && ti !== 1) for (const [x, y] of [[-25, -23], [-26, -13], [-24, -3], [-18, 4]]) g.dot(x, y, s.gem, 5);
+    g.pop(); auraEnd(g, m, hintOf(it));
   },
   dragonwings(g, it, m, b, t, s) {
-    g.begin(); g.push(34, SH + 4 + b, Math.sin(t * 2.2) * 0.14);
+    g.begin(); g.push(34, SH + 4 + b, Math.sin(t * 2.2) * 0.14, gr(GRAND.wings, it));
     g.poly([[0, 2], [-4, -17], [-13, -24], [-27, -20], [-22, -15], [-26, -6], [-20, -7], [-20, 5], [-14, 1], [-10, 7], [-6, 3]], m, 2);       // hinna med bågar i kanten
     g.poly([[-4, -15], [-12, -20], [-22, -17], [-19, -13], [-21, -8], [-15, -8], [-16, -1], [-9, -2], [-7, 2]], m, 1);
     g.thick(0, 1, -4, -17, 2.2, m, 5); g.thick(-4, -17, -27, -20, 2, m, 5); g.thick(-4, -17, -26, -6, 1.5, m, 4); g.thick(-4, -17, -20, 5, 1.5, m, 4); g.thick(-4, -17, -10, 7, 1.3, m, 4);
     g.poly([[-4, -17], [-2.5, -23], [-7.5, -19.5]], C.bone, 4); g.poly([[-27, -20], [-30, -22], [-27, -17.5]], C.bone, 4); g.dot(-26, -5, C.bone, 5); g.dot(-20, 6, C.bone, 5);
     if (s.ember) for (const [x, y] of [[-12, -12], [-17, -5], [-9, -5]]) g.dot(x, y, C.fire2, 5);
-    g.pop(); g.end();
+    if (tierG(it) >= 6) { g.poly([[-13, -24], [-12, -29], [-15.5, -24.5]], C.bone, 4); g.poly([[-20, -7], [-23, -10], [-21, -5]], C.bone, 4); }   // fler klor (v3)
+    g.pop(); auraEnd(g, m, hintOf(it));
   },
   jetpack(g, it, m, b, t, s) {
-    const y = SH + 2 + b, fl = Math.floor(t * 12) % 3;
-    g.begin();          // lågor i tre lager, utan kontur
+    const y = SH + 2 + b, fl = Math.floor(t * 12) % 3, F = gr(GRAND.flame, it), ti = tierG(it), jk = gr(GRAND.jet, it);
+    pushAt(g, 23.5, y + 7, jk);
+    g.begin();          // lågor i tre lager, utan kontur. Längden växer med materialet (v3), från Crystal med vit kärna.
     for (const x of [20.5, 26.5]) {
-      g.poly([[x - 2.2, y + 16], [x + 2.2, y + 16], [x + 1.4, y + 22 + fl], [x, y + 26 + fl * 2], [x - 1.4, y + 22 + fl]], C.fire, 3);
-      g.poly([[x - 1.4, y + 16], [x + 1.4, y + 16], [x, y + 22 + fl]], C.fire2, 4); g.rect(x - 0.5, y + 16, 1, 2, C.white, 5);
+      g.poly([[x - 2.2, y + 16], [x + 2.2, y + 16], [x + 1.4, y + 16 + (6 + fl) * F], [x, y + 16 + (10 + fl * 2) * F], [x - 1.4, y + 16 + (6 + fl) * F]], C.fire, 3);
+      g.poly([[x - 1.4, y + 16], [x + 1.4, y + 16], [x, y + 16 + (6 + fl) * F]], C.fire2, 4); g.rect(x - 0.5, y + 16, 1, ti >= 8 ? 2 + 3 * F : 2, C.white, 5);
     }
-    for (let i = 0; i < 5; i++) { const ph = (t * 11 + i * 2.3) % 7; g.dot((i % 2 ? 20 : 26) + rd((rnd(i + Math.floor(t * 9)) - 0.5) * 3), y + 25 + ph, ph < 3 ? C.fire2 : C.fire, ph < 4 ? 5 : 3); }
+    for (let i = 0; i < 5; i++) { const ph = (t * 11 + i * 2.3) % 7; g.dot((i % 2 ? 20 : 26) + rd((rnd(i + Math.floor(t * 9)) - 0.5) * 3), y + 16 + (9 + ph) * F, ph < 3 ? C.fire2 : C.fire, ph < 4 ? 5 : 3); }
     g.end({ outline: false, edge: false });
     g.begin();
     g.rect(18, y + 1, 5, 13, m, 4); g.rect(24, y + 1, 5, 13, m, 3); g.ell(20.5, y + 1, 2.5, 2, m); g.ell(26.5, y + 1, 2.5, 2, m);            // två tankar
@@ -277,8 +401,21 @@ const BACK = {
     g.rect(22, y + 2, 3, 3, C.dark, 1); g.dot(23, y + 3, Math.floor(t * 3) % 2 ? C.fire2 : C.red, 5);                                         // blinkande lampa
     g.poly([[18.5, y + 14], [22.5, y + 14], [23.2, y + 16.5], [17.8, y + 16.5]], C.steel, 2); g.poly([[24.5, y + 14], [28.5, y + 14], [29.2, y + 16.5], [23.8, y + 16.5]], C.steel, 2);
     g.line(18, y, 17, y - 3, C.steel, 3); g.dot(17, y - 4, s.gem, 5);                                                                         // antenn
-    g.end();
+    if (ti === 0) { g.rect(18, y + 8, 5, 1, C.red, 4); g.rect(24, y + 8, 5, 1, C.red, 3); }                                                    // trä: målade ränder
+    if (ti >= 5) { g.poly([[18, y + 9], [14.5, y + 12], [14.5, y + 14], [18, y + 13]], m, 3); g.poly([[29, y + 9], [32.5, y + 12], [32.5, y + 14], [29, y + 13]], m, 2); }   // fenor
+    g.pop(); auraEnd(g, m, hintOf(it));
   },
+};
+const hintOf = (it) => { const i = tierG(it); return i < 0 || !FXOK ? 0 : HINT[i]; };
+// Manteln skalas olika på bredden och längden kring axeln (cx, cy): ett litet ombud för de ritfunktioner manteln använder.
+const capeMap = (g, cx, cy, kx, ky) => {
+  const P = (p) => [cx + (p[0] - cx) * kx, cy + (p[1] - cy) * ky];
+  return {
+    poly: (pts, rp, lv) => g.poly(pts.map(P), rp, lv),
+    rect: (x, y, w, h, rp, lv) => g.poly([[x, y], [x + w, y], [x + w, y + h], [x, y + h]].map(P), rp, lv),
+    thick: (x0, y0, x1, y1, w, rp, lv) => { const [a, b] = P([x0, y0]), [c, d] = P([x1, y1]); g.thick(a, b, c, d, w, rp, lv); },
+    dot: (x, y, rp, lv) => { const [a, b] = P([x, y]); g.dot(Math.round(a), Math.round(b), rp, lv); },
+  };
 };
 const backCenter = (type) => ({ cape: [30, SH + 13], wings: [21, SH - 3], dragonwings: [20, SH - 4], jetpack: [23.5, SH + 12] }[type]);
 
@@ -333,36 +470,47 @@ const PET = {
   },
 };
 const PET_GROUND = { slime: 1 };
-export function drawPet(g, it, x, y, t) { T = t; g.begin(); g.push(x, y); PET[it.type](g, R(it.hex), t, t % 3.1 < 0.14); g.pop(); g.end(); }
+// Följeslagaren växer lite med materialet och får auran som antydan (v3). Den som står på marken skalas kring fötterna.
+export function drawPet(g, it, x, y, t) {
+  T = t; const k = gr(GRAND.pet, it), m = R(it.hex);
+  g.begin(); g.push(x, y); if (PET_GROUND[it.type]) pushAt(g, 0, 9, k); else g.push(0, 0, 0, k);
+  PET[it.type](g, m, t, t % 3.1 < 0.14); g.pop(); g.pop(); auraEnd(g, m, hintOf(it));
+}
 
 // ---------- Hjälmar och hattar (huvudets mitt: 39.5, Y+0.5) ----------
 // s = materialets särdrag, sw = [lodrät eftersläpning, vind] i hela pixlar
 const HX = 39.5;
 const dome = (g, Y, m, pred) => g.ell(HX, Y + 0.5, 11.9, 10.9, m, true, pred);
 const helmS = (dx, dy) => dy < -0.08 || (dx < -0.3 && dy < 0.72);
-const horns = (g, Y) => {
-  g.poly([[31, Y - 6], [25, Y - 8], [21, Y - 14], [22, Y - 19], [25, Y - 13], [28, Y - 11], [33, Y - 9]], C.bone, 3); g.rect(26, Y - 10, 2, 2, C.bone, 1);
-  g.poly([[47, Y - 7], [53, Y - 9], [57, Y - 15], [56, Y - 20], [53, Y - 14], [50, Y - 12], [45, Y - 9]], C.bone, 3); g.rect(51, Y - 11, 2, 2, C.bone, 1);
+const horns = (g, Y, only) => {          // only: 0 = bara bortre hornet, 1 = bara främre, annars båda
+  if (only !== 1) { g.poly([[31, Y - 6], [25, Y - 8], [21, Y - 14], [22, Y - 19], [25, Y - 13], [28, Y - 11], [33, Y - 9]], C.bone, 3); g.rect(26, Y - 10, 2, 2, C.bone, 1); }
+  if (only !== 0) { g.poly([[47, Y - 7], [53, Y - 9], [57, Y - 15], [56, Y - 20], [53, Y - 14], [50, Y - 12], [45, Y - 9]], C.bone, 3); g.rect(51, Y - 11, 2, 2, C.bone, 1); }
 };
 const HELM = {
   cap: { draw(g, it, m, Y, s) {           // keps med skärmen framåt
+    const ti = tierG(it);
+    if (ti >= 0) { pushAt(g, 33, Y - 8, GRAND.crest[ti]); g.poly([[33, Y - 8], [30, Y - 15], [28, Y - 17], [29, Y - 12], [31, Y - 7]], ti < 2 ? C.white : s.cloth, 4); g.dot(28, Y - 16, ti < 2 ? C.red : s.gem, 5); g.pop(); }   // fjäder (v3): knuten på trä, en plym högre upp
     dome(g, Y, m, (dx, dy) => dy < -0.3 - dx * 0.1); g.poly([[45, Y - 5.5], [55, Y - 4.5], [57, Y - 2], [46, Y - 2.5]], m, 2);
     g.rect(39, Y - 12, 2, 1.5, s.trim, 5); g.ell(HX, Y + 0.5, 11.9, 10.9, m, false, (dx, dy) => dy < -0.3 - dx * 0.1 && dy > -0.42 - dx * 0.1, 1);
     flair(g, s, m, 45, Y - 8);
   } },
   helm: { draw(g, it, m, Y, s) {          // öppen hjälm med nässkydd och kam
-    g.poly([[31, Y - 9], [34, Y - 15], [42, Y - 16], [48, Y - 12], [43, Y - 10.5], [35, Y - 10]], s.cloth, 3);
+    pushAt(g, 40, Y - 9, gr(GRAND.crest, it)); g.poly([[31, Y - 9], [34, Y - 15], [42, Y - 16], [48, Y - 12], [43, Y - 10.5], [35, Y - 10]], s.cloth, 3); g.pop();   // kammen växer med materialet
     dome(g, Y, m, helmS); g.rect(45, Y - 2, 2, 7, m, 5); g.rect(29, Y - 3.5, 22, 1.5, s.trim, 3); g.rect(31, Y + 3, 1, 4, m, 1); g.dot(33, Y + 5, m, 5);
     flair(g, s, m, 36, Y - 6);
   } },
   horned: { draw(g, it, m, Y, s) {
-    horns(g, Y); dome(g, Y, m, helmS); g.rect(45, Y - 2, 2, 7, m, 5); g.rect(29, Y - 3.5, 22, 1.5, s.trim, 3);
+    const hk = Math.min(1.1, gr(GRAND.crest, it));                                                    // hornen växer, högst 1,1 så att de ryms
+    g.push(31 * (1 - hk), (Y - 6) * (1 - hk), 0, hk); horns(g, Y, 0); g.pop(); g.push(47 * (1 - hk), (Y - 7) * (1 - hk), 0, hk); horns(g, Y, 1); g.pop();
+    dome(g, Y, m, helmS); g.rect(45, Y - 2, 2, 7, m, 5); g.rect(29, Y - 3.5, 22, 1.5, s.trim, 3);
     for (const x of [31, 36, 41, 48]) g.dot(x, Y - 3, s.gem, 5);
     flair(g, s, m, 37, Y - 7);
   } },
   great: { hideHair: 1, draw(g, it, m, Y, s, sw) {      // riddarhjälm med plym som släpar efter
+    pushAt(g, 37, Y - 10, gr(GRAND.crest, it));                                                       // plymen växer med materialet
     g.poly([[38, Y - 10], [36, Y - 16], [28, Y - 18 + sw[0]], [21 + sw[1], Y - 14 + sw[0]], [18 + sw[1], Y - 6 + sw[0]], [23 + sw[1], Y - 10 + sw[0]], [30, Y - 12], [34, Y - 9]], s.cloth, 3);
     g.poly([[36, Y - 16], [28, Y - 18 + sw[0]], [21 + sw[1], Y - 14 + sw[0]], [27, Y - 15.5 + sw[0]], [35, Y - 14]], s.cloth, 5);
+    g.pop();
     dome(g, Y, m, null); g.rect(38, Y - 1, 13, 3, C.dark, 0);
     const ec = it.fx ? R(it.hex) : C.fire2; g.dot(42, Y, ec, 5); g.dot(47, Y, ec, 5);
     for (let x = 42; x <= 48; x += 2) { g.dot(x, Y + 5, m, 1); g.dot(x - 1, Y + 7, m, 1); }
@@ -375,12 +523,17 @@ const HELM = {
     g.ell(HX, Y - 4.5, 16.5, 3.7, m, false, null, 2); g.ell(HX, Y - 5, 16.5, 3.2, m, false, (dx, dy) => dy < -0.2, 4);
     g.rect(31, Y - 9.5, 17, 2.5, s.trim, 3); g.rect(40, Y - 10, 3, 3.5, s.gem, 5);
     g.rect(36, Y - 15, 3, 1, C.fire2, 5); g.rect(37, Y - 16, 1, 3, C.fire2, 5);
+    const ti = tierG(it);                                                                             // fler stjärnor på hatten för varje steg från Emerald (v3)
+    if (ti === 0) for (const x of [33, 37, 41, 45]) g.dot(x, Y - 7, C.red, 4);
+    if (ti >= 4) { g.dot(42, Y - 13, C.fire2, 5); } if (ti >= 6) { g.rect(32, Y - 13, 2, 1, C.white, 5); g.rect(32.5, Y - 13.5, 1, 2, C.white, 5); }
+    if (ti >= 8 && Math.floor(T * 3) % 3 !== 1) { g.rect(28, Y - 18, 3, 1, C.white, 5); g.rect(29, Y - 19, 1, 3, C.white, 5); }
     flair(g, s, m, 46, Y - 8);
   } },
   crown: { draw(g, it, m, Y, s) {
     g.rect(31, Y - 13, 17, 3, C.wine, 2);                                                         // sammet innanför
     g.rect(30, Y - 12, 19, 4.5, m, 3);
-    for (const [x, h] of [[30, 4], [34.5, 6], [39.5, 8.5], [44.5, 6], [49, 4]]) { g.poly([[x - 2, Y - 12], [x, Y - 12 - h], [x + 2, Y - 12]], m, 4); g.dot(x - 0.5, Y - 13 - h, s.ornate ? C.red : s.gem, 5); }
+    const ck = Math.min(1, gr(GRAND.crest, it));                                                      // spetsarna växer upp till storleken före v3 (högre ryms inte)
+    for (const [x, h0] of [[30, 4], [34.5, 6], [39.5, 8.5], [44.5, 6], [49, 4]]) { const h = h0 * ck; g.poly([[x - 2, Y - 12], [x, Y - 12 - h], [x + 2, Y - 12]], m, 4); g.dot(x - 0.5, Y - 13 - h, s.ornate ? C.red : s.gem, 5); }
     g.rect(30, Y - 9, 19, 1, m, 1);
     g.dot(33, Y - 11, C.red, 4); g.rect(39, Y - 11, 2, 2, C.ice, 5); g.dot(46, Y - 11, C.red, 4);
     if (Math.floor(T * 2) % 3 === 0) { g.rect(43, Y - 21, 3, 1, C.white, 5); g.rect(44, Y - 22, 1, 3, C.white, 5); }
@@ -391,6 +544,9 @@ const HELM = {
     g.ell(HX, Y + 0.5, 12.8, 11.8, m, false, (dx, dy) => dx > -0.3 && dx <= -0.12 && dy > -0.42 && dy < 0.78, 1);       // skugga i öppningen
     g.ell(HX, Y + 0.5, 12.8, 11.8, s.rough ? m : s.trim, false, (dx, dy, d2) => dx > -0.12 && dy <= -0.42 && dy > -0.56 && d2 < 0.9, 4);   // kantband
     g.rect(40, Y + 9, 3, 2, s.gem, 5);
+    const ti = tierG(it);
+    if (ti === 0) { g.rect(26, Y - 4, 3, 3, C.rag3, 3); g.dot(26, Y - 4, C.dark, 1); g.dot(28, Y - 2, C.dark, 1); }        // trä: en lapp med stygn
+    if (ti >= 5) g.ell(41.5, Y + 10, 2, 2, s.gem, false, null, Math.floor(T * 3) % 2 ? 5 : 4);                       // spänne som lyser
   } },
   phones: { draw(g, it, m, Y, s) {        // hörlurar med mikrofon och ring som lyser
     g.ell(HX, Y + 0.5, 13, 12, m, false, (dx, dy, d2) => d2 > 0.72 && dy < -0.25 && dx < 0.55, 4);
@@ -435,6 +591,22 @@ function drawLegs(g, armor, ar, skin) {
   }
   g.end();
 }
+// Rustningens prakt efter material (v3), ovanpå delen innan den avslutas. Trä: målade ränder och stygn. Golden och uppåt:
+// kantband vid halsen. Ice och uppåt: en fena på bortre axeln. Shadow och uppåt: en ädelsten på bröstet som pulserar.
+// Star: glimtar som vandrar över rustningen.
+function armorG(g, type, s, ar, i, y, t) {
+  if (i < 0) return;
+  if (i === 0) {
+    if (type === 'robe') { for (let x = 31; x < 48; x += 3) g.rect(x, 54, 2, 1, C.red, 3); return; }
+    for (let x = 33; x < 45; x += 3) g.rect(x, y + 9, 2, 1, C.red, 3);                                               // målad rand över magen
+    g.dot(34, y + 3, C.dark, 1); g.dot(35, y + 4, C.dark, 1); g.dot(36, y + 3, C.dark, 1);                           // stygn
+    return;
+  }
+  if (i >= 3) g.rect(33.5, y - 0.5, 10, 1, s.trim, 5);
+  if (i >= 5) g.poly([[44, y], [47.5, y - 4.5 - (i - 5) * 0.6], [47, y + 2]], s.trim, 4);
+  if (i >= 7) g.ell(38.5, y + 6.5, 1.8, 1.8, s.gem, false, null, Math.floor(t * 3) % 2 ? 5 : 4);
+  if (i >= 9) for (let k = 0; k < 2; k++) { const q = (t * 0.7 + k * 0.5) % 1; g.dot(32 + rd(q * 13), y + 3 + rd(Math.sin(q * 6 + k) * 3 + 4), C.white, 5); }
+}
 function drawTorso(g, armor, ar, b, t, bd = 0) {
   const y = SH + b, type = armor ? armor.type : 'rags', s = armor ? mat(armor) : PLAIN, body = type === 'rags' ? C.rag : ar;
   const w = rd(Math.sin(t * 1.9) * 1);
@@ -447,7 +619,7 @@ function drawTorso(g, armor, ar, b, t, bd = 0) {
     g.poly([[30.5, HIP - 2], [47.5, HIP - 2], [48, HIP + 0.5], [30, HIP + 0.5]], s.cloth, 3);                        // skärp med knut
     g.poly([[33, HIP], [35.5, HIP], [34.5 + w, HIP + 7], [32 + w, HIP + 6]], s.cloth, 2);
     g.poly([[30 - bw(bd), y - 0.5], [47 + bw(bd), y - 0.5], [45, y + 4], [38.5, y + 6], [32, y + 4]], ar, 5);                          // bred krage
-    flair(g, s, ar, 43, y + 9);
+    flair(g, s, ar, 43, y + 9); armorG(g, type, s, ar, armor ? tierG(armor) : -1, y, t);
     g.end(); return;
   }
   g.poly([[30.5 - bw(bd), y], [46.5 + bw(bd), y], [45.5, HIP + 1], [31.5, HIP + 1]], body, 3);     // build breddar axellinjen, midjan är densamma
@@ -482,6 +654,7 @@ function drawTorso(g, armor, ar, b, t, bd = 0) {
     }
     g.rect(31, HIP - 2.5, 15, 2.5, C.leather, 2); g.rect(37.5, HIP - 3, 3, 3.5, s.rough ? C.rope : C.gold, 4);
   }
+  if (armor) armorG(g, type, s, ar, tierG(armor), y, t);
   g.end();
 }
 // Halsduk som fladdrar bakåt. Röd i startklädseln, annars rustningens tygfärg.
@@ -580,10 +753,17 @@ function weaponFx(g, w, t) {
     const c = t * 1.1 + i * 0.31, life = c % 1, sd = i * 23 + Math.floor(c), u = 0.3 + rnd(sd) * 0.8;
     const x = rd(hand[0] + dx * u - life * 6 + Math.sin(life * 5 + i) * 2), y = rd(hand[1] + dy * u - life * 7);
     g.set(x, y, C.purple, life < 0.5 ? 4 : 2); if (life < 0.5) g.set(x - 1, y, C.purple, 2); if (life < 0.2) g.set(x, y - 1, C.purple, 5);
-  } else for (let i = 0; i < 3; i++) {                           // stjärnglimtar som tänds och slocknar
-    const c = t * 1.3 + i * 0.33, life = c % 1, sd = i * 19 + Math.floor(c), u = 0.25 + rnd(sd) * 0.85;
-    const x = rd(hand[0] + dx * u + (rnd(sd + 3) - 0.5) * 9), y = rd(hand[1] + dy * u + (rnd(sd + 7) - 0.5) * 9), k = life > 0.3 && life < 0.6 ? 2 : life > 0.15 && life < 0.8 ? 1 : 0;
-    g.set(x, y, C.white, 5); for (let j = 1; j <= k; j++) { g.set(x + j, y, j === 1 ? C.white : C.fire2, 5); g.set(x - j, y, j === 1 ? C.white : C.fire2, 5); g.set(x, y + j, j === 1 ? C.white : C.fire2, 5); g.set(x, y - j, j === 1 ? C.white : C.fire2, 5); }
+  } else {
+    if (OPT.grand !== false && (w.mat === 'stjarn' || w.mat === 'kristall')) {
+      const x = rd(tip[0]), y = rd(tip[1]);
+      if (w.mat === 'stjarn') { const k = 2 + Math.floor(t * 5) % 3; for (let j = 1; j <= k; j++) { const c = j < 2 ? C.white : C.fire2; g.set(x + j, y, c, 5); g.set(x - j, y, c, 5); g.set(x, y + j, c, 5); g.set(x, y - j, c, 5); } g.set(x, y, C.white, 5); }   // stjärna i spetsen (v3)
+      else { const an = t * 2.6, sx = rd(x + Math.cos(an) * 5), sy = rd(y + Math.sin(an) * 3); g.set(sx, sy - 1, C.white, 5); g.set(sx, sy, R(w.hex), 4); g.set(sx, sy + 1, R(w.hex), 3); g.set(sx + 1, sy, C.white, 4); }   // en skärva i omlopp kring spetsen (v3)
+    }
+    for (let i = 0; i < 3; i++) {                           // stjärnglimtar som tänds och slocknar
+      const c = t * 1.3 + i * 0.33, life = c % 1, sd = i * 19 + Math.floor(c), u = 0.25 + rnd(sd) * 0.85;
+      const x = rd(hand[0] + dx * u + (rnd(sd + 3) - 0.5) * 9), y = rd(hand[1] + dy * u + (rnd(sd + 7) - 0.5) * 9), k = life > 0.3 && life < 0.6 ? 2 : life > 0.15 && life < 0.8 ? 1 : 0;
+      g.set(x, y, C.white, 5); for (let j = 1; j <= k; j++) { g.set(x + j, y, j === 1 ? C.white : C.fire2, 5); g.set(x - j, y, j === 1 ? C.white : C.fire2, 5); g.set(x, y + j, j === 1 ? C.white : C.fire2, 5); g.set(x, y - j, j === 1 ? C.white : C.fire2, 5); }
+    }
   }
   g.end({ outline: false, edge: false });
 }
@@ -615,6 +795,7 @@ export function heroPose(gear = {}, t = 0, a = {}) {
 export function drawHero(g, look, gear, a = {}) {
   const t = a.t || 0, P = heroPose(gear, t, a), { b, hover, build: bd } = P; T = t;
   const small = g.t.k < 0.75;                                                       // kartmarkören: hoppa över det som ändå inte syns
+  FXOK = !small && !a.noFx;                                                          // auran (v3) bara där effekterna syns
   const sw = [(Math.sin(t * 2.6 - 1.1) > 0.3 ? 1 : 0) - b, rd(Math.sin(t * 1.3) * 1)];   // hår, plym och hattopp släpar efter andningen
   const skin = R(look.skin), ar = gear.armor ? R(gear.armor.hex) : skin, type = gear.armor ? gear.armor.type : 'rags';
   const as = gear.armor ? mat(gear.armor) : PLAIN, hr = 2.6 + (bd > 1 ? 0.4 : 0);
@@ -629,7 +810,10 @@ export function drawHero(g, look, gear, a = {}) {
   g.anchor.hand = g.pt(hx + 0.5, hy + 0.5);
   if (gear.weapon) {
     const idle = a.wAng === undefined ? Math.sin(t * 2.6 - 0.6) * 0.035 : 0;         // vapnet väger lite i handen
-    g.begin(); g.push(hx + 0.5, hy + 0.5, a.wAng !== undefined ? a.wAng : HOLD[gear.weapon.type] + (a.swing || 0) + idle); drawWeapon(g, gear.weapon); g.pop(); g.end();
+    let ang = a.wAng !== undefined ? a.wAng : HOLD[gear.weapon.type] + (a.swing || 0) + idle;
+    if (a.wAng === undefined && !a.swing) { const ty = gear.weapon.type, L = weaponLen(gear.weapon) * (LEN[ty] + (TOPX[ty] || 0)) / (LEN[ty] - 3), top = hy + 0.5 - hover - 3; if (L * Math.cos(ang) > top) ang = Math.acos(Math.min(1, top / L)); }   // långa vapen lutas framåt i vila så att spetsen ryms i rutan
+    const wi = tierG(gear.weapon);
+    g.begin(); g.push(hx + 0.5, hy + 0.5, ang); drawWeapon(g, gear.weapon); g.pop(); auraEnd(g, R(gear.weapon.hex), wi < 0 || !FXOK ? 0 : AURA[wi]);
   }
   g.begin(); g.ell(hx + 0.5, hy + 0.5, hr, hr, type === 'plate' ? ar : skin, 0.75); g.end();
   if (a.legs) poseLegs(g, a.legs, type === 'rags' ? C.rag2 : type === 'plate' || type === 'chain' ? ar : C.pants, type === 'plate' ? ar : C.leather); else drawLegs(g, gear.armor, ar, skin);
@@ -650,24 +834,26 @@ export function drawHero(g, look, gear, a = {}) {
   if (gear.shield) { const gd = a.guard || [0, 0]; drawShield(g, gear.shield, 26.5 + gd[0], HIP - 2 + b + gd[1]); g.anchor.shield = g.pt(27 + gd[0], HIP - 1.5 + b + gd[1]); }
   const w = gear.weapon;
   if (w && w.fx && !a.noFx && !small) weaponFx(g, w, t);
-  g.pop();
+  g.pop(); FXOK = true;
 }
 
 // ---------- Ikon (32x32) för ett föremål, ritad med samma funktioner som på gubben ----------
 const ICON_K = { dagger: 1.3, club: 0.95, sword: 0.94, axe: 0.82, spear: 0.84, hammer: 0.78, staff: 0.86, great: 0.82 };
+// Ikonerna visar storleken efter material mildare än gubben (roten ur skalan), så att också Star ryms i rutan och trä syns.
 export function drawIcon(g, it, t = 0) {
-  setBody(); T = t;
-  const s = mat(it), m = R(it.hex);
+  setBody(); T = t; FXOK = true;
+  const s = mat(it), m = R(it.hex), ti = tierG(it), soft = (tbl) => 1 / Math.sqrt(gr(tbl, it));     // soft: ta bort halva skalan som ritfunktionen lägger på
   if (it.slot === 'weapon') {
     g.begin();
-    if (it.type === 'orb') { g.push(7.5, 34, 0, 1); drawWeapon(g, it, 1.75); g.pop(); }
-    else if (it.type === 'bow') { g.push(14.5, 16, 0, 1); drawWeapon(g, it, 0.88); g.pop(); }
-    else { const k = ICON_K[it.type], mid = (LEN[it.type] - 6) / 2 * k, an = 0.78; g.push(15.5 - Math.sin(an) * mid, 16.5 + Math.cos(an) * mid, an, 1); drawWeapon(g, it, k); g.pop(); }
-    g.end();
+    const q = Math.sqrt(wsize(it));
+    if (it.type === 'orb') { g.push(7.5, 34, 0, 1); drawWeapon(g, it, 1.75 * Math.min(1, q)); g.pop(); }
+    else if (it.type === 'bow') { g.push(14.5, 16, 0, 1); drawWeapon(g, it, 0.88 * Math.min(1, q)); g.pop(); }
+    else { const k = ICON_K[it.type] * Math.min(1.03, q), mid = (LEN[it.type] - 6) / 2 * k, an = 0.78; g.push(15.5 - Math.sin(an) * mid, 16.5 + Math.cos(an) * mid, an, 1); drawWeapon(g, it, k); g.pop(); }
+    auraEnd(g, m, ti < 0 ? 0 : AURA[ti]);
   }
-  if (it.slot === 'shield') { g.push(15, 15.5, 0, it.type === 'round' ? 1.45 : 1.18); drawShield(g, it, 0, 0); g.pop(); }
-  if (it.slot === 'pet') { g.push(16, it.type === 'slime' ? 14 : 17, 0, it.type === 'dragon' ? 1.05 : 1.25); drawPet(g, it, 0, 0, 0.4); g.pop(); }
-  if (it.slot === 'back') { const [cx, cy] = backCenter(it.type); g.push(16, 16, 0, it.type === 'jetpack' ? 1.1 : it.type === 'cape' ? 0.95 : 0.88); g.push(-cx, -cy); BACK[it.type](g, it, m, 0, 0.3, s); g.pop(); g.pop(); }
+  if (it.slot === 'shield') { g.push(15, 15.5, 0, (it.type === 'round' ? 1.45 : 1.18) * soft(GRAND.shield) * (it.type === 'tower' ? 0.94 : 1)); drawShield(g, it, 0, 0); g.pop(); }
+  if (it.slot === 'pet') { g.push(16, it.type === 'slime' ? 14 : 17, 0, (it.type === 'dragon' ? 1.05 : 1.25) * soft(GRAND.pet)); drawPet(g, it, 0, 0, 0.4); g.pop(); }
+  if (it.slot === 'back') { const [cx, cy] = backCenter(it.type); g.push(16, 16, 0, (it.type === 'jetpack' ? 1.1 : it.type === 'cape' ? 0.95 : 0.88) * soft(it.type === 'jetpack' ? GRAND.jet : it.type === 'cape' ? GRAND.cape : GRAND.wings)); g.push(-cx, -cy); BACK[it.type](g, it, m, 0, 0.3, s); g.pop(); g.pop(); }
   if (it.slot === 'armor') {
     g.push(16, 16, 0, 1); g.push(-40, -(SH + 61) / 2);
     g.begin(); arm(g, it.type, m, m, s, 45, SH + 3, 49, SH + 11, [1, 0], 2); g.end();

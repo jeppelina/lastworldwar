@@ -109,7 +109,12 @@
 //                   välj scenen (scene_hunt) och trollformeln ur ljudet (spell_chant). De nya ordövningarna bokförs i ordboken
 //                   under en äldre typ med samma vikt (NEW_AS i words.js), så gamla loggar och äldre klienter räknar som förut.
 //                   Underlag: docs/research/ovningar2.md och förälderns önskemål 2026-11-16. Inte simulerat.
-export const version = 18;
+//   v19  2026-11-16  Ordskogen säljer fler sorter (K.shop.types): yxa, båge, cape och vingar börjar säljas i värld 0 (förut
+//                   yxa, båge och cape i Solöknen, vingar i Svampträsket). I Ordskogen finns de bara i Wooden och Iron (världens
+//                   spann), och med utrustning v3 (hero.js) är de små och enkla där. Solöknen säljer därmed också vingar i Iron
+//                   och Steel. Priser, styrka och nivåkrav är orörda, ägda föremål som förut. Förälderns önskemål 2026-11-16
+//                   (Ordskogen ska inte vara för kal). Inte simulerat (bara vilka typer hyllan drar bland).
+export const version = 19;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -178,11 +183,11 @@ export const K = {
     // med tal <= världens, så att en ny värld ger nya sorters utrustning och inte bara ny färg. Ett fynd (up1, up2) får
     // också vara en typ från nästa värld. Ägda föremål går alltid att bära, vilken typ de än är. Saknas en typ: värld 0.
     types: {
-      weapon: { dagger: 0, club: 0, sword: 0, axe: 1, spear: 1, bow: 1, hammer: 2, staff: 2, orb: 4, great: 5 },
+      weapon: { dagger: 0, club: 0, sword: 0, axe: 0, spear: 1, bow: 0, hammer: 2, staff: 2, orb: 4, great: 5 },
       helmet: { cap: 0, hood: 0, helm: 1, phones: 2, horned: 2, wizard: 3, great: 3, crown: 5 },
       armor: { tunic: 0, chain: 1, robe: 2, plate: 4 },
       shield: { round: 0, kite: 1, tower: 3 },
-      back: { cape: 1, wings: 2, dragonwings: 4, jetpack: 5 },
+      back: { cape: 0, wings: 0, dragonwings: 4, jetpack: 5 },
       pet: { slime: 1, bat: 1, ghost: 3, drone: 4, dragon: 5 },
     },
   },
