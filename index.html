@@ -31,7 +31,6 @@
   <div id="map-bar">
     <button id="b-gear"><canvas id="b-gear-c" width="24" height="24"></canvas><span>Gear</span><em id="gear-dot" hidden></em></button>
     <button id="b-book"><canvas id="b-book-c" width="24" height="24"></canvas><span>Book</span></button>
-    <button id="b-shop"><canvas id="b-shop-c" width="24" height="24"></canvas><span>Shop</span><em id="shop-dot" hidden></em></button>
     <button id="b-who"><canvas id="b-who-c" width="40" height="24" class="wide"></canvas><span>Players</span></button>
     <div id="me"><b id="me-name"></b><i id="me-title"></i><span>Level <b id="me-level"></b></span><div class="bar"><i id="me-xp"></i></div></div>
   </div>
@@ -80,7 +79,7 @@
 </section>
 
 <section id="shop" class="screen">
-  <header><button class="back">◀ Map</button><h2>Today's shop</h2><div class="wallet"><span class="coin"></span><b class="gold"></b></div></header>
+  <header id="shop-head"><button class="back">◀ Map</button><h2><span id="shop-title">Shop</span> <small id="shop-world"></small></h2><div class="wallet"><span class="coin"></span><b class="gold"></b></div></header>
   <div class="cols">
     <div class="stage"><canvas id="shop-hero"></canvas><div id="shop-try"></div></div>
     <div class="bag"><div id="shop-list"></div><p id="shop-note">New items tomorrow!</p></div>

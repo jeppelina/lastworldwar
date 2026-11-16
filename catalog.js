@@ -82,6 +82,50 @@ export function makeCatalog(T = TUNE, shopRules = BK.shop) {
     return ids;
   }
 
+  // ---------- Världarnas butiker (balans v17): en butik per värld, var och en med sitt eget materialspann ----------
+  // k = världens index i kartans ordning. Samma barn, värld och dag ger samma hylla. Åtta platser dras ur världens spann
+  // (lo till hi i shopRules.worlds) bland det som nivån räcker till, det nyaste först som i baseShop. Varje plats har chansen
+  // up1 att i stället bli ett fynd ett material över spannet och up2 två material över. Ett fynd får kräva högst `reach`
+  // nivåer över hjältens (helst ett som nivån redan räcker till). Sist ett drömföremål ur spannet som kräver högre nivå,
+  // högst sex nivåer över. Finns inget (hjälten har vuxit ifrån butiken) blir det en vanlig plats till.
+  // Typerna: världens butik säljer bara de föremålstyper som har börjat säljas i den världen (shopRules.types), och ett
+  // fynd får också vara en typ från nästa värld. Vapenregeln är densamma som i dailyShop (med världens typer i första hand).
+  // Saknas världen i shopRules används den gamla hyllan (dailyShop).
+  const shopRange = (k) => (shopRules && shopRules.worlds && shopRules.worlds[k]) || null;
+  const isLucky = (k, it) => { const W = shopRange(k); return !!(W && it && it.tier > W.hi); };
+  // Världen där en föremålstyp börjar säljas (K.shop.types). 0 om typen saknas i tabellen.
+  const typeWorld = (it) => { const TT = (shopRules && shopRules.types) || {}; return TT[it.slot] && TT[it.slot][it.type] != null ? TT[it.slot][it.type] : 0; };
+  function worldShop(profile, day, k) {
+    const W = shopRange(k); if (!W) return dailyShop(profile, day);
+    const r = rng(hash(profile.name + '|' + day + '|w' + k)), owned = new Set(profile.owned), L = profile.level;
+    const up1 = shopRules.up1 || 0, up2 = shopRules.up2 || 0, reach = shopRules.reach == null ? 6 : shopRules.reach, top = MATS.length - 1;
+    const TT = shopRules.types || {}, from = (i) => (TT[i.slot] && TT[i.slot][i.type] != null ? TT[i.slot][i.type] : 0);
+    const inR = (i) => i.tier >= W.lo && i.tier <= W.hi && from(i) <= k;
+    const pool = ITEMS.filter((i) => !owned.has(i.id) && inR(i) && i.level <= L).sort((a, b) => b.level - a.level || b.price - a.price);
+    const recent = pool.slice(0, Math.max(12, Math.ceil(pool.length * 0.35)));
+    const lucky = (step) => { const t = W.hi + step; if (t > top) return []; const a = ITEMS.filter((i) => !owned.has(i.id) && i.tier === t && from(i) <= k + 1 && i.level <= L + reach); const now = a.filter((i) => i.level <= L); return now.length ? now : a; };
+    const picks = [], slots = new Set();
+    const take = (src, spread) => {
+      const left = src.filter((i) => !picks.includes(i)); if (!left.length) return false;
+      let it = null; for (let tries = 0; tries < 40 && !it; tries++) { const c = left[Math.floor(r() * left.length)]; if (!spread || !slots.has(c.slot) || tries >= 25) it = c; }
+      picks.push(it); slots.add(it.slot); return true;
+    };
+    for (let s = 0; s < SHOP_SIZE - 1; s++) {
+      const u = r(), src = u < up2 ? lucky(2) : u < up1 + up2 ? lucky(1) : null;
+      if (src && take(src, false)) continue;
+      take(recent, true);
+    }
+    const dreamOf = (ok) => ITEMS.filter((i) => !owned.has(i.id) && ok(i) && i.level > L && i.level <= L + 6 && !picks.includes(i)).sort((a, b) => b.price - a.price);
+    const dream = dreamOf(inR);
+    if (dream.length) picks.push(dream[Math.floor(r() * Math.ceil(dream.length / 3))]);    // bland den dyraste tredjedelen
+    else take(recent, true);
+    const ids = picks.map((i) => i.id), isW = (id) => BY_ID[id].slot === 'weapon';
+    if (!shopRules.weaponFirst || !ids.length || profile.owned.some(isW) || ids.some((id) => isW(id) && BY_ID[id].level <= L)) return ids;
+    const ws = ITEMS.filter((it) => it.slot === 'weapon' && it.level <= L && !owned.has(it.id)).sort((a, b) => a.price - b.price), wr = ws.filter(inR), use = wr.length ? wr : ws;
+    if (use.length) ids[0] = use[String(day).charCodeAt(String(day).length - 1) % Math.min(2, use.length)].id;
+    return ids;
+  }
+
   // ---------- Nivåer och hjältens värden ----------
   const xpToLevel = (level) => Math.round(T.xpBase * Math.min(level, T.xpRamp) / T.xpRamp * Math.pow(T.xpGrowth, level - 1));
   // Hjältens värden: det mesta kommer från nivån (alltså från att spela), utrustningen lägger till en mindre del.
@@ -91,11 +135,11 @@ export function makeCatalog(T = TUNE, shopRules = BK.shop) {
     const gearAtk = pw('weapon') + pw('pet'), gearHp = pw('armor') + pw('helmet') + pw('shield') + pw('back');
     return { atk: baseAtk + gearAtk, maxHp: baseHp + gearHp, baseAtk, baseHp, gearAtk, gearHp };
   }
-  return { TUNE: T, MATS, RARITY, SLOTS, SHOP_SIZE, ITEMS, BY_ID, dailyShop, xpToLevel, heroStats };
+  return { TUNE: T, MATS, RARITY, SLOTS, SHOP_SIZE, ITEMS, BY_ID, dailyShop, worldShop, shopRange, isLucky, typeWorld, xpToLevel, heroStats };
 }
 
 const C = makeCatalog();
-export const ITEMS = C.ITEMS, BY_ID = C.BY_ID, dailyShop = C.dailyShop, xpToLevel = C.xpToLevel, heroStats = C.heroStats;
+export const ITEMS = C.ITEMS, BY_ID = C.BY_ID, dailyShop = C.dailyShop, worldShop = C.worldShop, shopRange = C.shopRange, isLucky = C.isLucky, typeWorld = C.typeWorld, xpToLevel = C.xpToLevel, heroStats = C.heroStats;
 
 // ---------- Nivåskydd vid kurvbyte (balans version 2) ----------
 // Nivån räknas alltid fram ur summan av xp. När kurvan byttes hade en del nivåer kunnat sjunka ett steg. Den här

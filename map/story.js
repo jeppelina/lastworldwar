@@ -41,7 +41,10 @@ window.MAP_STORY = function (A) {
         if (taken.some((o) => Math.abs(o.x - q.x) < 20 && Math.abs(o.y - q.y) < 16)) continue;      // och inte ovanpå en annan sak
         for (const n of m.pts) { const dx = Math.max(0, Math.abs(q.x - n.x) - 22), dy = Math.max(0, n.y - 34 - q.y, q.y - 24 - (n.y + 24)); free = Math.min(free, Math.hypot(dx, dy) + 4); }
       }
-      for (const s of m.sides) free = Math.min(free, Math.hypot(q.x - s.x, q.y - s.y) - 4);
+      // Världens butik (sidostoppet 's3', 2026-11-16) är ett hårt hinder: ingen sak står på ståndet eller på myntet över det.
+      // Den räknas inte i avståndet nedan, så att sakerna står kvar där de stod före butiken om de inte krockar med den.
+      if (m.sides.some((s) => s.shop && Math.abs(q.x - s.x) < 25 && q.y > s.y - 38 && q.y < s.y + 26)) continue;
+      for (const s of m.sides) if (!s.shop) free = Math.min(free, Math.hypot(q.x - s.x, q.y - s.y) - 4);
       for (const s of path) free = Math.min(free, Math.hypot(q.x - s.x, q.y - s.y) + 6);
       for (const s of taken) free = Math.min(free, Math.hypot(q.x - s.x, q.y - s.y) - 6);
       const score = free - (dist - 30) * 0.4;

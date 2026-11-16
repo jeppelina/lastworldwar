@@ -93,7 +93,23 @@
 //                   gånger i en strid lärs ut igen med ett möt-kort. Efter fel svar trycker barnet på rätt kort innan striden går vidare.
 //                   Svåra ord (fler fel än rätt, minst K.pick.hardWrong fel) får bara två val. Bilder till känslor, verb och tal.
 //                   Underlag: docs/research/ovningar2.md. Inte simulerat.
-export const version = 16;
+//   v17  2026-11-16  Butiken är en plats i varje värld (K.shop.worlds): varje världs butik säljer sitt eget materialspann med ett
+//                   stegs överlapp (Ordskogen Wooden och Iron, Solöknen Iron och Steel, Svampträsket Steel och Golden, Frostbergen
+//                   Golden och Emerald, Meningsvulkanen Emerald till Fire, Molnslottet Fire till Star). Varje hyllplats har chansen
+//                   K.shop.up1 att bli ett fynd ett material över spannet och up2 två material över. Hyllan dras per barn, värld och
+//                   dag. Varje värld säljer också bara sina föremålstyper (K.shop.types): Ordskogen dolk, klubba, svärd, mössa,
+//                   luva, tunika och rund sköld; varje ny värld lägger till nya sorter (yxa, spjut, båge, hjälm, ringbrynja,
+//                   drakesköld, cape och de första husdjuren i Solöknen, och så vidare upp till slagsvärd, krona, jetpack och
+//                   babydraken i Molnslottet). Priser, styrka och nivåkrav är orörda. Simulering: sim/out/grind-E.txt och
+//                   grind-A.txt (barnet handlar i butiken i världen det står i).
+//   v18  2026-11-16  Övningarna (quiz.js, words.js). Antalet val växer med ordets nivå (K.choices): två kort på Wood, tre på Iron,
+//                   fyra från Steel, för bildkort och skrivna kort. Den som inte läser får fortfarande högst två skrivna val och
+//                   svåra ord (K.pick.hardWrong) fortfarande två. Förut fick alla ord fyra kort. Nya övningar (K.ex): räkna
+//                   (count_pick, count_word), bild och ord (picword_sv, picword_hear), rätta Page (fix_page), hör meningen och
+//                   välj scenen (scene_hunt) och trollformeln ur ljudet (spell_chant). De nya ordövningarna bokförs i ordboken
+//                   under en äldre typ med samma vikt (NEW_AS i words.js), så gamla loggar och äldre klienter räknar som förut.
+//                   Underlag: docs/research/ovningar2.md och förälderns önskemål 2026-11-16. Inte simulerat.
+export const version = 18;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -124,13 +140,52 @@ export const K = {
   newPerRun: 5,        // högst så här många nya ord per omgång på en bana (ung-läge: newPerRunYoung). Resten kommer vid omspel.
   newPerRunYoung: 3,
   pick: { perBattle: 3, perDay: 12, reteachAfter: 2, hardWrong: 2, fixTap: true },   // ordurvalet i quiz.js, se ändringsloggen v16
+  // Antal val per fråga efter ordets nivå (v18). byTier[nivå] (0 Wood, 1 Iron, 2 Steel, sista talet gäller uppåt) för bildkort
+  // och skrivna kort. written: högsta antalet skrivna val för den som inte läser. hard: svåra ord (K.pick.hardWrong).
+  // Gäller inte ja eller nej (alltid två), saknad bokstav (fyra) och meningens lucka (valen står i innehållet).
+  choices: { byTier: [2, 3, 4], written: 2, hard: 2 },
+  // De nya övningarna (v18, quiz.js och tasksFor i words.js). share = andel av frågorna på ett ord som passar övningen.
+  //   count    räkna bilder: "How many cats?". Ord för talen min till max. Siffror och ljud, skrivna tal från readFrom (läsare).
+  //   picword  bild och skrivet ord: läsare väljer svenskan, den som inte läser hör två ord och väljer. Nivåerna from till to.
+  //   fix      Page säger fel ord (andelen wrong) eller rätt ord under en bild. Bara substantiv, från nivån from.
+  //   hunt     hör meningen och välj scenen. share = andel av läsarnas meningsturer, noread = chans per fråga för den som
+  //            inte läser (deras enda meningar). cards = antal scener. Bara meningar med scen utan rörelse (verben ritas om).
+  //   chant    meningen byggs ur ljudet, utan svensk mening. share = andel av läsarnas meningsturer. Högst maxTiles brickor.
+  //   Både hunt och chant kräver att meningens innehållsord är mötta.
+  ex: {
+    on: true,
+    count: { share: 0.4, min: 2, max: 10, readFrom: 2 },
+    picword: { share: 0.25, from: 1, to: 2 },
+    fix: { share: 0.15, from: 1, wrong: 0.6 },
+    hunt: { share: 0.3, noread: 0.2, cards: { read: 4, noread: 3 } },
+    chant: { share: 0.3, maxTiles: 5 },
+  },
   requeueGap: 2,       // ett missat ord kommer tillbaka tidigast efter så här många frågor (världar utan innehållsfil)
   options: 4,          // antal svarskort (världar utan innehållsfil)
 
   // Banbonus: så många fienders guld (på banans rek) första gången banan klaras. Inget vid omspel.
   firstBonus: 4, bossBonus: 30, replayBonus: 0,
   chestBonus: 12,      // en kista ger så många fienders guld
-  shop: { weaponFirst: true },      // så länge hjälten inte äger något vapen finns alltid ett vapen på hyllan
+  // Butiken: weaponFirst = så länge hjälten inte äger något vapen finns alltid ett vapen på hyllan.
+  // worlds: varje världs butik (i kartans ordning) säljer materialen lo till hi (index i MATS: 0 Wooden, 1 Iron, 2 Steel,
+  // 3 Golden, 4 Emerald, 5 Ice, 6 Fire, 7 Shadow, 8 Crystal, 9 Star). up1 och up2: chansen per hyllplats för ett fynd ett
+  // respektive två material över hi. Ett fynd får kräva högst `reach` nivåer över hjältens (det visar då nivån det kräver).
+  shop: {
+    weaponFirst: true,
+    worlds: [{ lo: 0, hi: 1 }, { lo: 1, hi: 2 }, { lo: 2, hi: 3 }, { lo: 3, hi: 4 }, { lo: 4, hi: 6 }, { lo: 6, hi: 9 }],
+    up1: 0.03, up2: 0.01, reach: 4,
+    // types: i vilken värld (index i kartans ordning) varje föremålstyp börjar säljas. Världens butik säljer bara typer
+    // med tal <= världens, så att en ny värld ger nya sorters utrustning och inte bara ny färg. Ett fynd (up1, up2) får
+    // också vara en typ från nästa värld. Ägda föremål går alltid att bära, vilken typ de än är. Saknas en typ: värld 0.
+    types: {
+      weapon: { dagger: 0, club: 0, sword: 0, axe: 1, spear: 1, bow: 1, hammer: 2, staff: 2, orb: 4, great: 5 },
+      helmet: { cap: 0, hood: 0, helm: 1, phones: 2, horned: 2, wizard: 3, great: 3, crown: 5 },
+      armor: { tunic: 0, chain: 1, robe: 2, plate: 4 },
+      shield: { round: 0, kite: 1, tower: 3 },
+      back: { cape: 1, wings: 2, dragonwings: 4, jetpack: 5 },
+      pet: { slime: 1, bat: 1, ghost: 3, drone: 4, dragon: 5 },
+    },
+  },
   // Avtrappning (regel a): full belöning från slagna fiender upp till `free` nivåer över banans rek, sedan
   // minus `step` per nivå, lägst `floor`. Banbonusen och xp för ord påverkas inte. type 'none' stänger av.
   falloff: { type: 'level', free: 3, step: 0.25, floor: 0.1 },

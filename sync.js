@@ -45,7 +45,10 @@ const order = (a, b) => a.ts - b.ts || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 //   buy    : gäller bara om guldet räcker just då och föremålet inte redan ägs. Annars underkänns köpet
 //            (ingen kostnad, inget föremål). Guldet kan därför aldrig bli negativt.
 //   equip  : senaste i ordningen vinner per plats. Föremål man inte äger går inte att ta på.
-//   shop   : första hyllan som skapats för en dag gäller för den dagen.
+//   shop   : första hyllan som skapats för en dag gäller för den dagen. Sedan balans v17 har varje värld en egen butik:
+//            händelsen har då fältet world (världens id) och hamnar i shops[world]. Händelser utan world (äldre klienter)
+//            hamnar i shop som förut. En äldre klient läser alla shop-händelser som sin enda hylla och visar då en av
+//            världarnas hyllor, vilket är ofarligt (köpen är egna buy-händelser och kontrolleras av fold som vanligt).
 //   mini   : guld för ett minispel. Räknas bara om händelsen har en nyckel (payload.once), och bara första gången nyckeln
 //            ses: 'm:<värld>:<nod>:first' för första gången noden spelas klart, 'm:<värld>:<nod>:<dag>' för dagens omgång.
 //            Två enheter som spelar samma nod samma dag ger alltså guldet en gång. Ingen xp. En äldre klient känner inte
@@ -55,7 +58,7 @@ const order = (a, b) => a.ts - b.ts || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 export function fold(events, opts = {}) {
   const xpToLevel = opts.xpToLevel || defaultXpToLevel, day = opts.day || dayKey();
   const evs = [...events].sort(order);
-  let earned = 0, spent = 0, xpTotal = 0, runs = 0, defeats = 0, shop = null;
+  let earned = 0, spent = 0, xpTotal = 0, runs = 0, defeats = 0, shop = null; const shops = {};
   const owned = [], has = new Set(), eq = {}, done = {}, chests = new Set(), rejected = [], once = new Set(), mini = {};
   for (const e of evs) {
     const p = e.payload || {};
@@ -83,7 +86,9 @@ export function fold(events, opts = {}) {
       if (!slot) continue;
       if (!p.item) delete eq[slot]; else if (has.has(p.item)) eq[slot] = p.item;
     } else if (e.type === 'shop') {
-      if (p.day === day && Array.isArray(p.ids) && (!shop || p.ids.length > shop.ids.length)) shop = { day: p.day, ids: p.ids.slice(), dream: null };   // en längre hylla samma dag ersätter (butiken växte), annars gäller den första
+      if (p.day !== day || !Array.isArray(p.ids)) continue;
+      if (typeof p.world === 'string' && p.world) { const o = shops[p.world]; if (!o || p.ids.length > o.ids.length) shops[p.world] = { day: p.day, ids: p.ids.slice() }; }   // världens egen butik (v17)
+      else if (!shop || p.ids.length > shop.ids.length) shop = { day: p.day, ids: p.ids.slice(), dream: null };   // en längre hylla samma dag ersätter (butiken växte), annars gäller den första
     } else if (e.type === 'mini') {
       if (p.once == null) continue;                               // utan nyckel går det inte att veta om guldet redan är givet
       const k = String(p.once); if (once.has(k)) continue; once.add(k);
@@ -96,7 +101,7 @@ export function fold(events, opts = {}) {
   }
   let level = 1, xp = Math.max(0, xpTotal);
   for (let i = 0; i < 10000 && xp >= xpToLevel(level); i++) { xp -= xpToLevel(level); level++; }
-  return { level, xp, gold: Math.max(0, earned - spent), owned, eq, done, shop, seenShop: shop ? shop.day : '', runs, defeats, rejected, mini };
+  return { level, xp, gold: Math.max(0, earned - spent), owned, eq, done, shop, shops, seenShop: shop ? shop.day : '', runs, defeats, rejected, mini };
 }
 
 // ---------- Lagring ----------

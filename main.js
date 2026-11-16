@@ -1,7 +1,7 @@
 // Spelets skal: vem spelar, karta, strid, resultat, utrustning och dagens butik.
 import { G, ramp } from './pixel.js';
 import { W, H, drawHero, drawIcon, HAIR_STYLES, drawPet } from './hero.js';
-import { ITEMS, BY_ID, SLOTS, RARITY, dailyShop, heroStats, xpToLevel, levelKeepGrant } from './catalog.js';
+import { ITEMS, BY_ID, SLOTS, RARITY, MATS, worldShop, shopRange, isLucky, heroStats, xpToLevel, levelKeepGrant } from './catalog.js';
 import { Battle, loadArt } from './battle.js';
 import { Quiz } from './quiz.js';
 import { showTitle, playIntro, drawPage } from './intro.js';
@@ -40,7 +40,10 @@ if (S.profiles.length < 4) S.profiles.push({ name: 'Demo', look: { skin: '#e9b48
 S.profiles[3].demo = true;
 function demoFill(p) {      // allt öppet för demon: alla banor klarade med tre stjärnor, alla bossar öppna, guld och nivå
   for (const w of Object.keys(BAL_NODES.rec)) { const n = BAL_NODES.rec[w].length; p.done[w] = Array.from({ length: n }, (_, i) => Math.max(3, (p.done[w] || [])[i] || 0)); p.open[w] = true; }
-  p.gold = Math.max(p.gold, 99999); if (p.level < 30) { p.level = 30; p.xp = 0; }
+  // Guld och nivå bokförs som riktiga gåvor i loggen (inte bara visade), annars nekar synken demons köp. En gång per dag fylls guldet på.
+  let xp = 0; for (let l = p.level; l < 30; l++) xp += xpToLevel(l); xp = Math.max(0, xp - (p.xp || 0));
+  const gold = p.gold < 50000 ? 99999 - p.gold : 0;
+  if (gold || xp) { sync.record(pid(p), 'grant', { gold, xp, reason: 'demo' }, { once: 'demo:' + today() + ':' + p.gold + ':' + p.level }); Object.assign(p, { gold: p.gold + gold }); const st = sync.stateFor(pid(p), today()); p.gold = st.gold; p.level = st.level; p.xp = st.xp; }
 }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 let P = null, MAP = null, battle = null, words = [];
@@ -190,6 +193,7 @@ window.GAME = {
   mapReady(m) { MAP = m; if (P) syncMap(true); },
   play(k, i, node, done) {
     const w = MAP.worlds[k];
+    if (node.type === 'shop') return openShop(k);                                                // världens butik (sidostoppet 's3')
     if (node.type === 'mini') return openMini(k, node.slot != null ? node.slot : i, node);      // i = nodindex, eller sidostoppets id
     if (node.type === 'chest') { if (done) return toast('The chest is empty.'); const gold = R.chestGold(R.nodeInfo(w.id, i).rec); rec('stage', { world: w.id, node: i, kind: 'chest', win: true, stars: 1, gold, xp: 0, bv: BV }); toast(`You found ${gold} gold!`); MAP.finish(k, i, 1); return afterMapChange(); }
     // Bossens ordmätare: bossen går att utmana först när tillräckligt många av världens ord är inlärda (eller föräldern har öppnat den).
@@ -268,7 +272,7 @@ function pushMapInfo() {
     worlds[w.id] = {
       best: hasC ? practiceNode(k) : -1,
       gate: bossI >= 0 && !done[bossI] ? withText(bossGate(k)) : null,
-      side: (w.side || []).map((nd) => miniInfo(w, nd, nd.after)),
+      side: (w.side || []).map((nd) => (nd.type === 'shop' ? { shop: { sells: shopSells(k), fresh: shopOpen(k) && !(P.shops || {})[w.id] } } : miniInfo(w, nd, nd.after))),
       nodes: w.nodes.map((nd, i) => {
         const info = R.nodeInfo(w.id, i);
         if (nd.type === 'chest') return { gold: R.chestGold(info.rec) };
@@ -292,27 +296,20 @@ function miniInfo(w, nd, anchor) {
 function goPractice(k, i) { enterMap(false); if (MAP) { afterMapChange(); if (i >= 0 && MAP.focus) MAP.focus(k, i); } }
 function renderBar() {
   $('me-name').textContent = P.name; $('me-level').textContent = P.level; $('me-xp').style.width = (100 * P.xp / xpToLevel(P.level)) + '%';
-  $('shop-dot').hidden = P.seenShop === today();
   $('gear-dot').hidden = sparksFree() <= 0; putTitle($('me-title'), P.skills);      // en oanvänd spark syns som en gnista på Gear-knappen
   const g = new G(W, H); SFX.drawHeroWithSkills(g, P.look, { helmet: P.eq.helmet && BY_ID[P.eq.helmet] }, { t: 0.9, noShadow: true, busy: true }, lookOf(P.skills), null);
   const full = document.createElement('canvas'); full.width = W; full.height = H; g.paint(full.getContext('2d'));
   const ctx = $('b-gear-c').getContext('2d'); ctx.clearRect(0, 0, 24, 24); ctx.drawImage(full, 27, 12, 24, 24, 0, 0, 24, 24);
-  // Players: familjens tre hjältar bredvid varandra. Shop: ett marknadsstånd med randig markis och guldmynt.
+  // Players: familjens tre hjältar bredvid varandra. (Butiken har ingen knapp här sedan 2026-11-16: den är en plats i varje värld.)
   const pg = new G(40, 24); S.profiles.filter((q) => !q.demo).forEach((p, i) => { pg.push(i * 12 - 15, 2, 0, 0.55); SFX.drawHeroWithSkills(pg, p.look, gearOf(p), { t: 0.9, noShadow: true, noPet: true, noFx: true, busy: true }, lookOf(p.skills), null); pg.pop(); });
   pg.paint($('b-who-c').getContext('2d'));
-  const sg = new G(24, 24), RED = ramp('#d8433b'), CREAM = ramp('#f4ead0'), WOOD = ramp('#9a6b3f'), GOLD = ramp('#f2b632');
-  sg.begin(); sg.rect(3, 9, 2, 13, WOOD, 2); sg.rect(19, 9, 2, 13, WOOD, 2); sg.end();
-  sg.begin(); sg.rect(2, 14, 20, 7, WOOD, 3); sg.rect(2, 14, 20, 2, WOOD, 5); sg.end();
-  sg.begin(); for (let i = 0; i < 5; i++) { sg.poly([[1 + i * 4.4, 9], [3.2 + i * 4.4, 3], [7.6 + i * 4.4 - 2.2, 3], [5.4 + i * 4.4, 9]], i % 2 ? CREAM : RED, 3); sg.ell(3.2 + i * 4.4, 9.5, 2.2, 2, i % 2 ? CREAM : RED, false, null, 2); } sg.end();
-  sg.begin(); sg.ell(9, 12, 2.6, 2.6, GOLD); sg.ell(15, 12.5, 2.2, 2.2, GOLD); sg.end();
-  sg.paint($('b-shop-c').getContext('2d'));
-  const bg = new G(24, 24), COVER = ramp('#7a4cc0'), PAGE = ramp('#f4ead0');
+  const bg = new G(24, 24), COVER = ramp('#7a4cc0'), PAGE = ramp('#f4ead0'), GOLD = ramp('#f2b632');
   bg.begin(); bg.poly([[3, 6], [12, 8], [21, 6], [21, 19], [12, 21], [3, 19]], COVER, 3); bg.end();
   bg.begin(); bg.poly([[5, 5], [12, 7], [12, 19], [5, 17]], PAGE, 4); bg.poly([[12, 7], [19, 5], [19, 17], [12, 19]], PAGE, 3); bg.end();
   bg.begin(); for (const y of [9, 12, 15]) { bg.rect(7, y, 3, 1, COVER, 2); bg.rect(14, y - 1, 3, 1, COVER, 2); } bg.dot(17, 8, GOLD, 5); bg.end({ outline: false, edge: false });
   bg.paint($('b-book-c').getContext('2d'));
 }
-$('b-book').onclick = () => openBook(); $('b-gear').onclick = () => openGear(); $('b-shop').onclick = () => openShop(); $('b-who').onclick = () => { P = null; renderWho(); show('who'); };
+$('b-book').onclick = () => openBook(); $('b-gear').onclick = () => openGear(); $('b-who').onclick = () => { P = null; renderWho(); show('who'); };
 document.querySelectorAll('.back').forEach((b) => (b.onclick = () => enterMap(false)));
 $('mini-back').onclick = () => leaveMini();
 
@@ -625,8 +622,10 @@ function renderGear() {
   const grid = $('gear-grid'); grid.innerHTML = '';
   if (!list.length) {
     const e = document.createElement('div'); e.className = 'emptybag';
-    e.innerHTML = P.owned.length ? `<p>No ${slot.name.toLowerCase()} yet.</p>` : '<p><b>Your bag is empty.</b><br>Win gold in battles and visit the shop!</p>';
-    const b = document.createElement('button'); b.className = 'btn'; b.textContent = "Today's shop"; b.onclick = openShop; e.appendChild(b); grid.appendChild(e);
+    // Butiken finns bara på kartan: knappen går till butiken i världen barnet står i om den är öppen, annars till kartan.
+    const sk = curWorldIdx(), here = shopOpen(sk);
+    e.innerHTML = P.owned.length ? `<p>No ${slot.name.toLowerCase()} yet.</p>` : `<p><b>Your bag is empty.</b><br>${here ? 'Win gold in battles and visit the shop!' : 'Win the first level of a world to open its shop.'}</p>`;
+    const b = document.createElement('button'); b.className = 'btn'; b.textContent = here ? 'Go to the shop' : 'To the map'; b.onclick = here ? () => openShop(sk) : () => enterMap(false); e.appendChild(b); grid.appendChild(e);
   }
   for (const it of list) {
     const eq = P.eq[it.slot] === it.id, c = document.createElement('button');
@@ -920,18 +919,38 @@ function renderBook() {
   }
 }
 
-// ---------- Dagens butik: fyra föremål, nya i morgon, ingen katalog ----------
-let sSel = null;
-function shopToday() { const day = today(), fresh = dailyShop(P, day); if (!P.shop || P.shop.day !== day || fresh.length > P.shop.ids.length) rec('shop', { day, ids: fresh }); return P.shop.ids.map((id) => BY_ID[id]); }   // fyller också på dagens hylla om butiken har blivit större
-function openShop() { sSel = null; show('shop'); renderShop(); }
+// ---------- Världarnas butiker (balans v17): en butik per värld, sidostoppet 's3' på kartan ----------
+// Varje värld säljer sitt eget materialspann (K.shop.worlds), med en liten chans till ett fynd över spannet. Hyllan dras
+// per barn, värld och dag (worldShop i catalog.js) och bokförs som en 'shop'-händelse med världens id (sync.js, shops).
+// Butiken öppnar när världens första bana är klarad, och butikerna i tidigare världar är öppna för alltid.
+let sSel = null, sWorld = 0;
+const SHOP_TINT = ['#2f6b34', '#8a5a1e', '#3f5a3a', '#3a6a9a', '#8a2e1e', '#6a5aa8'];      // rubrikens färg per värld
+const shopAfter = (k) => { const sd = MAP && MAP.worlds[k] && (MAP.worlds[k].side || []).find((x) => x.type === 'shop'); return sd ? sd.after : 0; };
+const shopOpen = (k, p = P) => k >= 0 && k < R.WORLD_IDS.length && isDone(k, shopAfter(k), p);
+function shopSells(k) { const W = shopRange(k); if (!W) return ''; const n = MATS.slice(W.lo, W.hi + 1).map((m) => m.pre); return (n.length > 2 ? n[0] + ' to ' + n[n.length - 1] : n.join(' and ')) + ' gear'; }
+function shopToday(k) {
+  const day = today(), wid = R.WORLD_IDS[k], fresh = worldShop(P, day, k), cur = (P.shops || {})[wid];
+  if (fresh.length && (!cur || cur.day !== day || fresh.length > cur.ids.length)) rec('shop', { day, ids: fresh, world: wid });   // fyller också på dagens hylla om butiken har blivit större
+  const now = (P.shops || {})[wid]; return now ? now.ids.map((id) => BY_ID[id]).filter(Boolean) : [];
+}
+function openShop(k) {
+  if (typeof k !== 'number' || !(k >= 0)) k = curWorldIdx();
+  sSel = null; sWorld = k; show('shop'); renderShop();
+  if (MAP) pushMapInfo();                                          // myntet över ståndet slocknar när hyllan är sedd
+}
 function renderShop() {
+  const k = sWorld, w = MAP && MAP.worlds[k], sd = w && (w.side || []).find((x) => x.type === 'shop');
   document.querySelectorAll('.gold').forEach((e) => (e.textContent = fmt(P.gold)));
+  $('shop-title').textContent = sd ? sd.name : 'Shop'; $('shop-world').textContent = w ? w.name : '';
+  $('shop-head').style.background = SHOP_TINT[k] || '';
   const list = $('shop-list'); list.innerHTML = '';
   $('shop-try').textContent = sSel ? `Trying: ${sSel.name}` : 'Tap an item to try it on.';
-  for (const it of shopToday()) {
-    const own = P.owned.includes(it.id), locked = it.level > P.level, poor = P.gold < it.price;
-    const c = document.createElement('div'); c.className = 'offer' + (sSel === it ? ' sel' : '') + (own ? ' sold' : ''); c.style.setProperty('--rc', RARITY[it.rarity].color);
-    c.innerHTML = (locked ? '<span class="tag">Dream item</span>' : '') + `<img src="${ICON[it.id]}" alt=""><b>${it.name}</b><small style="color:${RARITY[it.rarity].color}">${RARITY[it.rarity].name}</small><small class="statline">${statLine(it)}</small>`;
+  const shelf = shopToday(k);
+  $('shop-note').textContent = (shelf.length ? '' : 'Nothing here for you yet. ') + shopSells(k) + '. New items tomorrow!';
+  for (const it of shelf) {
+    const own = P.owned.includes(it.id), locked = it.level > P.level, poor = P.gold < it.price, lucky = isLucky(k, it);
+    const c = document.createElement('div'); c.className = 'offer' + (sSel === it ? ' sel' : '') + (own ? ' sold' : '') + (lucky ? ' lucky' : ''); c.style.setProperty('--rc', RARITY[it.rarity].color);
+    c.innerHTML = (lucky ? '<span class="tag">Lucky find!</span>' : locked ? '<span class="tag">Dream item</span>' : '') + `<img src="${ICON[it.id]}" alt=""><b>${it.name}</b><small style="color:${RARITY[it.rarity].color}">${RARITY[it.rarity].name}</small><small class="statline">${statLine(it)}</small>`;
     c.onclick = () => { sSel = sSel === it ? null : it; renderShop(); };
     const b = document.createElement('button'); b.className = 'btn';
     b.innerHTML = own ? 'Bought' : locked ? `Level ${it.level}` : `<span class="coin"></span>${fmt(it.price)}`; b.disabled = own || locked || poor;
@@ -1085,7 +1104,7 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
     const go = () => { S.seenIntro = true; save(); renderWho(); show('who'); };
     if (S.seenIntro) go(); else playIntro(root, { play, look: looks[0], onDone: go });
   } });
-  window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, gate: (k) => bossGate(k), practice: (k) => practiceTarget(k), openBook, mapInfo: pushMapInfo, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, openGear, levelUp, mini: () => mini, openMini: (k, slot) => { const w = MAP.worlds[k], nd = typeof slot === 'number' ? w.nodes[slot] : w.side.find((x) => x.slot === slot); openMini(k, slot, nd); }, miniWords, pick: (n) => { P = S.profiles[n]; enterMap(true); }, tempo: (x) => (TEMPO = x), bossData: () => BOSSDATA,
+  window.__game = { S: () => S, P: () => P, art, battle: () => battle, map: () => MAP, gate: (k) => bossGate(k), practice: (k) => practiceTarget(k), openBook, mapInfo: pushMapInfo, startBattle: (k, i) => startBattle(k, i, MAP.worlds[k].nodes[i], MAP.worlds[k]), openShop, shopOpen: (k) => shopOpen(k), openGear, levelUp, mini: () => mini, openMini: (k, slot) => { const w = MAP.worlds[k], nd = typeof slot === 'number' ? w.nodes[slot] : w.side.find((x) => x.slot === slot); openMini(k, slot, nd); }, miniWords, pick: (n) => { P = S.profiles[n]; enterMap(true); }, tempo: (x) => (TEMPO = x), bossData: () => BOSSDATA,
     // banans boksida: sidan som är öppen (eller null), vredena i balance.js, och ljudkön (för provkörning)
     page: () => pageUp, K, hush, voice: () => ({ waiting, gen: vgen, playing: !!vcur }),
     // berättelsen: tabellen, barnets tillstånd, vad som står på tur, och krokar för att spela upp, frysa tiden (fix) och tvinga fram armén (army = sannolikhet)

@@ -5,7 +5,7 @@
 //   typ: 'level' (vanlig bana), 'chest' (kista), 'mini' (minispel), 'boss' (sist i världen)
 //   En minispelsnod har ett femte fält: { game, level }. game är spelets id i game/minigames/index.js (en lista med två
 //   id betyder att barnet väljer), level är storleken (1 liten, 2 större, 3 störst). Tredje fältet är spelets namn.
-//   Minispelsnoden i stigen ligger på butikens gamla plats (butiken finns i menyraden). Den spärrar aldrig: barnet går förbi.
+//   Minispelsnoden i stigen ligger på butikens gamla plats (butiken är nu sidostoppet 's3', se nedan). Den spärrar aldrig: barnet går förbi.
 //
 // VIKTIGT: lägg aldrig till, ta bort eller flytta en nod i `nodes`. Platsen i listan (nodindex) är det som sparas i barnens
 // framsteg, och samma index pekar ut banans nivå i game/balance.js och banans ord i game/content/world<N>.json.
@@ -13,6 +13,8 @@
 //   side: [{ id, after, node }]   ett sidostopp intill stigen mellan nod `after` och nästa. Det tar ingen plats i `nodes`,
 //   öppnas när nod `after` är klarad och har sitt eget id ('s1'), som aldrig får ändras eller återanvändas.
 //   game/balance.test.mjs kontrollerar att ordningen i `nodes` är densamma som när spelet publicerades.
+//   Butiken (sedan 2026-11-16) är sidostoppet 's3' i varje värld, typ 'shop', öppen när världens första bana är klarad.
+//   Den står sist i `side` så att de äldre sidostoppen behåller sina platser. Vad den säljer står i balance.js (K.shop.worlds).
 //   guld: visas bara när kartan öppnas för sig (demo). I spelet räknas banbonus och kistor ur game/balance.js
 //   (rekommenderad nivå per bana står där, i samma ordning som noderna här), och spelets skal skickar talen till kartan.
 // Nodernas positioner räknas ut automatiskt längs en slingrande stig, i den ordning de står.
@@ -42,7 +44,7 @@ window.GAME_DATA = {
         ['level', 'The Owl Tree', 'owl, bat, moon', 16],
         ['boss', 'The Forgetful Troll', 'All words from Word Forest', 100]
       ],
-      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'The Broken Trail', 'Mend the Path', 0, { game: 'path', level: 1 }] }]
+      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'The Broken Trail', 'Mend the Path', 0, { game: 'path', level: 1 }] }, { id: 's3', after: 0, node: ['shop', 'Forest Stall', 'Wooden and Iron gear', 0] }]
     },
     {
       id: 'soloknen', name: 'Sun Desert', biome: 'desert',
@@ -60,7 +62,7 @@ window.GAME_DATA = {
         ['level', 'The Sun Gate', 'boat, car, lion', 18],
         ['boss', 'The Riddle Sphinx', 'All words from Sun Desert', 120]
       ],
-      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'Lantern Camp', 'Light the Lanterns', 0, { game: 'lanterns', level: 1 }] }]
+      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'Lantern Camp', 'Light the Lanterns', 0, { game: 'lanterns', level: 1 }] }, { id: 's3', after: 0, node: ['shop', 'Desert Bazaar', 'Iron and Steel gear', 0] }]
     },
     {
       id: 'svamptrasket', name: 'Mushroom Swamp', biome: 'swamp',
@@ -78,7 +80,7 @@ window.GAME_DATA = {
         ['level', 'The Root Cave', 'you, they, not, now', 20],
         ['boss', 'The Mumbling Witch', 'All words from Mushroom Swamp', 140]
       ],
-      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'The Sunken Boardwalk', 'Mend the Path', 0, { game: 'path', level: 2 }] }]
+      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'The Sunken Boardwalk', 'Mend the Path', 0, { game: 'path', level: 2 }] }, { id: 's3', after: 0, node: ['shop', 'Stilt Shop', 'Steel and Golden gear', 0] }]
     },
     {
       id: 'frostbergen', name: 'Frost Mountains', biome: 'ice',
@@ -96,7 +98,7 @@ window.GAME_DATA = {
         ['level', 'The Peak', 'Mixed words', 22],
         ['boss', 'The Shivering Giant', 'All words from Frost Mountains', 160]
       ],
-      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'Echo Peak', "Owl's Echo", 0, { game: 'echo', level: 2 }] }]
+      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'Echo Peak', "Owl's Echo", 0, { game: 'echo', level: 2 }] }, { id: 's3', after: 0, node: ['shop', 'Igloo Shop', 'Golden and Emerald gear', 0] }]
     },
     {
       id: 'meningsvulkanen', name: 'Sentence Volcano', biome: 'volcano',
@@ -115,7 +117,7 @@ window.GAME_DATA = {
         ['level', 'The Crater Rim', 'Mixed sentences', 28],
         ['boss', 'The Word Dragon', 'All sentences from the volcano', 200]
       ],
-      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 9, node: ['mini', 'The Lava Hall', 'Word Bingo', 0, { game: 'bingo', level: 1 }] }]
+      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 9, node: ['mini', 'The Lava Hall', 'Word Bingo', 0, { game: 'bingo', level: 1 }] }, { id: 's3', after: 0, node: ['shop', 'Lava Forge', 'Emerald, Ice and Fire gear', 0] }]
     },
     {
       id: 'molnslottet', name: 'Cloud Castle', biome: 'sky',
@@ -133,7 +135,7 @@ window.GAME_DATA = {
         ['level', 'The King\'s Gate', 'Tell a story in three sentences', 30],
         ['boss', 'The Babbling Cloud King', 'Everything you have learned', 300]
       ],
-      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'The Play Room', "Spark Pairs or Owl's Echo", 0, { game: ['pairs', 'echo'], level: 2 }] }]
+      side: [{ id: 's2', after: 1, node: ['mini', 'Word Gym', 'Train your words', 0, { game: 'gym', level: 1 }] }, { id: 's1', after: 8, node: ['mini', 'The Play Room', "Spark Pairs or Owl's Echo", 0, { game: ['pairs', 'echo'], level: 2 }] }, { id: 's3', after: 0, node: ['shop', 'Cloud Kiosk', 'Fire to Star gear', 0] }]
     }
   ],
 

@@ -27,7 +27,6 @@ canvas, img { image-rendering:pixelated; }
 #map-bar { position:absolute; left:8px; right:8px; bottom:max(8px, env(safe-area-inset-bottom)); display:flex; gap:8px; align-items:flex-end; pointer-events:none; }
 #map-bar button { pointer-events:auto; position:relative; display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 10px; min-width:64px; border-radius:14px; background:#15172af0; border:2px solid #f0c050; font-size:11px; }
 #map-bar button i { font-style:normal; font-size:24px; line-height:28px; } #map-bar canvas { width:36px; height:36px; } #map-bar canvas.wide { width:60px; }
-#shop-dot { position:absolute; top:-5px; right:-5px; width:14px; height:14px; border-radius:50%; background:#ff5a5a; border:2px solid #15172a; }
 #me { margin-left:auto; pointer-events:none; background:#15172af0; border:2px solid #3a3f60; border-radius:14px; padding:6px 12px; font-size:13px; display:flex; flex-direction:column; gap:3px; min-width:110px; }
 #me span { color:var(--dim); }
 
@@ -102,6 +101,7 @@ header h2 { flex:1; margin:0; font-size:18px; } header .back { background:var(--
 .offer img { width:96px; height:96px; } .offer b { font-size:15px; } .offer small { color:var(--dim); font-weight:500; } .offer .btn { width:100%; padding:9px; font-size:15px; margin-top:4px; }
 .offer.sel { box-shadow:0 0 0 3px #fff; } .offer .tag { position:absolute; top:-9px; left:50%; transform:translateX(-50%); background:#b77bff; color:#1a0d33; border-radius:8px; padding:1px 8px; font-size:11px; white-space:nowrap; }
 .offer.sold { opacity:.45; }
+#shop-world { display:block; font-size:13px; white-space:nowrap; font-weight:500; color:#ffffffc0; } .offer.lucky { box-shadow:0 0 0 3px #ffd84a; } .offer.lucky .tag { background:#ffd84a; color:#3a2500; } .offer.lucky.sel { box-shadow:0 0 0 3px #fff, 0 0 0 6px #ffd84a; }
 #shop-note { margin:0; padding:10px; text-align:center; color:var(--dim); font-weight:500; } #shop-try { color:var(--dim); font-size:13px; max-width:150px; }
 
 /* Resultat och notiser */

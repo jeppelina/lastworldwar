@@ -312,10 +312,15 @@
     segs.forEach((seg) => { for (let s = 0; s < seg.length; s += 2) samples.push(seg[s]); });
     // Sidostopp: en kort stickväg från stigen mellan nod `after` och nästa, ut till ett tält vid sidan. Platsen väljs bland
     // några lägen på båda sidor om stigen: den som ligger längst från andra noder, deras skyltar (under) och stjärnor (över).
-    const sides = w.side.map((sd) => {
-      const seg = segs[Math.min(sd.after, segs.length - 1)], free = (q) => Math.min(...pts.map((p) => Math.min(Math.hypot(q.x - p.x, q.y - p.y), Math.hypot(q.x - p.x, q.y - p.y - 16) + 4, Math.hypot(q.x - p.x, q.y - p.y + 16) + 6)));
+    // Butiken ('shop', sidostoppet s3) står sist i listan och håller sig dessutom undan de sidostopp som redan står, så att
+    // de äldre stoppen behåller sina platser. Den har fler lägen att välja bland (längre ut, fler punkter längs stigen).
+    const sides = [];
+    w.side.forEach((sd) => {
+      const shop = sd.type === 'shop', seg = segs[Math.min(sd.after, segs.length - 1)];
+      const free = (q) => Math.min(...pts.map((p) => Math.min(Math.hypot(q.x - p.x, q.y - p.y), Math.hypot(q.x - p.x, q.y - p.y - 16) + 4, Math.hypot(q.x - p.x, q.y - p.y + 16) + 6)),
+        ...(shop ? sides.map((o) => Math.hypot(q.x - o.x, q.y - o.y) - 6) : []));
       let best = null;
-      for (const f of [0.5, 0.36, 0.64]) for (const sg of [-1, 1]) for (const dist of [26, 32]) {
+      for (const f of shop ? [0.5, 0.36, 0.64, 0.25, 0.75] : [0.5, 0.36, 0.64]) for (const sg of [-1, 1]) for (const dist of shop ? [26, 32, 38] : [26, 32]) {
         const mi = Math.round((seg.length - 1) * f), a = seg[Math.max(0, mi - 2)], b = seg[Math.min(seg.length - 1, mi + 2)], c = seg[mi], dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
         const q = { x: Math.round(c.x - sg * dy / L * dist), y: Math.round(c.y + sg * dx / L * dist), cx: c.x, cy: c.y }, inside = q.x >= 24 && q.x <= W - 24 && q.y >= 54 && q.y <= H - 48;
         q.score = free(q) - Math.abs(f - 0.5) * 30 - (dist - 26) * 0.5 - (inside ? 0 : 60);
@@ -323,7 +328,8 @@
       }
       const p = { x: PX.clamp(best.x, 24, W - 24), y: PX.clamp(best.y, 54, H - 48) };
       for (let s = 0; s <= 1; s += 0.08) samples.push({ x: best.cx + (p.x - best.cx) * s, y: best.cy + (p.y - best.cy) * s });
-      return p;
+      if (shop) p.shop = true;                                      // map/story.js håller sina saker borta från butiken
+      sides.push(p);
     });
     const seed = 100 + k * 13;
     const ter = buildTerrain({
@@ -449,6 +455,64 @@
     if (dark) return;
     const w = ((t * 4) | 0) % 2; R(O, -8, -21, 1, 7); R('#d8433b', -7, -21 + w, 4, 2); R('#d8433b', -7, -20, 3 + w, 1);   // vimpel
   }
+  // Världens butik (sidostoppet 's3'): ett marknadsstånd med eget utseende i varje värld. Ritas en gång per värld till en
+  // liten bild (och en mörk för en butik som inte är öppen än). fresh = dagens hylla är inte sedd än: ett guldmynt guppar över.
+  const STALL = {};
+  function stallSprite(biome) {
+    if (STALL[biome]) return STALL[biome];
+    const p = new PX.Pix(26, 25), R = (x, y, w, h, c) => p.rect(x, y, w, h, c), dot = (x, y, c) => p.set(x, y, c);
+    const WD = '#9a6b3f', WDD = '#6b4a2a', WDL = '#c9965a', GOLD = '#ffd84a', GD = '#c8861c', IN = '#2a2046', ST = '#c3d0de', RED = '#d8433b';
+    const goods = (x, y) => { R(x, y, 1, 4, ST); dot(x, y + 4, GD); R(x - 1, y + 3, 3, 1, GD); p.disc(x + 5, y + 2, 2, 2, [RED, '#ff7a6a'], 0); dot(x + 5, y + 2, GOLD); R(x + 9, y + 1, 3, 3, '#5fd08a'); dot(x + 10, y, '#5fd08a'); };
+    const stripes = (x0, x1, y0, y1, a, b, wdt) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) p.set(x, y, Math.floor((x - x0) / wdt) % 2 ? b : a); for (let x = x0; x <= x1; x++) if (Math.floor((x - x0) / wdt) % 2 === 0) p.set(x, y1 + 1, a); };
+    if (biome === 'desert') {                     // basartält: randigt tält i rött och sand, öppen flik, matta och en kruka
+      for (let j = 0; j < 14; j++) { const hw = 1 + Math.floor(j * 0.8); for (let x = -hw; x <= hw; x++) p.set(13 + x, 3 + j, ((Math.abs(x) + 1) >> 1) % 2 ? '#e8d3a0' : '#c8402e'); }
+      R(2, 17, 23, 1, '#8a2a1e'); for (let j = 0; j < 7; j++) R(13 - Math.floor(j * 0.7), 10 + j, 1 + 2 * Math.floor(j * 0.7), 1, IN);
+      goods(9, 13); R(5, 19, 16, 3, '#7a4cc0'); for (let x = 6; x < 20; x += 3) dot(x, 20, GOLD);
+      p.disc(22, 19, 2, 2.5, ['#a8582a', '#d4844a'], 0); R(13, 0, 1, 3, WDD); R(14, 0, 3, 2, GOLD);
+    } else if (biome === 'swamp') {               // hydda på pålar: halmtak med en svamp, plankor, disk i fönstret, stege och vatten
+      for (const x of [6, 13, 19]) R(x, 16, 2, 7, WDD); R(4, 22, 18, 1, '#5aa0a8'); R(2, 23, 22, 1, '#3a7a88');
+      R(4, 9, 18, 7, WD); for (let y = 10; y < 16; y += 2) R(4, y, 18, 1, WDD); R(7, 10, 12, 4, IN); R(6, 14, 14, 1, WDL); goods(9, 10);
+      for (let j = 0; j < 7; j++) { const hw = 3 + j * 1.6; R(Math.round(13 - hw), 2 + j, Math.round(hw * 2), 1, j % 2 ? '#b8903a' : '#d8b45a'); }
+      p.disc(18, 2, 3, 2, ['#c02a20', '#e8412f'], 0); dot(17, 1, '#fff6e0'); dot(19, 2, '#fff6e0'); R(18, 4, 1, 2, '#f4ead0');
+      for (let y = 16; y < 22; y += 2) R(21, y, 3, 1, WDL); R(21, 16, 1, 6, WDD); R(23, 16, 1, 6, WDD);
+    } else if (biome === 'ice') {                 // igloo med isblock, mörk ingång, skylt med mynt och istappar
+      p.disc(13, 19, 11, 11, ['#9ac4ec', '#c4dcf4', '#e8f4ff', '#ffffff'], 0.3); R(1, 20, 25, 5, null);
+      for (const [y, o] of [[12, 0], [15, 2], [18, 0]]) for (let x = 3 + o; x < 24; x += 5) { R(x, y, 4, 1, '#9ac4ec'); }
+      for (let x = 2; x < 25; x++) if (p.get(x, 19)) p.set(x, 19, '#9ac4ec');
+      R(9, 14, 9, 6, IN); R(10, 13, 7, 1, IN); R(10, 17, 7, 1, WDL); goods(10, 13.5 | 0);
+      R(8, 9, 11, 4, WD); R(9, 10, 9, 2, WDL); p.disc(13.5, 11, 1, 1, [GOLD], 0); dot(8, 13, '#e8f4ff'); dot(12, 13, '#e8f4ff'); dot(17, 13, '#e8f4ff');
+    } else if (biome === 'volcano') {             // smedja: stenhus med skorsten, glödande ugn, städ och rött tak
+      R(3, 10, 20, 11, '#5c5068'); for (let y = 12; y < 21; y += 3) for (let x = 3 + (y % 2) * 2; x < 23; x += 5) R(x, y, 3, 1, '#7c7088');
+      for (let j = 0; j < 5; j++) R(2 + j, 5 + j, 22 - 2 * j, 1, null); for (let j = 0; j < 5; j++) R(1 + j, 9 - j, 24 - 2 * j, 1, j % 2 ? '#8a2a1e' : '#a8382a');
+      R(4, 1, 4, 5, '#4a4050'); R(4, 1, 4, 1, '#7c7088');
+      R(6, 13, 7, 6, '#2a1a20'); R(7, 15, 5, 4, '#ff6a14'); R(8, 16, 3, 3, '#ffb02a'); dot(9, 17, '#fff0a0');
+      R(14, 13, 7, 5, IN); goods(15, 13); R(14, 18, 8, 1, '#7c7088');
+      R(13, 20, 9, 1, '#3c3c48'); R(15, 21, 5, 2, '#3c3c48'); R(14, 19, 7, 1, '#55556a');
+    } else if (biome === 'sky') {                 // molnkiosk: molnbas, randig markis i ljusrosa och himmelsblått, guldstolpar och en stjärna
+      p.disc(7, 21, 6, 3, ['#d8e4f8', '#ffffff'], 0); p.disc(18, 21, 7, 3, ['#d8e4f8', '#ffffff'], 0); p.disc(13, 20, 6, 3.5, ['#e8f0ff', '#ffffff'], 0);
+      R(5, 9, 2, 10, GOLD); R(19, 9, 2, 10, GOLD); R(7, 10, 12, 6, IN); goods(9, 11); R(4, 15, 18, 3, '#f4ead0'); R(4, 15, 18, 1, '#ffffff');
+      stripes(3, 22, 5, 8, '#ff9ad0', '#9ad4ff', 3); R(12, 2, 2, 3, GOLD); dot(11, 3, GOLD); dot(14, 3, GOLD); dot(12, 1, '#fff3a8');
+    } else {                                      // skogen: trästånd med grön och vit markis, disk med varor och en skylt med mynt
+      R(4, 9, 2, 13, WDD); R(20, 9, 2, 13, WDD); R(6, 10, 14, 6, IN); goods(9, 11);
+      R(3, 16, 20, 6, WD); R(3, 16, 20, 1, WDL); for (let x = 5; x < 22; x += 4) R(x, 18, 2, 3, WDD);
+      stripes(2, 23, 5, 8, '#3f9444', '#f4ead0', 3); R(9, 1, 8, 4, WD); R(10, 2, 6, 2, WDL); p.disc(13, 2.5, 1, 1, [GOLD], 0);
+    }
+    p.outline('#1b1630');
+    const lit = PX.spr(p, { ax: 13, ay: 21 });
+    return (STALL[biome] = { lit, dark: Object.assign({}, lit, { cv: PX.tint(lit.cv, '#14102a', 0.6) }) });
+  }
+  function drawStall(p, dark, t, biome, fresh) {
+    const S2 = stallSprite(biome); img(dark ? S2.dark : S2.lit, p.x, p.y);
+    if (dark) return;
+    if (biome === 'volcano') smoke([{ x: p.x - 7, y: p.y - 22 }], t);
+    if (fresh) {                                                     // dagens hylla är inte sedd: ett guldmynt guppar och blänker
+      const b = ((t * 2.5) | 0) % 2, x = p.x + 9, y = p.y - 25 - b;
+      img(C.coin, x, y);
+      if (((t * 3) | 0) % 4 === 0) { ctx.fillStyle = '#ffffff'; rect(x + 3, y - 7, 1, 3); rect(x + 2, y - 6, 3, 1); }
+    }
+  }
+  // Ett fel i butikens bild får aldrig stoppa kartan: då ritas tältet i stället.
+  function safeStall(p, dark, t, biome, fresh) { try { drawStall(p, dark, t, biome, fresh); } catch (e) { if (!safeStall.err) { safeStall.err = 1; console.error('stall', e); } drawTent(p, dark, t, 9); } }
   function stars3(x, y, n) { for (let s = 0; s < 3; s++) img(s < n ? C.star : C.starOff, x - 10 + s * 7 + 3, y + 6 - (s === 1 ? 2 : 0)); }
 
   // Berättelsen på kartan (map/story.js): det som ligger kvar efter en stund och de korta stunderna ovanpå kartan.
@@ -529,7 +593,8 @@
       const p = m.segs[s][j]; ctx.fillStyle = (q - ((t * 7) | 0)) % 7 === 0 ? '#ffffff' : '#fff3a8'; rect(p.x, p.y, 1, 1);
     }
     story('ground', t);
-    w.side.forEach((sd, j) => (sd.mini && sd.mini.game === 'gym' ? drawArena(m.sides[j], !done[sd.after], t) : drawTent(m.sides[j], !done[sd.after], t, 5 + j)));
+    w.side.forEach((sd, j) => (sd.type === 'shop' ? safeStall(m.sides[j], !done[sd.after], t, w.biome, !!((((worldInf(w) || {}).side || [])[j] || {}).shop || {}).fresh)
+      : sd.mini && sd.mini.game === 'gym' ? drawArena(m.sides[j], !done[sd.after], t) : drawTent(m.sides[j], !done[sd.after], t, 5 + j)));
     const order = m.pts.map((p, i) => i).sort((a, b) => m.pts[a].y - m.pts[b].y);
     for (const i of order) {
       const p = m.pts[i], nd = w.nodes[i], st = done[i] ? 'done' : i === ci && !walking ? 'cur' : (i === ci && walking) ? 'lock' : 'lock';
@@ -606,10 +671,28 @@
     play.hidden = false; el.querySelector('.practice').hidden = true; play.disabled = locked; play.textContent = locked ? 'Locked' : 'Play';
     el.classList.add('on');
   }
+  // Rutan för världens butik. inf.shop kommer från spelets skal: { sells, fresh } där sells = materialen den säljer och
+  // fresh = dagens hylla är inte sedd än.
+  function shopCard(w, nd, locked, inf) {
+    const el = $('#card'), sh = inf && inf.shop;
+    el.classList.add('mini');
+    el.querySelector('.kind').textContent = 'Shop in ' + w.name;
+    el.querySelector('h2').textContent = nd.name;
+    el.querySelector('.row i').textContent = 'Sells';
+    el.querySelector('.trains').textContent = sh ? sh.sells : nd.trains;
+    el.querySelector('.lvrow').hidden = true; el.querySelector('.starrow').hidden = true; el.querySelector('.meter').hidden = true;
+    el.querySelector('.reward').textContent = !sh || locked ? 'New items every day' : sh.fresh ? 'New items today!' : 'You have seen today\'s items';
+    el.querySelector('.note').textContent = locked ? 'Locked. Win the first level here to open the shop.' : 'Sometimes it has a lucky find.';
+    const play = el.querySelector('.play');
+    play.hidden = false; el.querySelector('.practice').hidden = true; play.disabled = locked; play.textContent = locked ? 'Locked' : 'Go in';
+    el.classList.add('on');
+  }
   // i = nodindex i stigen. sj = index i världens sidostopp (då gäller inte i).
   function openCard(i, sj) {
     const w = worlds[view.world], isSide = sj != null && sj >= 0, nd = isSide ? w.side[sj] : w.nodes[i], d = isSide ? 0 : state.done[w.id][i], ci = curNode(w), locked = isSide ? !state.done[w.id][nd.after] : !d && i !== ci, el = $('#card');
     cardNode = isSide ? -1 : i; cardSide = isSide ? sj : -1;
+    el.querySelector('.reward').previousElementSibling.textContent = nd.type === 'shop' ? 'Today' : 'Reward';
+    if (nd.type === 'shop' && isSide) return shopCard(w, nd, locked, ((worldInf(w) || {}).side || [])[sj]);
     if (nd.type === 'mini') return miniCard(w, nd, locked, isSide ? ((worldInf(w) || {}).side || [])[sj] : nodeInf(w, i));
     el.querySelector('.starrow').hidden = false; el.classList.remove('mini');
     const no = w.nodes.slice(0, i + 1).filter((x) => x.type === 'level').length;
