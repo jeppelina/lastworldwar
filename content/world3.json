@@ -671,7 +671,8 @@
    "foils": [],
    "accept": [
     "hee"
-   ]
+   ],
+   "isolated": false
   },
   {
    "id": "she",
@@ -685,7 +686,8 @@
    "node": 9,
    "foils": [
     "he"
-   ]
+   ],
+   "isolated": false
   },
   {
    "id": "we",
@@ -700,7 +702,8 @@
    "foils": [],
    "accept": [
     "wee"
-   ]
+   ],
+   "isolated": false
   },
   {
    "id": "hug",
@@ -741,7 +744,8 @@
    "node": 10,
    "foils": [
     "we"
-   ]
+   ],
+   "isolated": false
   },
   {
    "id": "they",
@@ -755,7 +759,8 @@
    "node": 10,
    "foils": [
     "we"
-   ]
+   ],
+   "isolated": false
   },
   {
    "id": "not",
@@ -770,7 +775,8 @@
    "foils": [],
    "accept": [
     "knot"
-   ]
+   ],
+   "isolated": false
   },
   {
    "id": "now",
@@ -782,7 +788,8 @@
    "say": "Now.",
    "audio": "now",
    "node": 10,
-   "foils": []
+   "foils": [],
+   "isolated": false
   },
   {
    "id": "today",
@@ -796,7 +803,8 @@
    "node": 10,
    "foils": [
     "now"
-   ]
+   ],
+   "isolated": false
   },
   {
    "id": "get_dressed",

@@ -499,7 +499,8 @@
    "say": "My.",
    "audio": "my",
    "node": 6,
-   "foils": []
+   "foils": [],
+   "isolated": false
   },
   {
    "id": "your",
@@ -513,7 +514,8 @@
    "node": 6,
    "foils": [
     "my"
-   ]
+   ],
+   "isolated": false
   },
   {
    "id": "in",
@@ -861,7 +863,8 @@
    "foils": [],
    "accept": [
     "eat"
-   ]
+   ],
+   "isolated": false
   },
   {
    "id": "this",
@@ -875,7 +878,8 @@
    "node": 10,
    "foils": [
     "it"
-   ]
+   ],
+   "isolated": false
   },
   {
    "id": "ph_please",

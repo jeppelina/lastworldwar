@@ -1793,7 +1793,8 @@
     "id": "c_cat_and_dog",
     "en": "A cat and a dog.",
     "sv": "En katt och en hund."
-   }
+   },
+   "isolated": false
   },
   {
    "id": "owl",
@@ -1980,7 +1981,8 @@
     "id": "s_cat_big",
     "en": "The cat is big.",
     "sv": "Katten är stor."
-   }
+   },
+   "isolated": false
   },
   {
    "id": "I",
@@ -2010,7 +2012,8 @@
     "id": "s_eat_apples",
     "en": "I can eat two apples.",
     "sv": "Jag kan äta två äpplen."
-   }
+   },
+   "isolated": false
   },
   {
    "id": "can",
@@ -2035,7 +2038,8 @@
     "id": "s_bird_fly",
     "en": "The bird can fly.",
     "sv": "Fågeln kan flyga."
-   }
+   },
+   "isolated": false
   },
   {
    "id": "ph_hello",
