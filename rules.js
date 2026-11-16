@@ -44,6 +44,7 @@ export const WEAPON_RULES = {
   staff: { hits: [1] },
   orb: { hits: [1], aoe: true },
   bow: { hits: [1] },
+  knives: { hits: [0.4, 0.4, 0.4] },     // kastknivar (v20): tre kast mot den främsta, summan 1,2 som dolken
 };
 
 // ---------- Banans strider ----------

@@ -3,6 +3,7 @@
 // Varje föremålstyp är EN ritfunktion som tar ett material. Nytt i v2: materialet styr mer än färgen
 // (se MAT: beslag, ädelsten, tyg och ett särdrag som trä-lindning, stålglans, isflisor, glöd, rök, fasetter).
 import { ramp as R } from './pixel.js';
+import { setCounts, BUILDS } from './catalog.js';
 
 export const W = 80, H = 72;
 // Val som föräldern kan pröva i arket. tall = längre kropp, brow = bestämd blick, wscale = vapnens storlek.
@@ -249,7 +250,7 @@ const WEAPON = {
 // (i v1 släpades det bakom benen); striden släpar det fortfarande i marken under attacken.
 export const HOLD = { dagger: 0.9, club: 0.55, sword: 0.42, axe: 0.35, spear: 0.2, hammer: 0.3, staff: 0.12, great: 0.3, bow: 0, orb: 0 };
 // k = skala. Storsvärdet växer lite mindre så att spetsen hamnar vid marken när striden släpar det (vinkel -2.08).
-const wk = (it) => (it.type === 'great' ? Math.min(OPT.wscale, 1.1) : it.type === 'orb' ? 1 : OPT.wscale);
+const wk = (it) => (it.type === 'great' ? Math.min(OPT.wscale, 1.1) : it.type === 'orb' ? 1 : WK[it.type] || OPT.wscale);   // WK: nya vapen (v4)
 // Det som växer med materialet på vapnet utöver storleken (v3). Trä: en fjäder knuten under handen och målade röda ränder.
 // Emerald och uppåt: skaftvapnen får ett band med en vimpel som blir längre för varje steg. Fire och uppåt: vingar på
 // parerstången (i hilt). Star: en stjärna i spetsen (weaponFx).
@@ -417,7 +418,7 @@ const capeMap = (g, cx, cy, kx, ky) => {
     dot: (x, y, rp, lv) => { const [a, b] = P([x, y]); g.dot(Math.round(a), Math.round(b), rp, lv); },
   };
 };
-const backCenter = (type) => ({ cape: [30, SH + 13], wings: [21, SH - 3], dragonwings: [20, SH - 4], jetpack: [23.5, SH + 12] }[type]);
+const backCenter = (type) => ({ cape: [30, SH + 13], leafcloak: [30, SH + 13], wings: [21, SH - 3], dragonwings: [20, SH - 4], jetpack: [23.5, SH + 12] }[type]);
 
 // ---------- Följeslagare ----------
 const eye = (g, x, y, shut) => { if (shut) g.rect(x, y + 1, 2, 1, C.dark, 0); else { g.rect(x, y, 2, 2, C.dark, 0); g.dot(x, y, C.white, 5); } };
@@ -558,38 +559,49 @@ const HELM = {
 
 // ---------- Rustning: ben, överkropp, armar ----------
 // Ben i valfri ställning (ordbilderna): lår och smalben som tjocka linjer, stöveln vriden efter fotvinkeln.
-function poseLegs(g, L, pants, boot) {
+// gear (v4): en buren ben- eller fotdel ritas på samma benmodell som i stridsställningen (legPieces).
+function poseLegs(g, L, pants, boot, gear = {}, type = 'rags') {
+  const noB = !!(gear.feet && FEET[gear.feet.type]);
   g.begin();
   for (const [k, hip, lv] of [['b', 35.5, 3], ['f', 42, 2]]) {
     const p = L[k]; if (!p) continue; const [kx, ky, fx, fy, fa = 0] = p;
     g.thick(hip, HIP, kx, ky, 6, pants, lv); g.thick(kx, ky, fx, fy, 5.4, pants, lv);
-    g.push(fx, fy, fa); g.poly([[-3.2, -2], [2.6, -2], [5.6, 1.8], [5.6, 4.6], [-3.2, 4.6]], boot, lv); g.pop();
+    if (!noB) { g.push(fx, fy, fa); g.poly([[-3.2, -2], [2.6, -2], [5.6, 1.8], [5.6, 4.6], [-3.2, 4.6]], boot, lv); g.pop(); }
   }
   g.end();
+  legPieces(g, gear, L, type);
 }
 // Bredbent stridsställning: bakre benet (vänster i bild) rakt, främre benet framåt.
-function drawLegs(g, armor, ar, skin) {
+// gear (v4): en buren ben- eller fotdel ersätter rustningens byxor eller stövlar. Utan dem ritas allt exakt som förut.
+function drawLegs(g, armor, ar, skin, gear = {}) {
   const type = armor ? armor.type : 'rags', s = armor ? mat(armor) : PLAIN;
   const metal = type === 'plate' || type === 'chain';
   const pants = type === 'rags' ? C.rag2 : metal ? ar : C.pants, boot = type === 'plate' ? ar : C.leather;
+  const noP = !!(gear.legs && LEGS[gear.legs.type]) && type !== 'robe', noB = !!(gear.feet && FEET[gear.feet.type]);
   g.begin();
-  if (type !== 'robe') {
+  if (type !== 'robe' && !noP) {
     g.poly([[39, HIP - 1], [45, HIP - 1], [48, 56], [42.5, 56]], pants, 2);          // främre benet
     g.poly([[32, HIP - 1], [38.5, HIP - 1], [35.5, 56], [30, 56]], pants, 3);        // bakre benet
   }
-  g.poly([[42, 55], [48, 55], [51, 58.5], [51, 61], [42, 61]], boot, 2);
-  g.poly([[29, 55], [35.5, 55], [38, 58.5], [38, 61], [29, 61]], boot, 3);
-  if (type === 'rags') {          // lindade smalben och en lapp på knät
-    g.rect(30, 53, 6, 2, C.bone, 3); g.rect(42.5, 53, 6, 2, C.bone, 2); g.rect(30, 54, 6, 1, C.bone, 1); g.rect(42.5, 54, 6, 1, C.bone, 1);
-    g.rect(41, HIP + 2, 3, 3, C.rag3, 3); g.dot(41, HIP + 2, C.dark, 1); g.dot(43, HIP + 4, C.dark, 1);
-  } else if (type === 'tunic' || type === 'shirt' || type === 'chain' || type === 'robe') {
-    g.rect(29, 55, 7, 1.5, boot, 5); g.rect(42, 55, 6.5, 1.5, boot, 5);             // uppvikt stövelkant
-    if (type === 'chain') { g.rect(35, 60, 3, 1, C.steel, 4); g.rect(48, 60, 3, 1, C.steel, 4); for (let y = HIP; y < 55; y += 2) { g.dot(33 - (y - HIP) / 4, y, ar, 1); g.dot(36 - (y - HIP) / 4, y + 1, ar, 1); g.dot(42 + (y - HIP) / 4, y, ar, 1); g.dot(45 + (y - HIP) / 4, y + 1, ar, 1); } }
-  } else if (type === 'plate') {  // knäskydd och kantlist
-    g.ell(33.5, HIP + 4.5, 3, 2.6, ar); g.ell(44.5, HIP + 4.5, 3, 2.6, ar);
-    g.rect(29, 55, 7, 1, s.trim, 4); g.rect(42, 55, 6.5, 1, s.trim, 3); g.rect(35, 60, 3, 1, s.trim, 4); g.rect(48, 60, 3, 1, s.trim, 4);
+  if (!noB) {
+    g.poly([[42, 55], [48, 55], [51, 58.5], [51, 61], [42, 61]], boot, 2);
+    g.poly([[29, 55], [35.5, 55], [38, 58.5], [38, 61], [29, 61]], boot, 3);
   }
+  if (type === 'rags') {          // lindade smalben och en lapp på knät
+    if (!noP) {
+      g.rect(30, 53, 6, 2, C.bone, 3); g.rect(42.5, 53, 6, 2, C.bone, 2); g.rect(30, 54, 6, 1, C.bone, 1); g.rect(42.5, 54, 6, 1, C.bone, 1);
+      g.rect(41, HIP + 2, 3, 3, C.rag3, 3); g.dot(41, HIP + 2, C.dark, 1); g.dot(43, HIP + 4, C.dark, 1);
+    }
+  } else if (type === 'plate') {  // knäskydd och kantlist
+    if (!noP) { g.ell(33.5, HIP + 4.5, 3, 2.6, ar); g.ell(44.5, HIP + 4.5, 3, 2.6, ar); }
+    if (!noB) { g.rect(29, 55, 7, 1, s.trim, 4); g.rect(42, 55, 6.5, 1, s.trim, 3); g.rect(35, 60, 3, 1, s.trim, 4); g.rect(48, 60, 3, 1, s.trim, 4); }
+  } else if (!noB) {              // tunika, ringbrynja, kåpa och nya kroppar: uppvikt stövelkant
+    g.rect(29, 55, 7, 1.5, boot, 5); g.rect(42, 55, 6.5, 1.5, boot, 5);
+    if (type === 'chain') { g.rect(35, 60, 3, 1, C.steel, 4); g.rect(48, 60, 3, 1, C.steel, 4); }
+  }
+  if (type === 'chain' && !noP) for (let y = HIP; y < 55; y += 2) { g.dot(33 - (y - HIP) / 4, y, ar, 1); g.dot(36 - (y - HIP) / 4, y + 1, ar, 1); g.dot(42 + (y - HIP) / 4, y, ar, 1); g.dot(45 + (y - HIP) / 4, y + 1, ar, 1); }
   g.end();
+  legPieces(g, gear, null, type);
 }
 // Rustningens prakt efter material (v3), ovanpå delen innan den avslutas. Trä: målade ränder och stygn. Golden och uppåt:
 // kantband vid halsen. Ice och uppåt: en fena på bortre axeln. Shadow och uppåt: en ädelsten på bröstet som pulserar.
@@ -622,6 +634,7 @@ function drawTorso(g, armor, ar, b, t, bd = 0) {
     flair(g, s, ar, 43, y + 9); armorG(g, type, s, ar, armor ? tierG(armor) : -1, y, t);
     g.end(); return;
   }
+  if (BODY[type]) { BODY[type](g, armor, ar, s, y, t, bd, w); armorG(g, type, s, ar, tierG(armor), y, t); g.end(); return; }   // nya kroppar (v4)
   g.poly([[30.5 - bw(bd), y], [46.5 + bw(bd), y], [45.5, HIP + 1], [31.5, HIP + 1]], body, 3);     // build breddar axellinjen, midjan är densamma
   if (type === 'rags') {          // sliten äventyrarskjorta: axelrem, bälte med väska, lapp och fransig nederkant
     g.poly([[31.5, HIP + 1], [45.5, HIP + 1], [46, HIP + 4], [43, HIP + 2.5], [41, HIP + 4.5], [38.5, HIP + 2.5], [36, HIP + 4.5], [34, HIP + 2.5], [31, HIP + 4]], C.rag, 2);      // trasig nederkant
@@ -668,7 +681,10 @@ function drawScarf(g, col, b, t) {
   g.end();
 }
 // Arm i två delar med armbåge. bend = hur långt armbågen skjuts ut (x, y).
-function arm(g, type, ar, skin, s, sx, sy, hx, hy, bend, lv, bd = 0) {
+// hands (v4): en buren handdel ritas som en egen del (med materialets aura) i stället för ärmslutet.
+const ARM_AS = { vest: 'tunic' };                                     // nya kroppar ärmas som en äldre typ
+function arm(g, type, ar, skin, s, sx, sy, hx, hy, bend, lv, bd = 0, hands = null) {
+  type = ARM_AS[type] || type;
   const ex = (sx + hx) / 2 + bend[0], ey = (sy + hy) / 2 + bend[1];
   const bare = type === 'rags', up = bare ? skin : ar, low = bare || type === 'tunic' || type === 'shirt' ? skin : ar;
   const [, uw, lw] = BUILD[bd] || BUILD[0];                            // build: överarmen växer mest
@@ -676,6 +692,7 @@ function arm(g, type, ar, skin, s, sx, sy, hx, hy, bend, lv, bd = 0) {
   g.thick(sx, sy, ex, ey, 4.6 + uw, up, lv); g.thick(ex, ey, hx, hy, 4.2 + lw, low, lv);
   if (bd > 0) { g.ell(sx - (lv > 2 ? 0.5 : -0.5), sy - 0.5, 2.6 + uw * 0.7, 2.5 + uw * 0.5, up, false, null, lv); g.dot((sx + ex) / 2 - 1.5, (sy + ey) / 2 - 1.5, up, 5); if (bd > 1) g.dot((sx + ex) / 2 - 0.5, (sy + ey) / 2 - 2.5, up, 5); }   // rundad axel och en ljus prick på överarmen
   const cx = ex + (hx - ex) * 0.42, cy = ey + (hy - ey) * 0.42, dx = hx - (hx - ex) * 0.12, dy = hy - (hy - ey) * 0.12;
+  if (hands && HANDS[hands.type]) { if (bare) g.rect(sx - 2.5 - uw / 2, sy - 2, 5 + uw, 2.5, C.rag, 2); g.end(); handPiece(g, hands, cx, cy, dx, dy, lw, lv); return; }
   if (bare) { g.thick(cx, cy, dx, dy, 4.8 + lw, C.rag2, 3); g.rect(sx - 2.5 - uw / 2, sy - 2, 5 + uw, 2.5, C.rag, 2); }      // lindad underarm, avriven ärm
   else if (type === 'plate') { g.thick(cx, cy, dx, dy, 5 + lw, ar, 5); g.ell(ex, ey, 2.4 + lw / 2, 2.4 + lw / 2, ar); }
   else g.thick(cx, cy, dx, dy, 4.8 + lw, C.leather, 3);
@@ -768,6 +785,239 @@ function weaponFx(g, w, t) {
   g.end({ outline: false, edge: false });
 }
 
+// =====================================================================================================================
+// ---------- UTRUSTNING V4 (balans v20): händer, ben, fötter, bälte, berlock, nya sorter och byggen ----------
+// Koordinaterna är hjältens egna (80x72, fötterna på y 61). Varje ny del ritas som en egen del med materialets aura (HINT),
+// och prakten växer med materialet som på de andra platserna: trä är minst och enklast men handgjort (målad rand, stygn,
+// en knuten snodd), Iron enkelt, Steel blänk, Golden kantband, Emerald ädelsten, Ice och uppåt materialets särdrag (flair).
+// GRAND.trim skalar det som får växa på en kropp som inte växer: knäskydd, stövelkragar, armskyddens kanter, spännen.
+// =====================================================================================================================
+C.leaf = R('#5aa646'); C.fur = R('#e8dcc4');
+GRAND.trim = [0.75, 0.82, 0.9, 0.97, 1.03, 1.09, 1.15, 1.2, 1.25, 1.3];
+const pieceK = (it) => gr(GRAND.trim, it);
+// En ny del: egen begin, ritfunktionen, sedan auran. fn(g, m, s, ti, k) där ti = materialsteget (-1 = inga v3-detaljer).
+function piece(g, it, fn) { const m = R(it.hex); g.begin(); fn(g, m, mat(it), tierG(it), pieceK(it)); auraEnd(g, m, hintOf(it)); }
+
+// ---------- Benmodellen (gemensam för stridsställningen och ordbildernas ställningar) ----------
+// Ett ben = höft, knä, fotled och fotvinkel. Stridsställningen motsvarar benens polygoner i drawLegs (raka ben), ordbilderna
+// skickar egna lägen i a.legs. Ben- och fotdelarna ritas bara på modellen, så de sitter rätt var hjälten än står.
+const STANCE = { b: [34, 51.5, 32.75, 56, 0], f: [43.6, 51.5, 45.25, 56, 0] };
+function legModel(L) {
+  const P = L || STANCE, out = [];
+  for (const [k, hx, lv] of [['b', L ? 35.5 : 35.25, 3], ['f', 42, 2]]) { const p = P[k]; if (!p) continue; const [kx, ky, ax, ay, fa = 0] = p; out.push({ k, lv, hip: [hx, HIP - 1], knee: [kx, ky], ankle: [ax, ay], fa }); }
+  return out;
+}
+const lerp2 = (a, b, u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+// Ett avsmalnande stycke från a till b, w0 brett vid a och w1 vid b.
+function limb(g, a, b, w0, w1, rp, lv) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1, nx = -dy / d / 2, ny = dx / d / 2;
+  g.poly([[a[0] + nx * w0, a[1] + ny * w0], [b[0] + nx * w1, b[1] + ny * w1], [b[0] - nx * w1, b[1] - ny * w1], [a[0] - nx * w0, a[1] - ny * w0]], rp, lv);
+}
+// Foten i fotledens koordinater (tån framåt, sulan på y +5).
+const FOOT = [[-3.5, -1], [2.75, -1], [5.5, 2.5], [5.5, 5], [-3.5, 5]];
+const atFoot = (g, L, fn) => { g.push(L.ankle[0], L.ankle[1], L.fa); fn(); g.pop(); };
+function legPieces(g, gear, L, type) {
+  const f = gear.feet, l = gear.legs, FD = f && FEET[f.type], LD = l && LEGS[l.type]; if (!FD && !LD) return;
+  const legs = legModel(L);
+  if (FD && !FD.over) piece(g, f, (q, m, s, ti, k) => FD.draw(q, f, m, s, legs, ti, k));
+  if (LD && type !== 'robe') piece(g, l, (q, m, s, ti, k) => LD.draw(q, l, m, s, legs, ti, k));
+  if (FD && FD.over) piece(g, f, (q, m, s, ti, k) => FD.draw(q, f, m, s, legs, ti, k));
+}
+
+// ---------- Ben (byxor och benskydd) ----------
+export const LEGS = {
+  trousers: { draw(g, it, m, s, legs, ti, k) {          // jägarbyxor med knäskydd i läder
+    for (const L of legs) { limb(g, L.hip, L.knee, 6.6, 6, m, L.lv); limb(g, L.knee, L.ankle, 6, 5.6, m, L.lv); }
+    for (const L of legs) {
+      const [x, y] = L.knee, pad = ti >= 2 ? s.trim : C.leather;
+      g.ell(x, y, 2.4 * k, 2 * k, pad); g.dot(x - 1, y - 1, pad, 5);
+      if (ti >= 4) g.dot(x, y, s.gem, 5); else if (ti === 1) g.dot(x, y, C.iron, 4);
+      if (ti >= 3) limb(g, lerp2(L.knee, L.ankle, 0.82), L.ankle, 5.8, 5.6, s.trim, L.lv + 1);                     // kantband nertill
+    }
+    const F = legs.find((L) => L.k === 'f');
+    if (F) g.line(F.hip[0] - 0.5, F.hip[1] + 2, F.ankle[0] - 1, F.ankle[1] - 1, m, 1);                                     // söm
+    const B = legs.find((L) => L.k === 'b');
+    if (ti === 0 && B) { const [x, y] = lerp2(B.knee, B.ankle, 0.35); g.rect(x - 2, y, 3, 2, C.rag3, 3); g.dot(x - 2, y, C.dark, 1); g.dot(x, y + 1, C.dark, 1); }   // trä: en lapp med stygn
+    if (ti >= 5 && F) flair(g, s, m, Math.round(F.knee[0]), Math.round(F.knee[1] - 4));
+  } },
+  greaves: { draw(g, it, m, s, legs, ti, k) {           // benskenor: brynja på låren, skenor på smalbenen och knäkopp
+    const chain = ti === 0 ? C.leather : C.iron;
+    for (const L of legs) { limb(g, L.hip, L.knee, 6.6, 6, chain, L.lv - 1); limb(g, L.knee, L.ankle, 6, 5.6, chain, L.lv - 1); }
+    for (const L of legs) for (let u = 0.15; u < 0.95; u += 0.28) { const [x, y] = lerp2(L.hip, L.knee, u); g.dot(Math.round(x - 1.5), Math.round(y), ti === 0 ? C.rope : C.steel, 3); g.dot(Math.round(x + 1.5), Math.round(y + 1), ti === 0 ? C.rope : C.steel, 3); }
+    for (const L of legs) {
+      const top = lerp2(L.knee, L.ankle, 0.08);
+      limb(g, top, L.ankle, 6.6, 6, m, L.lv + 1);                                                                        // skenan
+      if (ti === 0) { for (const u of [0.3, 0.7]) { const [x, y] = lerp2(top, L.ankle, u); g.rect(x - 3, y, 6, 1, C.rope, 3); } g.rect(top[0] - 3, top[1] + 2, 6, 1, C.red, 3); }   // trä: snören och en målad rand
+      else { g.rect(top[0] - 3.2, top[1], 6.4, 1, s.trim, 4); if (ti >= 3) { const [x, y] = lerp2(top, L.ankle, 0.5); g.line(x, y - 1.5, x, y + 1.5, m, 5); } }
+      g.ell(L.knee[0], L.knee[1] - 0.5, 2.8 * k, 2.4 * k, m); g.dot(L.knee[0] - 1, L.knee[1] - 1.5, C.white, ti >= 2 ? 5 : 4);   // knäkopp
+      if (ti >= 4) g.dot(L.knee[0], L.knee[1] - 0.5, s.gem, 5);
+      if (ti >= 5) g.poly([[L.knee[0] + 1.5, L.knee[1] - 1.5], [L.knee[0] + 3.5 * k, L.knee[1] - 4 * k], [L.knee[0] + 2.8, L.knee[1] + 0.5]], s.trim, 4);   // en kam på knät
+    }
+    const F = legs.find((L) => L.k === 'f'); if (ti >= 6 && F) { const [x, y] = lerp2(F.knee, F.ankle, 0.5); flair(g, s, m, Math.round(x), Math.round(y)); }
+  } },
+};
+
+// ---------- Fötter (over = ritas ovanpå byxorna, annars under) ----------
+export const FEET = {
+  tallboots: { over: 1, draw(g, it, m, s, legs, ti, k) {     // höga stövlar med uppvikt krage
+    for (const L of legs) {
+      const top = lerp2(L.knee, L.ankle, -0.08);
+      limb(g, top, L.ankle, 6.4, 6, m, L.lv); atFoot(g, L, () => { g.poly(FOOT, m, L.lv); g.rect(-3.5, 4, 9, 1, C.dark, 1); });
+      const ch = 1.5 + k;                                                                                                // kragen blir högre för varje material
+      limb(g, top, lerp2(top, L.ankle, ch / 5), 7.2 * Math.min(1.15, k + 0.2), 7, ti >= 3 ? s.trim : m, L.lv + 2);
+      if (ti === 0) { const [x, y] = lerp2(top, L.ankle, 0.45); g.line(x - 2, y, x + 2, y + 1, C.rope, 4); g.dot(x + 2, y + 2, C.red, 4); }   // trä: en knuten snodd med röd tofs
+      else if (ti >= 2) { const [x, y] = lerp2(top, L.ankle, 0.62); g.rect(x - 3, y, 6, 1.2, C.dark, 2); g.rect(x + 0.5, y - 0.4, 2, 2, s.trim, 5); }   // rem med spänne
+      if (ti >= 4) { const [x, y] = lerp2(top, L.ankle, 0.12); g.dot(x, y, s.gem, 5); }
+    }
+    const F = legs.find((L) => L.k === 'f'); if (ti >= 5 && F) { const [x, y] = lerp2(F.knee, F.ankle, 0.35); flair(g, s, m, Math.round(x), Math.round(y)); }
+  } },
+  sabatons: { over: 1, draw(g, it, m, s, legs, ti, k) {      // riddarens stövlar: lameller över foten, spetsig tå och skena till halva smalbenet
+    for (const L of legs) {
+      const top = lerp2(L.knee, L.ankle, 0.42);
+      limb(g, top, L.ankle, 6.2, 6, m, L.lv + 1);
+      atFoot(g, L, () => {
+        g.poly([[-3.5, -1.5], [3, -1.5], [4.5, 1], [7.5 + (k - 1) * 3, 3.6], [7.5 + (k - 1) * 3, 5], [-3.5, 5]], m, L.lv + 1);
+        for (const y of [1, 3]) g.rect(-3.5, y, 8, 1, m, 1);
+        g.dot(-1.5, -0.5, C.white, ti >= 2 ? 5 : 4);
+        if (ti === 0) g.rect(-3.5, 2, 7, 1, C.red, 3);                                                                       // trä: målad rand
+      });
+      g.rect(top[0] - 3.2, top[1], 6.4, 1.2, ti === 0 ? C.rope : s.trim, 4);
+      if (ti >= 3) { const [x, y] = lerp2(top, L.ankle, 0.5); g.dot(x, y, ti >= 4 ? s.gem : s.trim, 5); }
+    }
+    const F = legs.find((L) => L.k === 'f'); if (ti >= 5 && F) { const [x, y] = lerp2(F.knee, F.ankle, 0.6); flair(g, s, m, Math.round(x), Math.round(y)); }
+  } },
+};
+
+// ---------- Händer och underarmar. c..d = underarmens sträcka (42 till 88 procent armbåge-hand). fist = nävens färg ----------
+// ('m' = materialet, annars ett namn i C, saknas = hud eller rustningens hand)
+export const HANDS = {
+  bracers: { draw(g, m, s, cx, cy, dx, dy, lw, lv, ti, k) {             // bågskyttens armskydd i läder med snörning
+    g.thick(cx, cy, dx, dy, 5.2 + lw, m, 3);
+    for (const u of [0.25, 0.55, 0.85]) g.dot(cx + (dx - cx) * u, cy + (dy - cy) * u, ti === 0 ? C.rope : C.bone, 5);
+    if (ti === 0) g.dot(cx + (dx - cx) * 0.4 + 1, cy + (dy - cy) * 0.4, C.red, 4);                                       // trä: en röd knut
+    if (ti >= 2) { g.thick(cx, cy, cx + (dx - cx) * 0.18, cy + (dy - cy) * 0.18, (5.6 + lw) * Math.min(1.15, k), s.trim, 4); g.thick(dx - (dx - cx) * 0.12, dy - (dy - cy) * 0.12, dx, dy, 5.4 + lw, s.trim, 3); }
+    if (ti >= 4) g.ell((cx + dx) / 2, (cy + dy) / 2, 1.2, 1.2, s.gem, false, null, Math.floor(T * 3) % 2 ? 5 : 4);
+  } },
+  gauntlets: { fist: 'm', draw(g, m, s, cx, cy, dx, dy, lw, lv, ti, k) {   // järnhandskar med vid manschett
+    g.thick(cx, cy, dx, dy, 5.6 + lw, m, 4);
+    g.ell(cx, cy, (3.2 + lw / 2) * k, (3 + lw / 2) * k, m); g.dot(cx - 1, cy - 1, C.white, ti >= 2 ? 5 : 4);
+    if (ti === 0) g.dot(cx + 1, cy + 1, C.red, 4); else g.dot((cx + dx) / 2, (cy + dy) / 2, s.trim, 5);
+    if (ti >= 3) g.ell(cx, cy, (3.2 + lw / 2) * k, (3 + lw / 2) * k, s.trim, false, (ex, ey, d2) => d2 > 0.62, 4);
+    if (ti >= 4) g.dot(cx, cy, s.gem, 5);
+    if (ti >= 5) g.poly([[cx - 1, cy - 2.5], [cx - 2.5 * k, cy - 5 * k], [cx + 1, cy - 2.5]], s.trim, 4);               // en pigg på manschetten
+  } },
+};
+function handPiece(g, it, cx, cy, dx, dy, lw, lv) { const H = HANDS[it.type]; piece(g, it, (q, m, s, ti, k) => H.draw(q, m, s, cx, cy, dx, dy, lw, lv, ti, k)); }
+const fistOf = (it) => { const H = it && HANDS[it.type]; return H && H.fist ? (H.fist === 'm' ? R(it.hex) : C[H.fist]) : null; };
+
+// ---------- Bälten. y = bältets översta rad (HIP-3), tre rader högt, x 30,5 till 46,5 ----------
+export const BELT = {
+  pouchbelt(g, it, m, s, y, t, ti, k) {               // jägarens bälte med pung
+    g.rect(30.5, y, 16, 3, ti === 0 ? C.rope : C.leather, 2);
+    if (ti === 0) { g.rect(37.5, y, 2, 3, C.wood, 4); g.dot(38, y + 1, C.dark, 1); }                                     // trä: knebel av trä
+    else { g.rect(37.5, y - 0.5, 3 * k, 4, ti >= 3 ? s.trim : m, 4); g.dot(38.5, y + 1, C.dark, 1); }
+    g.rect(41.5, y + 2.5, 5 * k, 4.5 * k, m, 3); g.rect(41.5, y + 2.5, 5 * k, 1.6, m, 5);
+    g.dot(43.5, y + 4, ti === 0 ? C.red : ti >= 4 ? s.gem : C.gold, 5);
+    if (ti >= 6) flair(g, s, m, 44, y + 6);
+  },
+  swordbelt(g, it, m, s, y, t, ti, k) {               // riddarens bälte med stort spänne, nitar och en hängare
+    g.rect(30.5, y, 16, 3, C.dark, 2);
+    for (const x of [32, 35, 43, 45]) g.dot(x, y + 1, ti === 0 ? C.wood : m, 5);
+    g.ell(39, y + 1.5, 3 * k, 2.6 * k, m); g.dot(38, y + 0.5, C.white, ti >= 2 ? 5 : 4);
+    if (ti === 0) g.rect(37.5, y + 1, 3, 1, C.red, 3);
+    if (ti >= 3) g.ell(39, y + 1.5, 3 * k, 2.6 * k, s.trim, false, (ex, ey, d2) => d2 > 0.6, 4);
+    if (ti >= 4) g.dot(39, y + 1, s.gem, 5);
+    g.rect(43.5, y + 3, 2, 3, C.dark, 2); g.dot(44, y + 5, m, 4);
+    if (ti >= 6) flair(g, s, m, 34, y + 4);
+  },
+};
+// ---------- Berlocker: småsaker som hänger i bältet, bara utseende. [x, y] = upphängningen (vänster om spännet) ----------
+export const CHARM = {
+  pouch(g, [x, y], t, it) { g.line(x, y, x, y + 2, C.rope, 3); g.ell(x, y + 4.5, 2.4, 2.4, R(it.hex)); g.rect(x - 1.5, y + 2.2, 3, 1, C.rope, 4); g.dot(x, y + 4, C.red, 4); },
+  potion(g, [x, y], t, it) { const m = R(it.hex); g.rect(x - 0.6, y, 1.2, 2, C.wood, 3); g.ell(x, y + 4.5, 2.2, 2.6, m); g.ell(x, y + 5, 1.4, 1.4, m, false, null, Math.floor(t * 2) % 2 ? 5 : 4); g.dot(x - 1, y + 3.5, C.white, 5); },
+  scroll(g, [x, y], t, it) { g.rect(x - 1.2, y, 2.6, 6.5, C.bone, 4); g.rect(x - 1.6, y + 2.5, 3.4, 1, R(it.hex), 3); },
+  horn(g, [x, y], t, it) { g.poly([[x - 1, y], [x + 2, y + 1], [x + 1.5, y + 4], [x - 1, y + 7.5], [x - 0.5, y + 3]], C.bone, 4); g.rect(x - 1, y + 1, 3, 1, R(it.hex), 3); },
+  keys(g, [x, y], t, it) { g.ell(x, y + 2, 1.8, 1.8, C.gold, false, (dx, dy, d2) => d2 > 0.35, 4); g.rect(x - 1.5, y + 3.5, 1, 4, C.gold, 4); g.rect(x - 1.5, y + 6.5, 2, 1, C.gold, 4); g.rect(x + 0.8, y + 3.5, 1, 3, C.iron, 4); },
+  lantern(g, [x, y], t, it) { const on = Math.floor(t * 3) % 3 ? 5 : 4; g.line(x, y, x, y + 1.5, C.iron, 3); g.rect(x - 2, y + 1.5, 4, 5.5, C.iron, 2); g.rect(x - 1.2, y + 2.5, 2.4, 3.5, C.fire2, on); g.dot(x, y + 3.5, C.white, 5); },
+  owl(g, [x, y], t, it) { const bl = t % 3.3 < 0.15, m = R(it.hex); g.ell(x, y + 3, 2.8, 3.2, m); g.dot(x - 1.5, y + 0.5, m, 4); g.dot(x + 1.5, y + 0.5, m, 4); if (!bl) { g.dot(x - 1, y + 2, C.white, 5); g.dot(x + 1, y + 2, C.white, 5); } g.dot(x, y + 3.2, C.fire2, 4); },
+};
+const CHARM_AT = [34.5, 47];
+function drawCharm(g, it, t, at = CHARM_AT) { const sw = rd(Math.sin(t * 2.1) * 0.6); g.begin(); g.push(at[0] + sw, at[1], sw * 0.08); CHARM[it.type](g, [0, 0], t, it); g.pop(); g.end(); }
+
+// ---------- Nya kroppar (rustningsplatsen) ----------
+export const BODY = {
+  vest(g, it, ar, s, y, t, bd, w) {         // jägarväst med flikig kjol och en rem för kogret
+    const ti = tierG(it);
+    g.poly([[30.5 - bw(bd), y], [46.5 + bw(bd), y], [45.5, HIP + 1], [31.5, HIP + 1]], ar, 3);
+    g.poly([[31, HIP], [46, HIP], [46.5, HIP + 5], [44, HIP + 3], [41.5, HIP + 5.5], [39, HIP + 3], [36.5, HIP + 5.5], [34, HIP + 3], [31, HIP + 5]], ar, 2);
+    g.poly([[35, y], [42, y], [38.5, y + 5]], C.leather, 3); g.dot(37.5, y + 2, C.bone, 4); g.dot(39.5, y + 2, C.bone, 4);
+    g.thick(44.5, y + 1, 33, HIP - 3, 1.6, C.leather, 2);
+    g.rect(31, HIP - 2.5, 15, 2.5, C.leather, 2); g.rect(37.5, HIP - 3, 3, 3.5, ti === 0 ? C.rope : C.gold, 4);
+    if (ti >= 4) for (const x of [32, 36.5, 41, 45]) g.dot(x, HIP + 3, s.gem, 5);                                       // en sten i varje flik
+  },
+};
+
+// ---------- Kogret (sköldplatsen, "off-hand") bärs på ryggen och ger sitt liv som en sköld ----------
+// Pilarnas fjädrar visar vilka pilar bågen skjuter: arrowLook (samma regel i striden, battle.js).
+export const ON_BACK = { quiver: 1 };
+// Skölden i närmaste handen (null om off-hand-saken bärs på ryggen). Paraden, handens läge och skillträdet läser den här.
+export const heldShield = (gear) => (gear && gear.shield && !ON_BACK[gear.shield.type] && SHIELD[gear.shield.type] ? gear.shield : null);
+// Pilarna (bara utseende): materialet från bågen eller kogret, det som har högst material (kogret vid lika). t = materialsteget.
+// fletch = fjädrarnas färg: Wooden vita, Iron röda, sedan materialets färg.
+export function arrowLook(bow, quiver) {
+  const q = quiver && quiver.type === 'quiver' ? quiver : null, src = q && (!bow || tierOf(q) >= tierOf(bow)) ? q : bow;
+  if (!src) return null; const t = tierOf(src);
+  return { t, mat: src.mat, hex: src.hex, fletch: t === 0 ? '#ffffff' : t === 1 ? '#d8433b' : src.hex };
+}
+function drawQuiver(g, it, b, t) {
+  const m = R(it.hex), s = mat(it), ti = tierG(it), al = arrowLook(null, it), fl = R(al.fletch), n = 3 + Math.min(3, Math.max(0, ti) >> 1);
+  g.begin(); g.push(29, SH + 9 + b, -0.5, gr(GRAND.shield, it) * 1.1);
+  for (let i = 0; i < n; i++) { const x = -2.6 + i * 5.2 / (n - 1), h = 4 + (i % 2) * 1.5; g.line(x, -10, x, -10 - h, C.wood, 3); g.poly([[x - 1, -10 - h + 0.5], [x, -10 - h - 2.5], [x + 1, -10 - h + 0.5]], i % 2 && ti >= 1 ? C.white : fl, 4); }
+  g.rect(-3.5, -10, 7, 18, m, 3); g.rect(-3.5, -10, 2, 18, m, 4);
+  g.rect(-4, -10.5, 8, 2, ti === 0 ? C.rope : s.trim, 4); g.rect(-4, 5, 8, 2, ti === 0 ? C.rope : s.trim, 3);
+  if (ti === 0) { g.rect(-3.5, -3, 7, 1, C.red, 3); g.rect(-3.5, 0, 7, 1, C.red, 3); } else flair(g, s, m, 0.5, -2);
+  if (ti >= 6) { const k = Math.floor(t * 6) % 2; g.dot(-1 + k, -17 - k, C.white, 5); }                                // glimt i spetsarna
+  g.pop(); auraEnd(g, m, hintOf(it));
+}
+
+// ---------- Nya ryggsaker ----------
+const capeOver = (extra) => (g, it, m, b, t, s) => { BACK.cape(g, it, m, b, t, s); const y = SH + 1 + b, k = gr(GRAND.cape, it), wv = (i) => rd(Math.sin(t * 1.7 - i * 0.9) * (0.5 + i * 0.55) * gr(GRAND.flutter, it)); g.begin(); extra(capeMap(g, 44, y, 0.55 + 0.45 * k, k), it, m, s, y, wv, t, b); g.end(); };
+Object.assign(BACK, {
+  leafcloak: capeOver((q, it, m, s, y, wv, t) => {       // jägarens mantel med löv, fler löv för varje material
+    const ti = tierG(it), L = [[28, y + 6, 1], [25, y + 12, 1], [22, 49, 2], [18, 54, 3], [24, 58, 2], [31, 59, 1], [20, 45, 2], [27, 52, 2], [33, 55, 1]];
+    const n = Math.min(L.length, 4 + Math.max(0, ti) * 0.6);
+    for (let j = 0; j < n; j++) { const [x, yy, i] = L[j], X = x + wv(i); q.poly([[X - 2, yy], [X, yy - 2.5], [X + 2, yy], [X, yy + 2.5]], ti >= 3 && j % 3 === 0 ? s.trim : C.leaf, 4); q.dot(X, yy, C.leaf, 2); }
+    if (ti >= 7 && Math.floor(t * 2) % 2) q.dot(23 + wv(2), 50, C.white, 5);
+  }),
+});
+
+// ---------- Nya vapen (greppet i origo, spetsen uppåt) ----------
+Object.assign(WEAPON, {
+  knives(g, m, s) {                         // tre kastknivar i en solfjäder
+    for (const [a, lv] of [[-0.42, 3], [0.42, 2], [0, 4]]) {
+      g.push(0, -1, a); g.poly([[-1.3, -3], [1.3, -3], [0.7, -11.5], [0, -13.5], [-0.7, -11.5]], m, lv + 1);
+      if (s.shine || s.radiant || s.facet || s.jag) g.dot(-0.5, -10, C.white, 5); if (s.ember) g.dot(0, -8, C.fire2, 5); if (s.smoke) g.dot(0, -8, C.purple, 5);
+      g.rect(-1.2, -3, 2.4, 4.5, s.grip || C.leather, 2); g.rect(-1.6, -3.6, 3.2, 1, s.rough ? C.red : s.trim, 4); g.pop();
+    }
+  },
+});
+Object.assign(LEN, { knives: 15 });
+Object.assign(HOLD, { knives: 0.3 });
+const WK = { knives: 1.05 };
+
+// ---------- Setets utseende (bara utseende, ingen styrka) ----------
+// Tre delar av samma bygge (vilket material som helst, catalog.js BUILDS): en ring på marken i byggets färg. Sex delar:
+// byggets egen lilla effekt runt hjälten. Ritas inte i kartmarkören (för liten) och effekten inte med a.noFx.
+const SETFX = {
+  ranger(g, t) { for (let i = 0; i < 3; i++) { const u = (t * 0.25 + i * 0.33) % 1, x = rd(76 - u * 70), y = rd(10 + i * 14 + Math.sin(u * 9 + i) * 4); g.set(x, y, C.leaf, 4); g.set(x + 1, y + 1, C.leaf, 2); g.set(x + 1, y, C.leaf, 5); } },
+  knight(g, t) { const k = Math.floor(t * 2) % 4, p = [[44, 40], [36, 56], [48, 22], [30, 46]][k]; if ((t * 2) % 1 < 0.55) for (let j = -2; j <= 2; j++) { g.set(p[0] + j, p[1], C.white, 5); g.set(p[0], p[1] + j, C.white, 5); } },
+};
+export function setLook(gear) {
+  const c = setCounts(gear); let id = null, n = 0;
+  for (const b in c) if (c[b] > n) { id = b; n = c[b]; }
+  return n >= 3 && BUILDS[id] ? { id, n, rp: R(BUILDS[id].hex) } : null;
+}
+
 // ---------- Hela hjälten ----------
 // Hjältens hållning och fästpunkter utan att något ritas (för färdighetsträdets effekter). Koordinaterna är hjältens egna
 // (80x72-rutan) med svävningen avdragen. belt = bältets översta rad (tre rader högt, x 32 till 45). drawHero läser sina lägen härifrån, så de två kan inte glida isär.
@@ -776,7 +1026,7 @@ export function heroPose(gear = {}, t = 0, a = {}) {
   setBody();
   const b = Math.sin(t * 2.6) > 0.3 ? 1 : 0, hover = gear.back && HOVER[gear.back.type] ? 4 + rd(Math.sin(t * 2.2) * 1.5) : 0;
   const bd = a.build || 0, Y = SH - 10 + b - hover, hd = a.hand || [0, 0], visor = !!(gear.helmet && gear.helmet.type === 'great');
-  const gd = a.guard || [0, 0], fx = (gear.shield ? 29.5 : 30.5) + gd[0], fy = (gear.shield ? HIP - 3 : HIP - 1.5) + b - hover + gd[1];   // a.guard: parera (striden), närmaste handen och skölden flyttas [dx, dy]
+  const hs = heldShield(gear), gd = a.guard || [0, 0], fx = (hs ? 29.5 : 30.5) + gd[0], fy = (hs ? HIP - 3 : HIP - 1.5) + b - hover + gd[1];   // a.guard: parera (striden), närmaste handen och skölden flyttas [dx, dy]
   return {
     b, hover, build: bd, eyes: [[42, Y], [47, Y]], eyeH: visor ? 1 : 3, head: [39.5, Y + 0.5], top: Y - 10,
     neck: [38, SH + b - hover], chest: [38.5, SH + 6 + b - hover], belt: HIP - 3 - hover,
@@ -799,14 +1049,17 @@ export function drawHero(g, look, gear, a = {}) {
   const sw = [(Math.sin(t * 2.6 - 1.1) > 0.3 ? 1 : 0) - b, rd(Math.sin(t * 1.3) * 1)];   // hår, plym och hattopp släpar efter andningen
   const skin = R(look.skin), ar = gear.armor ? R(gear.armor.hex) : skin, type = gear.armor ? gear.armor.type : 'rags';
   const as = gear.armor ? mat(gear.armor) : PLAIN, hr = 2.6 + (bd > 1 ? 0.4 : 0);
+  const fist = fistOf(gear.hands) || (type === 'plate' ? ar : skin), held = heldShield(gear), sl = small ? null : setLook(gear);   // v4: handdelens näve, skölden i handen, setets utseende
   if (!a.noShadow) { g.begin(); g.ell(39.5, 62.5, 15 - hover, 2.6, C.shadow, false, null, 1); g.end({ outline: false, edge: false }); }   // markskugga
+  if (sl) { g.begin(); g.ell(39.5, 62.5, 18, 3.4, sl.rp, false, (dx, dy, d2) => d2 > 0.55, sl.n >= 6 ? 4 : 3); g.end({ outline: false, edge: false }); }   // setets ring på marken
   if (gear.pet && !a.noPet && PET[gear.pet.type]) drawPet(g, gear.pet, P.pet[0], P.pet[1], t);
   T = t;
   g.push(0, -hover);          // allt nedan ritas i svävade koordinater, därför läggs hover tillbaka på lägena ur P
   if (gear.back && BACK[gear.back.type]) BACK[gear.back.type](g, gear.back, R(gear.back.hex), b, t, mat(gear.back));   // en sort utan ritfunktion ritas inte
+  if (gear.shield && gear.shield.type === 'quiver') drawQuiver(g, gear.shield, b, t);                                                      // kogret på ryggen (v4)
   // bortre armen håller vapnet (a.hand flyttar handen under attacker)
   const [[bsx, bsy], [hx0, hyA]] = P.armBack, [hx, hy0] = a.handB || [hx0, hyA], hy = hy0 + hover;
-  g.begin(); arm(g, type, ar, skin, as, bsx, bsy + hover, hx, hy, a.bendB || [-1.5, 1.5], 2, bd); g.end();
+  g.begin(); arm(g, type, ar, skin, as, bsx, bsy + hover, hx, hy, a.bendB || [-1.5, 1.5], 2, bd, gear.hands); g.end();
   g.anchor.hand = g.pt(hx + 0.5, hy + 0.5);
   if (gear.weapon && WEAPON[gear.weapon.type]) {
     const idle = a.wAng === undefined ? Math.sin(t * 2.6 - 0.6) * 0.035 : 0;         // vapnet väger lite i handen
@@ -815,9 +1068,11 @@ export function drawHero(g, look, gear, a = {}) {
     const wi = tierG(gear.weapon);
     g.begin(); g.push(hx + 0.5, hy + 0.5, ang); drawWeapon(g, gear.weapon); g.pop(); auraEnd(g, R(gear.weapon.hex), wi < 0 || !FXOK ? 0 : AURA[wi]);
   }
-  g.begin(); g.ell(hx + 0.5, hy + 0.5, hr, hr, type === 'plate' ? ar : skin, 0.75); g.end();
-  if (a.legs) poseLegs(g, a.legs, type === 'rags' ? C.rag2 : type === 'plate' || type === 'chain' ? ar : C.pants, type === 'plate' ? ar : C.leather); else drawLegs(g, gear.armor, ar, skin);
+  g.begin(); g.ell(hx + 0.5, hy + 0.5, hr, hr, fist, 0.75); g.end();
+  if (a.legs) poseLegs(g, a.legs, type === 'rags' ? C.rag2 : type === 'plate' || type === 'chain' ? ar : C.pants, type === 'plate' ? ar : C.leather, gear, type); else drawLegs(g, gear.armor, ar, skin, gear);
   drawTorso(g, gear.armor, ar, b, t, bd);
+  if (gear.belt && BELT[gear.belt.type]) { const bt = gear.belt; piece(g, bt, (q, m, s, ti, k) => BELT[bt.type](q, bt, m, s, HIP - 3, t, ti, k)); }   // bältet (v4)
+  if (gear.charm && CHARM[gear.charm.type] && !small) drawCharm(g, gear.charm, t);                      // berlocken hänger i bältet
   if (type !== 'robe' && type !== 'plate' && !a.noScarf) drawScarf(g, look.scarf ? R(look.scarf) : gear.armor ? as.cloth : C.red, b, t);
   const hm = gear.helmet ? HELM[gear.helmet.type] : null;
   drawHead(g, look, b, a.blink, hm && hm.hideHair, !!hm, sw, small);
@@ -825,13 +1080,14 @@ export function drawHero(g, look, gear, a = {}) {
   // närmaste armen: bakom skölden, eller knuten näve vid höften
   g.begin();
   const [[fsx, fsy], [nxA, nyA]] = P.armFront, [nx, ny0] = a.handF || [nxA, nyA], ny = ny0 + hover, px = 31.5 - bw(bd) * 0.5, pw = bw(bd) * 0.4;
-  arm(g, type, ar, skin, as, fsx, fsy + hover, nx, ny, a.bendF || [-2.2, 0.5], 3, bd);
-  g.ell(nx, ny + 0.5, hr, hr, type === 'plate' ? ar : skin, 0.75);
+  arm(g, type, ar, skin, as, fsx, fsy + hover, nx, ny, a.bendF || [-2.2, 0.5], 3, bd, gear.hands);
+  g.ell(nx, ny + 0.5, hr, hr, fist, 0.75);
   if (type === 'plate') { g.ell(px, SH + 2 + b, 5.4 + pw, 4.3 + pw * 0.7, ar); g.ell(px, SH + 2 + b, 5.4 + pw, 4.3 + pw * 0.7, as.trim, false, (dx, dy, d2) => d2 > 0.6 && dy > 0.1, 3); flair(g, as, ar, px - 1.5, SH + b); }   // stort axelskydd
   else if (type === 'chain') { g.ell(px + 0.5, SH + 2 + b, 4.2 + pw, 3.2 + pw * 0.6, C.leather); g.dot(px - 0.5, SH + 2 + b, C.steel, 5); }
   else if (type === 'robe') g.poly([[28 - bw(bd), SH + b], [35, SH + b - 0.5], [35.5, SH + 4 + b], [29 - bw(bd), SH + 5.5 + b]], ar, 5);
   g.end();
-  if (gear.shield && SHIELD[gear.shield.type]) { const gd = a.guard || [0, 0]; drawShield(g, gear.shield, 26.5 + gd[0], HIP - 2 + b + gd[1]); g.anchor.shield = g.pt(27 + gd[0], HIP - 1.5 + b + gd[1]); }
+  if (held) { const gd = a.guard || [0, 0]; drawShield(g, held, 26.5 + gd[0], HIP - 2 + b + gd[1]); g.anchor.shield = g.pt(27 + gd[0], HIP - 1.5 + b + gd[1]); }
+  if (sl && sl.n >= 6 && !a.noFx && SETFX[sl.id]) { g.begin(); SETFX[sl.id](g, t); g.end({ outline: false, edge: false }); }   // setets egen effekt från sex delar
   const w = gear.weapon;
   if (w && w.fx && !a.noFx && !small) weaponFx(g, w, t);
   g.pop(); FXOK = true;
@@ -839,8 +1095,9 @@ export function drawHero(g, look, gear, a = {}) {
 
 // ---------- Ikon (32x32) för ett föremål, ritad med samma funktioner som på gubben ----------
 // Ritbar = platsen och sorten har en ritfunktion här (rustningens okända sorter ritas som tunika).
-const iconOk = (it) => { const D = { weapon: WEAPON, shield: SHIELD, pet: PET, back: BACK, helmet: HELM }[it.slot]; return it.slot === 'armor' || !!(D && D[it.type]); };
-const ICON_K = { dagger: 1.3, club: 0.95, sword: 0.94, axe: 0.82, spear: 0.84, hammer: 0.78, staff: 0.86, great: 0.82 };
+const iconOk = (it) => { const D = { weapon: WEAPON, shield: { ...SHIELD, ...ON_BACK }, pet: PET, back: BACK, helmet: HELM, hands: HANDS, legs: LEGS, feet: FEET, belt: BELT, charm: CHARM }[it.slot]; return it.slot === 'armor' || !!(D && D[it.type]); };
+const GREY = R('#7c82a0');                // provdockans ben och arm i ikonerna för de nya platserna
+const ICON_K = { dagger: 1.3, club: 0.95, sword: 0.94, axe: 0.82, spear: 0.84, hammer: 0.78, staff: 0.86, great: 0.82, knives: 1.35 };
 // Ikonerna visar storleken efter material mildare än gubben (roten ur skalan), så att också Star ryms i rutan och trä syns.
 export function drawIcon(g, it, t = 0) {
   setBody(); T = t; FXOK = true;
@@ -854,9 +1111,20 @@ export function drawIcon(g, it, t = 0) {
     else { const k = ICON_K[it.type] * Math.min(1.03, q), mid = (LEN[it.type] - 6) / 2 * k, an = 0.78; g.push(15.5 - Math.sin(an) * mid, 16.5 + Math.cos(an) * mid, an, 1); drawWeapon(g, it, k); g.pop(); }
     auraEnd(g, m, ti < 0 ? 0 : AURA[ti]);
   }
+  if (it.slot === 'shield' && it.type === 'quiver') { g.push(14, 17, 0, 1.15); g.push(-29, -(SH + 7)); drawQuiver(g, it, 0, t); g.pop(); g.pop(); return; }
+  // Nya platser (v4): delen på en grå provdocka (ben, fot eller underarm), eller bältet och berlocken för sig.
+  if (it.slot === 'legs' || it.slot === 'feet') {
+    const legs = it.slot === 'legs'; g.push(legs ? 16 : 15, legs ? 15 : 13, 0, legs ? 1.45 : 1.75); g.push(-39.5, legs ? -51.5 : -56.5);
+    g.begin(); g.poly([[39, HIP - 1], [45, HIP - 1], [48, 56], [42.5, 56]], GREY, 2); g.poly([[32, HIP - 1], [38.5, HIP - 1], [35.5, 56], [30, 56]], GREY, 3);
+    if (legs) { g.poly([[42, 55], [48, 55], [51, 58.5], [51, 61], [42, 61]], C.leather, 2); g.poly([[29, 55], [35.5, 55], [38, 58.5], [38, 61], [29, 61]], C.leather, 3); }
+    g.end(); legPieces(g, { [it.slot]: it }, null, 'tunic'); g.pop(); g.pop(); return;
+  }
+  if (it.slot === 'hands') { g.begin(); g.thick(4, 2, 11, 10, 5, GREY, 3); g.end(); handPiece(g, it, 11, 10, 22.5, 23.5, 1.2, 3); g.begin(); g.ell(24.5, 25.5, 3.6, 3.6, fistOf(it) || GREY, 0.75); g.end(); return; }
+  if (it.slot === 'belt') { g.push(15.5, 13, 0, 1.75); g.push(-38.5, -(HIP - 1.5)); piece(g, it, (q, m2, s2, ti2, k) => BELT[it.type](q, it, m2, s2, HIP - 3, t, ti2, k)); g.pop(); g.pop(); return; }
+  if (it.slot === 'charm') { g.push(16, 6, 0, 2.6); drawCharm(g, it, t, [0, 0]); g.pop(); return; }
   if (it.slot === 'shield') { g.push(15, 15.5, 0, (it.type === 'round' ? 1.45 : 1.18) * soft(GRAND.shield) * (it.type === 'tower' ? 0.94 : 1)); drawShield(g, it, 0, 0); g.pop(); }
   if (it.slot === 'pet') { g.push(16, it.type === 'slime' ? 14 : 17, 0, (it.type === 'dragon' ? 1.05 : 1.25) * soft(GRAND.pet)); drawPet(g, it, 0, 0, 0.4); g.pop(); }
-  if (it.slot === 'back') { const [cx, cy] = backCenter(it.type); g.push(16, 16, 0, (it.type === 'jetpack' ? 1.1 : it.type === 'cape' ? 0.95 : 0.88) * soft(it.type === 'jetpack' ? GRAND.jet : it.type === 'cape' ? GRAND.cape : GRAND.wings)); g.push(-cx, -cy); BACK[it.type](g, it, m, 0, 0.3, s); g.pop(); g.pop(); }
+  if (it.slot === 'back') { const [cx, cy] = backCenter(it.type), cape = it.type === 'cape' || it.type === 'leafcloak'; g.push(16, 16, 0, (it.type === 'jetpack' ? 1.1 : cape ? 0.95 : 0.88) * soft(it.type === 'jetpack' ? GRAND.jet : cape ? GRAND.cape : GRAND.wings)); g.push(-cx, -cy); BACK[it.type](g, it, m, 0, 0.3, s); g.pop(); g.pop(); }
   if (it.slot === 'armor') {
     g.push(16, 16, 0, 1); g.push(-40, -(SH + 61) / 2);
     g.begin(); arm(g, it.type, m, m, s, 45, SH + 3, 49, SH + 11, [1, 0], 2); g.end();

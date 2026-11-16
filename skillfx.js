@@ -7,7 +7,7 @@
 // Kopia av prototypes/skilltree/skillfx.js. En sak skiljer: huvan ritas också i förminskad skala (kartmarkören och
 // knappen Players), då utan skuggan över pannan som behöver hjältens pixlar. Annars stod hjälten där med platt hår utan huva.
 import { ramp } from './pixel.js';
-import { drawHero, drawPet, heroPose } from './hero.js';
+import { drawHero, drawPet, heroPose, heldShield } from './hero.js';
 
 const C = Object.fromEntries(Object.entries({
   ember: '#ff7a1f', gold: '#ffd84a', red: '#d8433b', rock: '#8a7c70', white: '#ffffff', shadow: '#1d1b2e', belt: '#f2b632', char: '#6a3038',
@@ -164,7 +164,7 @@ function eyes(g, P, a, kind, t) {
 
 // ---------- Nivå 2: kropp och armar ----------
 function hands(g, P, gear, t) {
-  const hs = gear.shield ? [P.handBack] : [P.handBack, P.handFront], k = Math.floor(t * 6);
+  const hs = heldShield(gear) ? [P.handBack] : [P.handBack, P.handFront], k = Math.floor(t * 6);
   g.begin();
   for (const [hx, hy] of hs) {
     g.ell(hx, hy, 1.8, 1.8, C.cyan, false, null, 5);
@@ -175,7 +175,7 @@ function hands(g, P, gear, t) {
 }
 // Druid: lysande gröna tecken på armarna och ett barkband med mossa runt handleden. Ritas bara på pixlar som hör till hjälten.
 function runeArms(g, P, O, gear, t) {
-  const glow = Math.sin(t * 2.2) > -0.3 ? 5 : 3, arms = gear.shield ? [[P.armBack, [0.62, 0.86]]] : [[P.armFront, [0.2, 0.48, 0.74]], [P.armBack, [0.62, 0.86]]];
+  const glow = Math.sin(t * 2.2) > -0.3 ? 5 : 3, arms = heldShield(gear) ? [[P.armBack, [0.62, 0.86]]] : [[P.armFront, [0.2, 0.48, 0.74]], [P.armBack, [0.62, 0.86]]];
   g.begin();
   for (const [[[sx, sy], [ex, ey]], fs] of arms) {
     const d = Math.hypot(ex - sx, ey - sy) || 1, nx = -(ey - sy) / d, ny = (ex - sx) / d;
@@ -190,9 +190,10 @@ function runeArms(g, P, O, gear, t) {
 }
 
 // ---------- Nivå 4: sak eller sällskap ----------
-function belt(g, P) {
+// Med ett bälte i bältesplatsen (utrustning v4) ritas bara Champ Belts stora spänne ovanpå bältet.
+function belt(g, P, gear = {}) {
   const y = P.belt;
-  g.begin(); g.rect(34, y, 12, 3, C.belt, 3); g.rect(34, y, 12, 1, C.belt, 4); flat(g);
+  if (!gear.belt) { g.begin(); g.rect(34, y, 12, 3, C.belt, 3); g.rect(34, y, 12, 1, C.belt, 4); flat(g); }
   g.begin(); g.ell(39.5, y + 1.5, 3.3, 3.1, C.belt, true); g.end();
   g.begin(); g.rect(39, y + 1, 1, 1, C.red, 4); flat(g);
 }
@@ -365,7 +366,7 @@ export function drawHeroWithSkills(g, look, gear, a = {}, lk = null, st = null) 
   if (need) diff(g, x0, y0);
   // framför hjälten
   if (lk.tattoo && need) runeArms(g, P, O, gear, t);
-  if (lk.belt) belt(g, P);
+  if (lk.belt) belt(g, P, gear);
   if (lk.titan) titanFront(g, P, t);
   if (lk.guardian) guardianFront(g, P, t);
   if (lk.hood) hoodFront(g, P, O, t, !!need);

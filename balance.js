@@ -114,7 +114,16 @@
 //                   spann), och med utrustning v3 (hero.js) är de små och enkla där. Solöknen säljer därmed också vingar i Iron
 //                   och Steel. Priser, styrka och nivåkrav är orörda, ägda föremål som förut. Förälderns önskemål 2026-11-16
 //                   (Ordskogen ska inte vara för kal). Inte simulerat (bara vilka typer hyllan drar bland).
-export const version = 19;
+//   v20  2026-11-16  Utrustning v4, steg 1 (docs/research/utrustning.md): fyra nya platser (händer, ben, fötter, bälte) och en
+//                   berlock utan styrka, Ranger-bygget (Ordskogen) och Knight-delarna, kastknivar. Nya platsernas faktorer i
+//                   catalog.js (SLOTS) ger lite liv till samma pris per styrka som de gamla; en hel uppsättning ger 6 till 9 procent
+//                   mer liv än förut (förälderns beslut). Berlocken har fast pris (TUNE.charmPrice). Hyllan (K.shop) har en ny regel,
+//                   förälderns önskemål 2026-11-16: nästan alla sorter finns i värld 1 till 3, men varje sort har ett eget tak för
+//                   materialet som börjar lågt när sorten är ny och stiger värld för värld (K.shop.fade och K.shop.kinds, ersätter
+//                   K.shop.types). Världens materialspann och fyndens chans är som förut. En plats på hyllan visar en del som fattas
+//                   i ett bygge (setSlot), minst `cheap` saker är billiga och högst `perSlot` per plats. Gamla föremål: samma id,
+//                   pris, styrka och nivåkrav; ägda föremål som förut. Setbonusen är bara utseende. Simulering: se PLAN.md 2026-11-16.
+export const version = 20;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -179,17 +188,35 @@ export const K = {
     weaponFirst: true,
     worlds: [{ lo: 0, hi: 1 }, { lo: 1, hi: 2 }, { lo: 2, hi: 3 }, { lo: 3, hi: 4 }, { lo: 4, hi: 6 }, { lo: 6, hi: 9 }],
     up1: 0.03, up2: 0.01, reach: 4,
-    // types: i vilken värld (index i kartans ordning) varje föremålstyp börjar säljas. Världens butik säljer bara typer
-    // med tal <= världens, så att en ny värld ger nya sorters utrustning och inte bara ny färg. Ett fynd (up1, up2) får
-    // också vara en typ från nästa värld. Ägda föremål går alltid att bära, vilken typ de än är. Saknas en typ: värld 0.
-    types: {
-      weapon: { dagger: 0, club: 0, sword: 0, axe: 0, spear: 1, bow: 0, hammer: 2, staff: 2, orb: 4, great: 5 },
-      helmet: { cap: 0, hood: 0, helm: 1, phones: 2, horned: 2, wizard: 3, great: 3, crown: 5 },
-      armor: { tunic: 0, chain: 1, robe: 2, plate: 4 },
-      shield: { round: 0, kite: 1, tower: 3 },
-      back: { cape: 0, wings: 0, dragonwings: 4, jetpack: 5 },
-      pet: { slime: 1, bat: 1, ghost: 3, drone: 4, dragon: 5 },
+    // Sorternas intåg (v20, förälderns önskemål 2026-11-16). Varje sort hör till en grupp i `fade`: [första världen, materialets
+    // tak där, steg per värld]. Taket i värld k är tak + steg * (k - första) avrundat nedåt, högst världens hi. Butiken säljer sorten i
+    // materialen från världens lo till taket; ligger taket under lo säljs sorten bara i takets material (en ny sort är
+    // Wooden också i en senare värld). Ett fynd (up1, up2) är en sort som har nått världens tak, ett eller två material över.
+    //   start  Ordskogens första sorter och Ranger: Iron redan i Ordskogen, sedan världens hela spann
+    //   early  finns i Ordskogen men bara Wooden där, hela spannet från Solöknen
+    //   mid    från Solöknen (Wooden där), Steel i Svampträsket, hela spannet från Frostbergen
+    //   late   från Svampträsket (Wooden där), Golden i Frostbergen, hela spannet från Meningsvulkanen
+    //   top    från Frostbergen (Wooden där), bara Emerald i Meningsvulkanen, hela spannet i Molnslottet
+    fade: { start: [0, 1, 2], early: [0, 0, 2], mid: [1, 0, 2.5], late: [2, 0, 3], top: [3, 0, 4.5] },
+    // Varje sort och dess grupp. Berlockerna har ett tal: världen där de börjar säljas (de finns i ett enda material).
+    // En sort som saknas här säljs inte (men går alltid att bära om den ägs).
+    kinds: {
+      weapon: { dagger: 'start', club: 'start', sword: 'start', bow: 'start', axe: 'early', spear: 'early', knives: 'early', hammer: 'mid', staff: 'mid', orb: 'late', great: 'top' },
+      helmet: { cap: 'start', hood: 'start', helm: 'early', phones: 'mid', horned: 'mid', wizard: 'mid', great: 'mid', crown: 'top' },
+      armor: { tunic: 'start', vest: 'start', chain: 'early', robe: 'mid', plate: 'mid' },
+      shield: { round: 'start', quiver: 'start', kite: 'early', tower: 'mid' },
+      back: { cape: 'start', leafcloak: 'start', wings: 'early', dragonwings: 'late', jetpack: 'top' },
+      pet: { slime: 'early', bat: 'early', ghost: 'mid', drone: 'late', dragon: 'top' },
+      hands: { bracers: 'start', gauntlets: 'early' },
+      legs: { trousers: 'start', greaves: 'early' },
+      feet: { tallboots: 'start', sabatons: 'early' },
+      belt: { pouchbelt: 'start', swordbelt: 'early' },
+      charm: { pouch: 0, keys: 0, horn: 1, potion: 1, scroll: 2, lantern: 2, owl: 3 },
     },
+    // Hyllans regler. weight: vikt för en sort efter hur länge den har funnits [ny i världen, från förra världen, äldre].
+    // setSlot: en plats visar en del som fattas i ett bygge (det barnet har flest delar av, annars det första), billigast först.
+    // cheap: minst så många saker kostar högst en fjärdedel av det dyraste. perSlot: högst så många per plats på kroppen.
+    weight: [1, 0.4, 0.15], setSlot: true, cheap: 2, perSlot: 2,
   },
   // Avtrappning (regel a): full belöning från slagna fiender upp till `free` nivåer över banans rek, sedan
   // minus `step` per nivå, lägst `floor`. Banbonusen och xp för ord påverkas inte. type 'none' stänger av.
@@ -293,6 +320,7 @@ export const TUNE = {
   hpPower: 2.4,                                // ett föremål som ger liv ger så här många gånger mer än ett som ger attack
   priceBase: 170, priceGrowth: 1.2155,         // pris = priceBase * priceGrowth^materialnivå * typens faktor * platsens faktor
   pricePet: 1.6, priceBack: 1.3,               // prisfaktor för följeslagare och ryggsaker (övriga platser använder sin styrkefaktor)
+  charmPrice: 50,                              // berlockens pris gånger sortens faktor (v20). Berlocken ger ingen styrka.
   levelPerTier: 4,                             // nivåkrav = 1 + materialnivå * levelPerTier + typens extra krav
   xpBase: 42, xpGrowth: 1.05, xpRamp: 5,       // xp till nästa nivå = xpBase * min(nivå, xpRamp) / xpRamp * xpGrowth^(nivå - 1)
 };

@@ -1,7 +1,7 @@
 // Spelets skal: vem spelar, karta, strid, resultat, utrustning och dagens butik.
 import { G, ramp } from './pixel.js';
 import { W, H, drawHero, drawIcon, HAIR_STYLES, drawPet } from './hero.js';
-import { ITEMS, BY_ID, SLOTS, RARITY, MATS, worldShop, shopRange, isLucky, heroStats, xpToLevel, levelKeepGrant } from './catalog.js';
+import { ITEMS, BY_ID, SLOTS, RARITY, MATS, worldShop, shopRange, isLucky, heroStats, xpToLevel, levelKeepGrant, BUILDS, setCounts, kindSpan } from './catalog.js';
 import { Battle, loadArt } from './battle.js';
 import { Quiz } from './quiz.js';
 import { showTitle, playIntro, drawPage } from './intro.js';
@@ -581,7 +581,15 @@ const HAIRS = Object.entries(HAIR_STYLES).map(([id, st]) => [id, st.name]);
 const HAIR_COL = ['#17171d', '#2a2a33', '#3d2817', '#5a3a22', '#6b4426', '#8a5a34', '#7a2e1c', '#b5532a', '#d98a3a', '#e0a070', '#b89a5a', '#e9c463', '#f4e6b0', '#f5f5f0', '#c8ccd8', '#8b8f9c',
   '#e56aa8', '#ff3f8e', '#d8262e', '#ff7a1f', '#ffd83a', '#8fd63a', '#3fae6a', '#1fb8a6', '#5ac8f0', '#4a8ad8', '#2b3f8f', '#8a4fd8', '#c39bf0'];
 const SKIN_COL = ['#fbe0c8', '#f3c7a2', '#e9b48c', '#d49a6a', '#b97a50', '#8a5a3a', '#6a4028'];
-const SLOT_SIDE = { L: ['helmet', 'armor', 'back'], R: ['weapon', 'shield', 'pet'] };
+// Tio platser (utrustning v4): rustningen till vänster i kroppens ordning, resten till höger. Berlocken är ett märke på bältet.
+const SLOT_SIDE = { L: ['helmet', 'armor', 'hands', 'legs', 'feet'], R: ['weapon', 'shield', 'belt', 'back', 'pet'] };
+// En tom plats visar en grå skugga av en enkel sak där (inte ett plustecken), så att den yngsta ser var saken hamnar.
+const GHOST = { helmet: 'helmet.cap.tra', armor: 'armor.tunic.tra', hands: 'hands.bracers.tra', legs: 'legs.trousers.tra', feet: 'feet.tallboots.tra', weapon: 'weapon.sword.tra', shield: 'shield.round.tra', belt: 'belt.pouchbelt.tra', back: 'back.cape.tra', pet: 'pet.slime.tra' };
+// Prickarna under hjälten: en rad per bygge som har minst en del på, åtta prickar, en stjärna när alla åtta sitter på.
+function setDots(gear) {
+  const c = setCounts(gear);
+  return Object.keys(BUILDS).filter((b) => c[b]).map((b) => `<span style="--sc:${BUILDS[b].hex}">${BUILDS[b].name} <i>${c[b] >= 8 ? '★' : '●'.repeat(c[b])}</i>${c[b] >= 8 ? '' : '○'.repeat(8 - c[b])}</span>`).join('');
+}
 function openGear(tab) { gSel = null; pSel = null; pConfirm = false; if (typeof tab === 'string') gTab = tab; show('gear'); paintGearBg(); renderGear(); }
 async function paintGearBg() {
   const c = $('gear-bg'); c.width = W; c.height = H; const ctx = c.getContext('2d');
@@ -602,13 +610,15 @@ function renderGear() {
   $('gear-stats').innerHTML =
     `<div class="pill atk"><i>⚔</i><b>${tmp.atk}</b>${diff(cur.atk, tmp.atk)}<span>Attack</span><small>you ${cur.baseAtk} + gear ${tmp.gearAtk}</small></div>` +
     `<div class="pill hp"><i>♥</i><b>${tmp.maxHp}</b>${diff(cur.maxHp, tmp.maxHp)}<span>Health</span><small>you ${cur.baseHp} + gear ${tmp.gearHp}</small></div>`;
+  $('gear-sets').innerHTML = setDots(gearOf(P, gSel));                // byggenas prickar (med det som provas)
   for (const side of ['L', 'R']) {
     const col = $(side === 'L' ? 'gs-left' : 'gs-right'); col.innerHTML = '';
     for (const sid of SLOT_SIDE[side]) {
       const s = SLOTS.find((x) => x.id === sid), id = P.eq[sid], it = id && BY_ID[id], b = document.createElement('button');
       b.className = 'slot' + (gFilter === sid ? ' on' : '') + (it ? '' : ' empty');
       if (it) b.style.setProperty('--rc', RARITY[it.rarity].color);
-      b.innerHTML = (it ? `<img src="${icon(id)}" alt="">` : `<span class="ghost">${s.stat === 'atk' ? '⚔' : '♥'}</span>`) + `<small>${s.name}</small>`;
+      const ch = sid === 'belt' && P.eq.charm && BY_ID[P.eq.charm];                                // berlocken som märke på bältesknappen
+      b.innerHTML = (it ? `<img src="${icon(id)}" alt="">` : `<img class="ghost" src="${icon(GHOST[sid])}" alt="">`) + `<small>${s.name}</small>` + (ch ? `<img class="badge" src="${icon(ch.id)}" alt="">` : '');
       b.onclick = () => { gFilter = sid; gSel = null; gTab = 'items'; renderGear(); }; col.appendChild(b);
     }
   }
@@ -624,8 +634,9 @@ function renderGear() {
     sec('Skin', SKIN_COL.map((c) => { const b = document.createElement('button'); b.className = 'dot' + (P.look.skin === c ? ' on' : ''); b.style.background = c; b.onclick = () => set({ skin: c }); return b; }));
     return;
   }
-  const slot = SLOTS.find((x) => x.id === gFilter), list = P.owned.map((id) => BY_ID[id]).filter((i) => i && i.slot === gFilter).sort((a, b) => b.power - a.power);
-  $('bag-title').innerHTML = `${slot.name} <span>${slot.stat === 'atk' ? 'gives ⚔ Attack' : 'gives ♥ Health'}</span>`;
+  // Bältets plats visar också berlockerna (de sitter på i en egen plats, charm, och ger ingen styrka).
+  const slot = SLOTS.find((x) => x.id === gFilter), list = P.owned.map((id) => BY_ID[id]).filter((i) => i && (i.slot === gFilter || (gFilter === 'belt' && i.slot === 'charm'))).sort((a, b) => (a.slot === 'charm') - (b.slot === 'charm') || b.power - a.power);
+  $('bag-title').innerHTML = `${slot.name} <span>${slot.stat === 'atk' ? 'gives ⚔ Attack' : 'gives ♥ Health'}${gFilter === 'belt' ? ' · charms are for looks' : ''}</span>`;
   const grid = $('gear-grid'); grid.innerHTML = '';
   if (!list.length) {
     const e = document.createElement('div'); e.className = 'emptybag';
@@ -859,10 +870,11 @@ function storyReplay(p, id) {
 }
 
 // Vad ett föremål ger, skrivet så att det går att jämföra: "+5 ⚔" eller "+8 ♥", och skillnaden mot det man har på sig.
-const statTag = (it) => `+${it.power} ${it.stat === 'atk' ? '⚔' : '♥'}`;
+const statTag = (it) => (it.stat === 'none' ? 'Looks' : `+${it.power} ${it.stat === 'atk' ? '⚔' : '♥'}`);
 function statLine(it) {
   const now = P.eq[it.slot] ? BY_ID[P.eq[it.slot]] : null;       // null också när det burna är okänt (från en nyare klient)
   const cur = now && now.id !== it.id ? now.power : P.eq[it.slot] === it.id ? it.power : 0, d = it.power - cur;
+  if (it.stat === 'none') return '<b style="color:#fff">Just for looks</b>';      // berlocken (v20)
   return `<b style="color:#fff">+${it.power} ${it.stat === 'atk' ? '⚔ Attack' : '♥ Health'}</b>` + (d ? ` <span style="color:${d > 0 ? '#8dffb0' : '#ef7d7d'}">(${d > 0 ? '+' : ''}${d} vs now)</span>` : '');
 }
 // Engelska fraser får svensk översättning de fem första gångerna, sedan står de på egna ben.
@@ -935,7 +947,12 @@ let sSel = null, sWorld = 0;
 const SHOP_TINT = ['#2f6b34', '#8a5a1e', '#3f5a3a', '#3a6a9a', '#8a2e1e', '#6a5aa8'];      // rubrikens färg per värld
 const shopAfter = (k) => { const sd = MAP && MAP.worlds[k] && (MAP.worlds[k].side || []).find((x) => x.type === 'shop'); return sd ? sd.after : 0; };
 const shopOpen = (k, p = P) => k >= 0 && k < R.WORLD_IDS.length && isDone(k, shopAfter(k), p);
-function shopSells(k) { const W = shopRange(k); if (!W) return ''; const n = MATS.slice(W.lo, W.hi + 1).map((m) => m.pre); return (n.length > 2 ? n[0] + ' to ' + n[n.length - 1] : n.join(' and ')) + ' gear'; }
+// v20: en sort som är ny i världen säljs i ett enklare material än världens spann (Wooden). Då står det också på skylten.
+function shopSells(k) {
+  const W = shopRange(k); if (!W) return ''; const n = MATS.slice(W.lo, W.hi + 1).map((m) => m.pre);
+  const low = ITEMS.some((i) => { const sp = kindSpan(i.slot, i.type, k); return Array.isArray(sp) && sp[1] < W.lo; });
+  return (n.length > 2 ? n[0] + ' to ' + n[n.length - 1] : n.join(' and ')) + ' gear' + (low ? ', and new kinds in Wooden' : '');
+}
 function shopToday(k) {
   const day = today(), wid = R.WORLD_IDS[k], fresh = worldShop(P, day, k), cur = (P.shops || {})[wid];
   if (fresh.length && (!cur || cur.day !== day || fresh.length > cur.ids.length)) rec('shop', { day, ids: fresh, world: wid });   // fyller också på dagens hylla om butiken har blivit större

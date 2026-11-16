@@ -691,7 +691,7 @@ function rim(g) {
   for (let k = 0; k < add.length; k += 2) { Rr[add[k]] = add[k + 1]; L[add[k]] = 0; }
 }
 // Ord vars ritade bild är avstängd (föräldern har underkänt den i granskningssidan): de visar den gamla bildfilen.
-export const OFF = new Set([]);
+export const OFF = new Set(['smile']);      // Jesper 2026-11-17: den ritade smile-bilden avvisad, emojin används
 export const hasArt = (id) => !!ART[id] && !OFF.has(id);
 const SHEET = new Map();
 const canDraw = () => typeof document !== 'undefined' && !!document.createElement;

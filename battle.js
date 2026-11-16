@@ -2,7 +2,7 @@
 // Reglerna (skada, turordning, fiendens nedräkning, superattack, belöningar, stjärnor) ligger i rules.js,
 // som också simulatorn i sim/ kör. Ändra siffror där, inte här.
 import { G, ramp } from './pixel.js';
-import { drawHero, drawPet, drawShield, HOLD, weaponLen, tierOf } from './hero.js';
+import { drawHero, drawPet, drawShield, HOLD, weaponLen, tierOf, heldShield, arrowLook } from './hero.js';
 import { BY_ID, heroStats } from './catalog.js';
 import * as R from './rules.js';
 import { pic } from './pics.js';
@@ -55,6 +55,9 @@ export const ATTACKS = {      // exporteras för provscenen på fliken Powers (s
   staff: { dur: 1.1, ev: [{ at: 0.5, shoot: { r: 5, dur: 0.3, from: 'tip' } }, { at: 0.8, hit: 0, fx: 'boom' }], charge: { from: 0.08, to: 0.5, r0: 1, r1: 5, at: 'tip' }, pose: (p) => ({ wAng: p < 0.5 ? lerp(0.12, -0.35, ease(p / 0.5)) : p < 0.6 ? lerp(-0.35, 0.9, seg(p, 0.5, 0.6)) : lerp(0.9, 0.12, seg(p, 0.6, 1)), hand: [0, p < 0.5 ? -4 * ease(p / 0.5) : 0] }) },
   orb: { dur: 1.45, shake: 5, ev: [{ at: 0.62, shoot: { r: 15, dur: 0.26, from: 'over' } }, { at: 0.88, hit: 0, fx: 'bigboom' }], charge: { from: 0.05, to: 0.62, r0: 3, r1: 15, at: 'over' }, pose: (p) => ({ wAng: 0, noW: p > 0.05 && p < 0.95, hand: [p < 0.62 ? 0 : 5, p < 0.62 ? -9 * ease(p / 0.3) : -3] }) },
   bow: { dur: 0.85, ev: [{ at: 0.42, shoot: { arrow: true, dur: 0.18, from: 'hand' } }, { at: 0.6, hit: 0, fx: 'slash' }], pose: (p) => ({ wAng: 0, hand: [p < 0.42 ? 3 - 3 * ease(p / 0.42) : 4, -5] }) },
+  // Kastknivar (v20): tre snabba kast med handleden, knivarna flyger rakt. Varje kniv är en av de tre träffarna i WEAPON_RULES.
+  knives: { dur: 0.95, ev: [0.34, 0.45, 0.56].flatMap((at, i) => [{ at, shoot: { knife: true, dur: 0.12, from: 'hand' } }, { at: at + 0.12, hit: i, fx: i === 2 ? 'slash' : undefined }]),
+    pose: (p) => { const f = [0.34, 0.45, 0.56].some((e) => p > e - 0.08 && p < e); return { wAng: f ? 1.4 : 0.3, hand: [f ? 7 : p > 0.2 && p < 0.68 ? -1 : 0, -5] }; } },
 };
 
 // Storsvärdets vinkel när det släpas: spetsen mot marken. Vapnets längd beror på materialet (v3), så vinkeln räknas ur
@@ -139,6 +142,57 @@ export function tintApply(g, sn, rp, q) {
   }
 }
 
+// ---------- Pilarna (v20): fler effekter för varje material, bara utseende ----------
+// al = arrowLook(båge, koger) ur hero.js: t = materialsteget, mat, hex och fjädrarnas färg.
+//   Wooden   en enkel pil: träskaft, trubbig träspets, vita fjädrar
+//   Iron     järnspets och röda fjädrar
+//   Steel    spets och fjädrar i materialet, ett kort glödspår och en liten glöd vid träffen
+//   Golden   längre glödspår med gnistor, spetsen blänker, större glöd vid träffen
+//   Emerald  gröna gnistor i spåret och en krans av ädelstensglimtar vid träffen
+//   Ice      isspets, spår av snöflingor, iskristaller och frost på fienden (matHit)
+//   Fire     brinnande pil, spår av glöd och lågor, eldsmäll vid träffen
+//   Shadow   svart pil i en strimma rök, rökpuffar och skugga på fienden
+//   Crystal  kristallspets, glitter i spåret, skärvor som splittras ut
+//   Star     komet: lysande huvud och en lång svans av stjärnor, stjärnor vid träffen
+// Spåret blir tätare och längre för varje steg. Skadan, tiderna och reglerna är desamma som för en vanlig pil.
+const AC = { wood: ramp('#9a6b3f'), iron: ramp('#6b7384'), red: ramp('#d8433b') };
+function drawArrow(g, al, x, y, an, now) {
+  const t = al ? al.t : 0, m = al ? ramp(al.hex) : WHITE, fl = al ? ramp(al.fletch) : WHITE, L = 9 + Math.min(3, t * 0.4);
+  g.push(x, y, an);
+  if (t >= 9) { g.ell(4, 0, 3.2, 3.2, MC.fire2); g.ell(4, 0, 1.6, 1.6, WHITE, false, null, 5); }                             // kometens huvud
+  g.thick(-L, 0, 2, 0, 1.6, t === 7 ? MC.smoke : t >= 2 ? DUST : AC.wood, 3);
+  const head = t === 0 ? AC.wood : t === 1 ? AC.iron : t === 5 ? MC.ice : m;
+  if (t === 5) g.poly([[1, -2], [8, 0], [1, 2], [3, 0]], head, 5);                                                            // isspets
+  else if (t === 8) g.poly([[1, 0], [4, -2.5], [8, 0], [4, 2.5]], head, 5);                                                   // kristall
+  else g.poly([[2, -2.5], [t === 0 ? 5.5 : 7, 0], [2, 2.5]], head, t >= 2 ? 5 : 4);
+  if (t === 6) { const f = Math.floor(now * 14) % 2; g.poly([[2, -1.5], [-2 - f, -3.5], [-5, 0], [-2 + f, 3], [2, 1.5]], MC.fire, 4); g.poly([[2, -0.8], [-1, -1.5], [-2, 0], [2, 0.8]], MC.fire2, 5); }   // lågan längs skaftet
+  g.poly([[-L, -2], [-L + 3, 0], [-L, 2]], fl, 4); if (t >= 4) g.poly([[-L - 2, -3], [-L + 1, 0], [-L - 2, 3]], fl, 3);       // fjädrar, dubbla från Emerald
+  if (t >= 3 && Math.floor(now * 10) % 2) g.dot(5, -1, WHITE, 5);                                                                // blänk i spetsen
+  g.pop();
+}
+function arrowTrail(fx, al, x, y, an, now) {
+  const t = al ? al.t : 0, bx = x - Math.cos(an) * 10, by = y - Math.sin(an) * 10, m = al ? ramp(al.hex) : WHITE;
+  if (t < 2) { if (Math.random() < 0.3) fx.push({ kind: 'p', t0: now, dur: 0.15, x: bx, y: by, vx: -10, vy: 0, rp: DUST, lv: 3 }); return; }
+  const n = 2 + Math.floor(t / 2), len = 6 + t * 1.6;                                                                       // spåret blir tätare och längre för varje steg
+  for (let i = 0; i < n; i++) {
+    const d = 0.25 + t * 0.04, u = (i + Math.random()) / n, jx = bx - Math.cos(an) * u * len, jy = by - Math.sin(an) * u * len + rr(-1, 1) * Math.min(3, t * 0.4);
+    if (t <= 3) fx.push({ kind: 'p', t0: now, dur: d, x: jx, y: jy, vx: -8, vy: rr(-4, 4), rp: i % 2 && t === 3 ? SPARK : m, lv: 5 });
+    else if (t === 4) fx.push(i % 2 ? mf('star', now, d, jx, jy, { s: 1, rp: m }) : { kind: 'p', t0: now, dur: d, x: jx, y: jy, vx: -8, vy: rr(-4, 4), rp: m, lv: 5 });
+    else if (t === 5) fx.push(mf('flake', now, d + 0.15, jx, jy, { vx: rr(-10, 0), vy: rr(2, 10) }));
+    else if (t === 6) fx.push(i % 2 ? mf('flame', now, 0.3, jx, jy + 2, { s: 3 }) : mf('ember', now, d + 0.1, jx, jy, { vx: rr(-15, 0), vy: rr(-25, -8) }));
+    else if (t === 7) fx.push(mf('puff', now, d + 0.2, jx, jy, { r: rr(1.5, 3), vx: rr(-8, 0), vy: rr(-6, 2) }));
+    else if (t === 8) fx.push(mf('star', now, d, jx, jy, { s: 1, rp: i % 2 ? MC.pink : WHITE }));
+    else fx.push(mf('star', now, d + 0.15, jx, jy, { s: i % 2 ? 2 : 3, rp: i % 3 ? MC.fire2 : WHITE }));                     // kometens svans
+    if (t >= 5 && i % 2 === 0) fx.push({ kind: 'p', t0: now, dur: d, x: jx, y: jy, vx: -6, vy: 0, rp: t === 7 ? MC.vio : t === 9 ? MC.fire2 : m, lv: 5 });   // en lysande kärna i spåret
+  }
+}
+// Glöden vid träffen för Steel, Golden och Emerald (från Ice tar materialets egen träff över, matHit, och blir större).
+function arrowHit(fx, al, x, y, now, sup) {
+  const t = al.t, m = ramp(al.hex), n = (4 + t * 2) * (sup ? 2 : 1);
+  if (t >= 2 && t <= 4) for (let i = 0; i < n; i++) { const a = i / n * 6.283, v = 20 + t * 8; fx.push(t === 4 && i % 2 ? mf('star', now, 0.35, x, y, { vx: Math.cos(a) * v, vy: Math.sin(a) * v, s: 1, rp: m }) : { kind: 'p', t0: now, dur: 0.3, x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 10, rp: t === 3 && i % 3 ? SPARK : m, lv: 5 }); }
+  if (t >= 6) for (let i = 0; i < t - 4; i++) { const a = rr(0, 6.283); fx.push(mf(t === 6 ? 'flame' : t === 7 ? 'puff' : 'star', now + i * 0.03, 0.4, x + Math.cos(a) * 6, y + Math.sin(a) * 4, { s: 3, r: 3, rp: t === 8 ? MC.pink : MC.fire2, vx: Math.cos(a) * 20, vy: Math.sin(a) * 10 })); }   // extra för varje steg från Fire
+}
+
 // ---------- Hjälten parerar när fienden slår (bara utseende: skadan, tiderna och reglerna är desamma) ----------
 // Vapnets vinkel i en parad: [hög, låg] (0 = rakt upp, positivt = framåt). Båge, klot och tomma händer saknas här: då viker
 // hjälten undan och tar emot slaget i stället. Skölden lyfts med a.guard i hero.js (närmaste handen och skölden flyttas).
@@ -174,6 +228,9 @@ export class Battle {
     // superattacken från Ice och uppåt.
     const wp = this.gear.weapon, pt = this.gear.pet;
     this.mk = wp ? MATFX[wp.mat] || null : null; this.pk = pt && tierOf(pt) >= 5 ? MATFX[pt.mat] || 'star' : null;
+    // Pilarna (v20, bara utseende): bågens eller kogrets material, det högsta. Elementet följer pilen, så ett Fire-koger ger eldpilar.
+    this.arrow = wp && wp.type === 'bow' ? arrowLook(wp, this.gear.shield) : null;
+    if (this.arrow) this.mk = MATFX[this.arrow.mat] || null;
     el.innerHTML = `<div class="scene"><canvas class="bg"></canvas><canvas class="fg"></canvas><div class="floaters"></div>
       <div class="hud"><div class="hp me"><b>♥</b><div class="bar"><i></i></div><span></span></div>
       <div class="mid"><span class="wave"></span><span class="streak"><i></i><i></i><i></i></span></div>
@@ -337,8 +394,8 @@ export class Battle {
     const a = this.anim, mat = this.gear.weapon ? ramp(this.gear.weapon.hex) : WHITE, [tx, ty] = this.target3();
     if (ev.shoot) {
       const from = ev.shoot.from === 'tip' ? this.tip : ev.shoot.from === 'over' ? this.over3 : this.hand;
-      const shots = ev.shoot.arrow && a.sup ? [-10, 0, 10] : [0];
-      for (const off of shots) this.fx.push({ kind: 'proj', t0: this.now(), dur: ev.shoot.dur, x0: from[0], y0: from[1], x1: tx, y1: ty + off, r: ev.shoot.r * (a.sup ? 1.3 : 1), arrow: ev.shoot.arrow, mat });
+      const shots = ev.shoot.arrow && a.sup ? [-10, 0, 10] : ev.shoot.knife && a.sup ? [-5, 5] : [0];
+      for (const off of shots) this.fx.push({ kind: 'proj', t0: this.now(), dur: ev.shoot.dur, x0: from[0], y0: from[1], x1: tx, y1: ty + off, r: (ev.shoot.r || 1) * (a.sup ? 1.3 : 1), arrow: ev.shoot.arrow, knife: ev.shoot.knife, al: ev.shoot.arrow ? this.arrow : null, mat });
       return;
     }
     // träff
@@ -349,6 +406,7 @@ export class Battle {
       if (m.hp <= 0 && !m.deadAt) { m.deadAt = this.now(); this.burst(m.x, this.groundY - this.enemy.f.def.h * 0.4, 12, DUST, 40); if (this.mb) this.miniDown = m; }
     }
     this.shake = Math.max(this.shake, (a.A.shake || 2) * (a.sup ? 1.5 : 1));
+    if (ev.hit !== undefined && this.arrow && this.arrow.t >= 2) arrowHit(this.fx, this.arrow, tx, ty, this.now(), a.sup);   // pilens glöd vid träffen (v20)
     if (ev.hit !== undefined && (this.mk || (a.sup && this.pk))) {      // materialets träff och fiendens färg (v3)
       const h = this.enemy.f.def.h, now = this.now(), al = this.alive(), hitM = al.length ? al : this.enemy.members.slice(0, 1);
       const tint = matHit(this.fx, this.mk, tx, ty, now, { sup: a.sup, burst: !(this.lk && this.lk.trail), h });
@@ -388,7 +446,7 @@ export class Battle {
   // vapnet, och var tredje gång viker hjälten undan och tar emot slaget; utan närstridsvapen: viker undan eller duckar.
   guardFor() {
     const n = this.parryN = (this.parryN || 0) + 1, w = this.gear.weapon, melee = !!(w && GUARD[w.type]), fly = !!(this.enemy && this.enemy.f.def.fly);
-    if (this.gear.shield) return { kind: 'shield', v: fly && n % 2 ? 1 : n % 3 === 2 && melee ? 2 : n % 3 === 1 ? 1 : 0 };
+    if (heldShield(this.gear)) return { kind: 'shield', v: fly && n % 2 ? 1 : n % 3 === 2 && melee ? 2 : n % 3 === 1 ? 1 : 0 };      // kogret på ryggen är ingen sköld
     if (melee) return n % 3 === 0 ? { kind: 'dodge', v: n % 2 } : { kind: 'weapon', v: fly ? 0 : n % 3 === 1 ? 0 : 1 };
     return { kind: 'dodge', v: n % 2 };
   }
@@ -469,7 +527,7 @@ export class Battle {
         if (lk) SFX.drawHeroWithSkills(g, this.profile.look, gear, { ...args, off: [Math.round(dx), Math.round(dy)], busy: !!a }, lk, this.sk); else drawHero(g, this.profile.look, gear, args);
         g.flash = false; this.tip = g.anchor.tip || g.anchor.hand; this.hand = g.anchor.hand; this.guardAt = g.anchor.shield || null; this.over3 = [this.hand[0] - 4, this.hand[1] - 34]; g.pop();
         // skillträdets saker framför hjälten (axelplattor, krage) ritas efter skölden: en lyft sköld ritas en gång till ovanpå
-        if (lk && hp.guard && this.gear.shield && this.guardAt && (hp.guard[0] || hp.guard[1])) drawShield(g, this.gear.shield, this.guardAt[0] - 0.5, this.guardAt[1] - 0.5);
+        if (lk && hp.guard && heldShield(this.gear) && this.guardAt && (hp.guard[0] || hp.guard[1])) drawShield(g, heldShield(this.gear), this.guardAt[0] - 0.5, this.guardAt[1] - 0.5);
         if (lk && lk.trail && a && a.who === 'hero' && !this.fx.some((e) => e.kind === 'proj')) SFX.trailPush(this.sk, this.tip, this.hand, now);   // medan ett skott flyger hör spåret till skottet
         else if (this.mk && a && a.who === 'hero' && p > 0.12 && p < 0.8) matTrail(this.fx, this.mk, this.tip, [hx, groundY - 30 + dy], now, Math.abs((hp.dx || 0) - (this.lastDx ?? 0)) > 0.6);   // materialets spår (v3), bara utan skillspår
         this.lastDx = hp.dx || 0;
@@ -548,11 +606,14 @@ export class Battle {
     if (any) g.end({ outline: false, edge: false });
     for (const e of this.fx) if (e.kind === 'proj') {
       const q = Math.min(1, (now - e.t0) / e.dur), x = lerp(e.x0, e.x1, q), y = lerp(e.y0, e.y1, q) - (e.arrow ? bump(q) * 6 : 0);
+      const an = Math.atan2(e.y1 - e.y0 - (e.arrow ? 6 * Math.PI * Math.cos(Math.PI * q) : 0), e.x1 - e.x0);      // pilen följer sin båge
       g.begin();
-      if (e.arrow) { const an = Math.atan2(e.y1 - e.y0, e.x1 - e.x0); g.push(x, y, an); g.thick(-9, 0, 2, 0, 1.6, DUST, 3); g.poly([[2, -2.5], [7, 0], [2, 2.5]], e.mat, 4); g.poly([[-9, -2], [-6, 0], [-9, 2]], WHITE, 4); g.pop(); }
+      if (e.arrow) drawArrow(g, e.al, x, y, an, now);
+      else if (e.knife) { g.push(x, y, an); g.poly([[-3, -1.2], [5, -0.6], [8, 0], [5, 0.6], [-3, 1.2]], e.mat, 4); g.rect(-6, -1, 3, 2, DUST, 2); g.pop(); }   // kniven flyger rakt med spetsen före
       else g.ell(x, y, e.r, e.r, e.mat);
       g.end();
-      if (Math.random() < 0.8) this.fx.push({ kind: 'p', t0: now, dur: 0.25, x: x - 3, y: y + (Math.random() - 0.5) * e.r, vx: -20, vy: 0, rp: e.mat, lv: 5 });
+      if (e.arrow) arrowTrail(this.fx, e.al, x, y, an, now);
+      else if (Math.random() < 0.8) this.fx.push({ kind: 'p', t0: now, dur: 0.25, x: x - 3, y: y + (Math.random() - 0.5) * e.r, vx: -20, vy: 0, rp: e.mat, lv: 5 });
       if (lk && lk.trail) SFX.trailPush(this.sk, [x, y], [x - 1, y], now);
     }
     if (lk || this.fx.some((e) => e.kind === 'sk')) this.fx = this.fx.filter((e) => e.kind !== 'sk' || SFX.drawFx(g, e, now, this.sk));
