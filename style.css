@@ -447,3 +447,42 @@ button.teach.meet.noread span { display:none; }
 .word .qsay .qpgi { font-style:normal; display:inline-flex; } .qpg { width:1.3em; height:1.2em; image-rendering:pixelated; }
 .word.qchant { font-size:clamp(22px, 5vw, 36px); }
 .slots i.zap { animation:qzap .5s ease-out; } @keyframes qzap { 0% { box-shadow:0 0 0 0 #ffe14d; transform:scale(1.25); } 100% { box-shadow:0 0 0 10px #ffe14d00; transform:scale(1); } }
+
+/* Räkna med örat (2026-11-16, quiz.js): välj gruppen (count_group) och lägg dem i huset (count_house) */
+.word.qcnt { white-space:normal; text-align:center; line-height:1.15; }
+.card.qgrp { container-type:size; padding:4px; }
+.qgrid { --s:min(calc(84cqw / var(--cs, var(--c))), calc(74cqh / var(--rs, var(--r))), 76px); display:grid; grid-template-columns:repeat(var(--c), var(--s)); grid-template-rows:repeat(var(--r), var(--s)); gap:calc(var(--s) * .14); }
+.qgrid i { display:grid; place-items:center; font-style:normal; font-size:calc(var(--s) * .82); line-height:1; }
+.qgrid .pimg, .qthing .pimg, .qslot .pimg, .qfly .pimg { width:100%; height:100%; object-fit:contain; }
+/* Stort fönster (iPad): fyra kort i två rader, så att sakerna blir större */
+@media (min-width: 700px) and (min-height: 600px) { .cards.n4:has(> .card.qgrp) { grid-template-columns:repeat(2, 1fr); max-width:640px; } }
+/* Stående telefon: korten under varandra och en högre panel */
+@media (orientation: portrait) and (max-width: 699.98px) {
+  .cards:has(> .card.qgrp) { grid-template-columns:1fr; }
+  .quiz:has(.card.qgrp), .quiz:has(.qhouse) { height:min(56dvh, 470px); }
+}
+.qhouse { flex:1; min-width:0; display:grid; grid-template:"yard home done" 1fr / 1fr minmax(120px, 26%) auto; gap:10px; }
+.qyard { grid-area:yard; min-width:0; display:flex; flex-wrap:wrap; align-content:center; justify-content:center; gap:6px; padding:6px; border-radius:16px; background:linear-gradient(#5f9e48, #3f7a32); box-shadow:inset 0 -4px 0 #2c5a22; }
+.qthing { width:var(--t, 54px); height:var(--t, 54px); padding:4px; border-radius:14px; display:grid; place-items:center; font-size:calc(var(--t, 54px) * .62); line-height:1; background:#fffdf4; box-shadow:0 3px 0 #8f8266; touch-action:none; -webkit-user-select:none; user-select:none; transition:transform .2s; }
+.qthing.gone { visibility:hidden; }
+.qthing.drag { transition:none; position:relative; z-index:20; box-shadow:0 10px 18px #0007; }
+.qthing.nope { animation:shake .4s; }
+.qhome { grid-area:home; min-height:0; display:flex; flex-direction:column; }
+.qroof { flex:none; height:clamp(22px, 26%, 54px); background:linear-gradient(#e2604a, #b23b28); clip-path:polygon(50% 0, 100% 100%, 0 100%); }
+.qin { flex:1; min-height:0; display:grid; grid-template-columns:repeat(5, 1fr); grid-auto-rows:min-content; align-content:end; gap:3px; padding:5px; background:#f2d29a; border:4px solid #8a5a2b; border-top:0; border-radius:0 0 10px 10px; transition:background .2s; }
+.qhome.some .qin { background:#ffe2a8; } .qhome.ok .qin { background:#9fe8b9; border-color:#12924a; } .qhome.bad .qin { border-color:#d8433b; }
+.qslot { aspect-ratio:1; min-width:0; padding:1px; border-radius:6px; display:grid; place-items:center; font-size:clamp(14px, 3.4vmin, 26px); line-height:1; background:#fff9; }
+.qslot.empty { border:2px dashed #8a5a2b; background:#fff4; animation:tapme 0.9s ease-in-out infinite; }
+.qslot.extra { background:#ff9a9a; box-shadow:0 0 0 2px #d8433b; }
+.qdone { grid-area:done; align-self:center; min-width:92px; min-height:64px; padding:6px 12px; border-radius:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:20px; font-weight:800; color:#062a16; background:linear-gradient(#7fe3a3, #2fae62); box-shadow:0 4px 0 #17703a; }
+.qdone small { font-size:12px; font-weight:600; opacity:.8; }
+.qdone:active { transform:translateY(3px); box-shadow:0 1px 0 #17703a; }
+.qdone.tapme { animation:tapme 0.9s ease-in-out infinite; }
+.qfly { position:fixed; z-index:60; pointer-events:none; display:grid; place-items:center; padding:3px; font-size:28px; }
+/* Låg skärm (telefon liggande): lite mindre saker så att tretton får plats i två rader */
+@media (max-height: 500px) { .qthing { --t:48px; } .qdone { min-width:84px; } }
+/* Stående telefon: huset och Done överst, gården under */
+@media (orientation: portrait) and (max-width: 699.98px) {
+  .qhouse { grid-template:"home done" minmax(100px, 40%) "yard yard" 1fr / 1fr auto; }
+  .qthing { --t:48px; }
+}

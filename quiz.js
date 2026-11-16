@@ -1,22 +1,37 @@
 // Övningsmotorn. Väljer nästa ord och övning utifrån hur bra barnet kan ordet (words.js), ritar övningen i
 // frågepanelen och rapporterar rätt eller fel till striden. Innehållet kommer från content/world<N>.json.
 import { record, meet, tasksFor, tierOf, isDue, NEW_AS, numOf } from './words.js';
-import { pic } from './pics.js';
+import { pic, artStillURL } from './pics.js';
 import { K } from './balance.js';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const SENT_TYPES = ['scene_hunt', 'spell_chant', 'build_sentence', 'sentence_gap'];
-// Testkrok: sätt globalThis.__quizForce till en övningstyp (t.ex. 'count_pick', 'scene_hunt') så väljer striden den när det går.
+// Testkrok: sätt globalThis.__quizForce till en övningstyp (t.ex. 'count_house', 'scene_hunt') så väljer striden den när det går.
 const forced = () => globalThis.__quizForce || null;
 // Färgerna i meningarnas scener (scene.color) som en ram runt scenen.
 const COL = { red: '#e2473d', green: '#2fae62', blue: '#3d7be2', yellow: '#f2c632', black: '#26262e', white: '#ffffff', brown: '#8a5a2b', pink: '#ff8ad8', orange: '#f08a20', purple: '#8a4ad8', grey: '#8a8a96', gray: '#8a8a96' };
-// Plural till "How many cats?". Bara substantiv med ett ord kommer hit.
-const ODD = { mouse: 'mice', fish: 'fish', sheep: 'sheep', foot: 'feet', tooth: 'teeth', man: 'men', woman: 'women', child: 'children', person: 'people', deer: 'deer', goose: 'geese', leaf: 'leaves', wolf: 'wolves', knife: 'knives' };
+// Plural till räknefraserna ("Five cats."). Samma lista som i prototypes/audio/gen_count.py. Bara substantiv med ett ord kommer hit.
+const ODD = { mouse: 'mice', fish: 'fish', sheep: 'sheep', foot: 'feet', tooth: 'teeth', man: 'men', woman: 'women', child: 'children', person: 'people', deer: 'deer', goose: 'geese', leaf: 'leaves', wolf: 'wolves', knife: 'knives', tomato: 'tomatoes', potato: 'potatoes', cactus: 'cacti' };
 // Ord som inte går att räkna ("How many waters?"). De väljs aldrig som det som ska räknas.
 const MASS = new Set(['water', 'milk', 'juice', 'bread', 'cheese', 'rice', 'soup', 'tea', 'coffee', 'sand', 'snow', 'rain', 'ice', 'money', 'breakfast', 'lunch', 'dinner', 'grass', 'sun', 'moon', 'sky', 'fire', 'food', 'music', 'homework', 'hair', 'pasta', 'yoghurt', 'jam', 'butter', 'sugar', 'salt', 'meat', 'fish_food', 'wind', 'weather', 'air', 'gold', 'school', 'preschool', 'football', 'battle', 'gear', 'porridge', 'paper', 'forest', 'pants', 'enemy']);
 const plural = (w) => ODD[w] || (/(s|sh|ch|x|z)$/.test(w) ? w + 'es' : /[^aeiou]y$/.test(w) ? w.slice(0, -1) + 'ies' : w + 's');
+// Räkna med örat (2026-11-16): ord som inte räknas alls. Kroppsdelar ("Put five noses in the house") och huset självt.
+const COUNT_SKIP = new Set(['house', 'hand', 'foot', 'eye', 'ear', 'nose', 'mouth', 'tooth', 'leg', 'arm']);
+// Vilka räkneklipp som finns: audio/count/index.json (skrivs av prototypes/audio/gen_count.py). Hämtas en gång när modulen
+// laddas i webbläsaren. Tills den är hämtad (och i node) är mängden tom, och då hörs talet och sedan ordet i plural.
+const CLIPS = new Set();
+if (typeof document !== 'undefined' && typeof fetch === 'function') fetch('audio/count/index.json').then((r) => (r.ok ? r.json() : null)).then((j) => { for (const c of (j && j.clips) || []) CLIPS.add(c); }).catch(() => {});
+// En sak att räkna, som stillbild (ritade bilder rör sig annars, och det som rör sig är svårare att räkna).
+const thing = (o) => { const s = artStillURL(o.id || o.en); return s ? `<img class="pimg" src="${s}" alt="" draggable="false">` : pic(o); };
+// Mönster för k saker på ett kort: 1 till 3 i rad, 4 i fyrkant som på en tärning, 5 i en rad, 6 i två rader om tre,
+// 7 till 10 som en tiorad (fem överst, resten under). Högst två rader, så att sakerna blir stora. Ger [rader, kolumner].
+const GRID = (k) => (k <= 3 ? [1, k] : k === 4 ? [2, 2] : k === 5 ? [1, 5] : k === 6 ? [2, 3] : [2, 5]);
+const SPOTS = (k) => { const [, c] = GRID(k); return Array.from({ length: k }, (_, i) => [Math.floor(i / c) + 1, (i % c) + 1]); };
+// sz = [rader, kolumner] som storleken räknas på: den största i frågan, så att sakerna är lika stora på alla kort (annars
+// skulle storleken avslöja antalet).
+const groupHTML = (o, k, sz = GRID(k)) => { const [r, c] = GRID(k), one = thing(o); return `<span class="qgrid" style="--r:${r};--c:${c};--rs:${sz[0]};--cs:${sz[1]}">${SPOTS(k).map(([y, x]) => `<i style="grid-area:${y}/${x}">${one}</i>`).join('')}</span>`; };
 // Page, bokens ägare, som en liten bild (samma ritning som på boksidan). Ritas första gången den behövs; tills dess en bok.
 let PAGE_SRC = null;
 const pageIcon = () => {
@@ -82,9 +97,10 @@ export class Quiz {
       if (F === 'sentence_gap' && list.some((x) => x.gap)) list = list.filter((x) => x.gap);
       const s = pick(list); this.lastSentence = s; return { sentence: s, type: this.sentenceType(s, F) };
     }
-    if (F === 'count_pick' || F === 'count_word') {         // testkroken: ett mött tal att räkna
+    if (F === 'count_group' || F === 'count_house') {       // testkroken: ett mött tal att räkna, helst ett där typen passar (nivån)
       const n = this.reach.filter((i) => numOf(i) >= K.ex.count.min && numOf(i) <= K.ex.count.max && this.book[i.id] && i !== this.last);
-      if (n.length) return this.task(pick(n));
+      const fit = n.filter((i) => tasksFor(i, this.book[i.id], this.reading, this.extra).includes(F));
+      if (n.length) return this.task(pick(fit.length ? fit : n));
     }
     const met = (i) => !!this.book[i.id], fresh = this.own.filter((i) => !met(i)), known = this.own.filter(met);
     if (fresh.length && (this.newSeen < this.newCap || !known.length) && (this.asked - this.lastNew >= 2 || !known.length)) { this.lastNew = this.asked; this.newSeen++; this.intro.add(fresh[0].id); return this.task(fresh[0]); }   // nya ord ett i taget, med gamla emellan
@@ -111,13 +127,13 @@ export class Quiz {
   // Förbereder en ny ordövning: vad som ska räknas, vilket ord Page säger, vilket ord som hörs bredvid. false = går inte nu.
   prep(t) {
     const it = t.item, E = K.ex;
-    if (t.type === 'count_pick' || t.type === 'count_word') {
-      const n = numOf(it); if (n < E.count.min || n > E.count.max) return false;
-      const objs = this.reach.filter((i) => this.book[i.id] && i.pic && i.pos === 'noun' && !numOf(i) && /^[a-z]+$/.test(i.en) && !MASS.has(i.en));
-      if (!objs.length) return false;
-      const strong = objs.filter((i) => tierOf(this.book[i.id]) >= 1), obj = pick(strong.length ? strong : objs);
-      if (!this.numFoils(it, 1).length) return false;
-      t.count = { obj, n }; return true;
+    if (t.type === 'count_group' || t.type === 'count_house') {
+      const n = numOf(it); if (n < E.count.min || n > E.count.max || !this.book[it.id]) return false;
+      const objs = this.countables(); if (!objs.length) return false;
+      // Helst ett ord som har en inspelad fras för just det här talet, och helst ett ord barnet kan (Iron eller mer).
+      const key = (i) => (t.type === 'count_house' ? 'put_' : '') + `${String(it.en).toLowerCase()}_${i.id}`;
+      const said = objs.filter((i) => CLIPS.has(key(i))), base = said.length ? said : objs, strong = base.filter((i) => tierOf(this.book[i.id]) >= 1);
+      t.count = { obj: pick(strong.length ? strong : base), n }; return true;
     }
     if (t.type === 'picword_sv' || t.type === 'picword_hear') { if (!it.pic) return false; t.alt = this.foils(it, 1, false)[0]; return !!t.alt; }
     if (t.type === 'fix_page') {
@@ -127,13 +143,19 @@ export class Quiz {
     }
     return true;
   }
-  // Andra tal att välja mellan i räkneövningen: mötta tal först, sedan andra tal i världen, aldrig 'one'.
-  numFoils(it, n) {
-    const E = K.ex.count, ok = (i) => i !== it && numOf(i) >= E.min && numOf(i) <= E.max && numOf(i) !== numOf(it);
-    const met = shuffle(this.reach.filter((i) => ok(i) && this.book[i.id])), rest = shuffle(this.reach.filter((i) => ok(i) && !this.book[i.id]));
-    const seen = new Set(), out = [];
-    for (const i of [...met, ...rest]) if (!seen.has(numOf(i)) && out.length < n) { seen.add(numOf(i)); out.push(i); }
-    return out;
+  // Det som går att räkna: mötta substantiv med bild, ett ord, inte ett tal, inte ett ämne (MASS) och inte i COUNT_SKIP.
+  countables() { return this.reach.filter((i) => this.book[i.id] && i.pic && i.pos === 'noun' && !numOf(i) && /^[a-z]+$/.test(i.en) && !MASS.has(i.en) && !COUNT_SKIP.has(i.en)); }
+  // Andra antal på korten i "välj gruppen": k olika antal från 1 till 10, inte n, helst högst fyra ifrån. Inga ord, bara bilder.
+  countFoils(n, k) {
+    const all = Array.from({ length: 10 }, (_, i) => i + 1).filter((c) => c !== n);
+    return [...shuffle(all.filter((c) => Math.abs(c - n) <= 4)), ...shuffle(all.filter((c) => Math.abs(c - n) > 4))].slice(0, k);
+  }
+  // Vad rösten säger: frasen ("Five cats." eller "Put five cats in the house.") om klippet finns, annars talet och sedan
+  // ordet i plural (eller ordet som det är). urls spelas i tur och ordning, slow är samma sak långsamt.
+  countSay(t, house) {
+    const { obj } = t.count, num = t.item, ph = (house ? 'put_' : '') + `${String(num.en).toLowerCase()}_${obj.id}`;
+    const urls = CLIPS.has(ph) ? [`audio/count/${ph}.mp3`] : [`audio/${num.audio}.mp3`, CLIPS.has('pl_' + obj.id) ? `audio/count/pl_${obj.id}.mp3` : `audio/${obj.audio}.mp3`];
+    return { urls, slow: urls.map((u) => u.replace('.mp3', '.slow.mp3')), text: `${house ? 'Put ' + String(num.en).toLowerCase() : String(num.en).charAt(0).toUpperCase() + String(num.en).slice(1).toLowerCase()} ${plural(obj.en)}${house ? ' in the house' : ''}.` };
   }
   // Meningens innehållsord (uses, annars brickorna som finns som ord). Småorden (isolated: false) finns inte bland orden i spelet.
   usesOf(s) {
@@ -219,6 +241,7 @@ export class Quiz {
     const frame = (inner, audio = true) => { quizEl.innerHTML = `<div class="speak"${audio ? '' : ' style="visibility:hidden"'}><button class="again" aria-label="Play again">🔊</button><button class="slow" aria-label="Slowly">🐢</button></div>${inner}`;
       quizEl.querySelector('.again').onclick = () => P(promptAudio); quizEl.querySelector('.slow').onclick = () => P(promptAudio === en ? slow : promptAudio); };
     const word = (html, cls = '') => { wordEl.className = 'word ' + cls; wordEl.innerHTML = html; };
+    const say = (urls) => urls.reduce((p, u) => p.then(() => P(u)), Promise.resolve());      // klipp i tur och ordning
     const newTag = task.free ? '<span class="new">NEW</span>' : '';
 
     // Flerval: ett kort är rätt. Vid fel visas rätt kort och ordet läses långsamt.
@@ -226,7 +249,7 @@ export class Quiz {
     // ett andra steg i samma uppgift (rätta Page) i stället för att uppgiften är klar.
     const choice = (opts, txt, x = {}) => {
       task.shown = opts.length; let fixing = false, stepped = false; const fixOn = !!this.pk.fixTap && !task.free;
-      frame(`<div class="cards n${opts.length}"></div>`, promptAudio !== null || !!x.seq);
+      frame(`<div class="cards n${opts.length}"></div>`, promptAudio !== null || !!x.seq || !!x.say);
       const box = quizEl.querySelector('.cards');
       const runSeq = (urls) => { const cs = [...box.children]; let p = Promise.resolve();
         urls.forEach((u, i) => { p = p.then(() => { cs.forEach((c) => c.classList.remove('playing')); if (cs[i]) cs[i].classList.add('playing'); return P(u); }); });
@@ -236,12 +259,13 @@ export class Quiz {
         b.onclick = () => { if (locked || stepped) return;
           if (fixing) { if (o.ok) { b.classList.remove('tapme'); P(en); fixing = false; finish(false); } return; }      // efter fel svar: barnet trycker på rätt kort, och hör ordet, innan striden går vidare
           if (o.ok && o.next) { stepped = true; b.classList.add('right'); return o.next(); }
-          if (o.ok) { b.classList.add('right'); if (promptAudio !== en) P(en); } else { b.classList.add('wrong'); [...box.children].forEach((c, i) => opts[i].ok && c.classList.add('right')); P(slow); task.chosen = (b.textContent.trim() || ((b.querySelector('img') || { getAttribute: () => '' }).getAttribute('src') || '').split('/').pop().replace('.png', '')).slice(0, 64);
+          if (o.ok) { b.classList.add('right'); if (promptAudio !== en) P(en); } else { b.classList.add('wrong'); [...box.children].forEach((c, i) => opts[i].ok && c.classList.add('right')); P(slow); task.chosen = (o.label != null ? String(o.label) : b.textContent.trim() || ((b.querySelector('img') || { getAttribute: () => '' }).getAttribute('src') || '').split('/').pop().replace('.png', '')).slice(0, 64);
             if (fixOn) { fixing = true; [...box.children].forEach((x, i) => opts[i].ok && x.classList.add('tapme')); return; } }
           finish(!!o.ok); };
         box.appendChild(b); if (o.ok) this._auto = () => b.click();          // används av testkörningar
       }
       if (x.seq) { quizEl.querySelector('.again').onclick = () => runSeq(x.seq); quizEl.querySelector('.slow').onclick = () => runSeq(x.seq.map((u) => u.replace('.mp3', '.slow.mp3'))); runSeq(x.seq); }
+      else if (x.say) { quizEl.querySelector('.again').onclick = () => say(x.say.urls); quizEl.querySelector('.slow').onclick = () => say(x.say.slow); say(x.say.urls); }      // en fras i flera klipp (räkna)
       else if (promptAudio) P(promptAudio);
     };
     // Ljudkort: ett nummer i en färgad ring och en högtalare. Orden hörs i kortens ordning (x.seq).
@@ -260,13 +284,90 @@ export class Quiz {
     if (T === 'en_to_sv') { word(esc(it.en) + newTag); return choice(withFoils(nTxt, false, (o) => esc(o.sv)), true); }
     if (T === 'sv_to_en') { promptAudio = svA; word(`<small>SV</small> ${esc(it.sv)}`, 'sv'); return choice(withFoils(nTxt, false, (o) => esc(o.en)), true); }
     // ----- nya övningar (v18) -----
-    // Räkna: n bilder av ett mött ord, barnet väljer talet. Siffror (och talet hörs vid svaret) eller skrivna tal (läsare från Steel).
-    if (T === 'count_pick' || T === 'count_word') {
-      const { obj, n } = task.count, wr = T === 'count_word', many = Array.from({ length: n }, () => pic(obj));
-      promptAudio = `audio/${obj.audio}.mp3`;
-      word(`<span class="qcount">${many.slice(0, 5).join('')}${n > 5 ? `<br>${many.slice(5).join('')}` : ''}</span><span class="qask">How many ${esc(plural(obj.en))}?<small class="below">Hur många?</small></span>`, 'long qcw');
-      const opts = shuffle([it, ...this.numFoils(it, this.nOpts(it, wr) - 1)]);
-      return choice(opts.map((o) => ({ html: wr ? esc(o.en) : `<span class="qdig">${numOf(o)}</span>`, ok: o === it })), wr);
+    // ----- räkna med örat (2026-11-16) -----
+    // Välj gruppen: rösten säger "Five cats." och barnet väljer kortet med just så många. Korten visar olika antal av samma
+    // sak i tärningsmönster, inget att läsa. Läsare från K.ex.count.readFrom ser också frasen skriven.
+    if (T === 'count_group') {
+      const { obj, n } = task.count, sp = this.countSay(task, false), rd = this.reading && Math.max(0, tierOf(this.book[it.id])) >= K.ex.count.readFrom;
+      promptAudio = null;
+      word(`🔊 ${rd ? esc(sp.text) : 'Listen!'}<small class="below">Lyssna och välj rätt antal.</small>`, 'long qcnt');
+      const ks = [n, ...this.countFoils(n, this.nOpts(it, false) - 1)], sz = [Math.max(...ks.map((k) => GRID(k)[0])), Math.max(...ks.map((k) => GRID(k)[1]))];
+      return choice(shuffle(ks).map((k) => ({ html: groupHTML(obj, k, sz), ok: k === n, cls: 'qgrp', label: k })), false, { say: sp });
+    }
+    // Lägg dem i huset: rösten säger "Put five cats in the house." Fler saker än som behövs står på gården. Ett tryck skickar en
+    // sak hoppande in i huset (det går också att dra), ett tryck i huset skickar den ut igen. Inga siffror: huset fylls, och
+    // Done kontrollerar. För få eller för många: rösten säger talet igen, de extra hoppar ut eller tomma platser visar hur
+    // många som fattas, och barnet gör klart (som att trycka på rätt kort efter ett fel, K.pick.fixTap). Svaret är då fel en gång.
+    if (T === 'count_house') {
+      const { obj, n } = task.count, sp = this.countSay(task, true), X = K.ex.count, fixOn = !!this.pk.fixTap && !task.free;
+      const rd = this.reading && Math.max(0, tierOf(this.book[it.id])) >= X.readFrom, one = thing(obj);
+      const m = Math.min(X.most, n + X.extra[0] + Math.floor(Math.random() * (X.extra[1] - X.extra[0] + 1)));
+      promptAudio = null;
+      word(`🏠 ${rd ? esc(sp.text) : '🔊 Listen!'}<small class="below">Lyssna och lägg rätt antal i huset.</small>`, 'long qcnt');
+      frame(`<div class="qhouse"><div class="qyard"></div><div class="qhome"><i class="qroof"></i><div class="qin"></div></div><button class="qdone">✓ Done<small>Klar</small></button></div>`);
+      quizEl.querySelector('.again').onclick = () => say(sp.urls); quizEl.querySelector('.slow').onclick = () => say(sp.slow);
+      const yard = quizEl.querySelector('.qyard'), home = quizEl.querySelector('.qhome'), inn = quizEl.querySelector('.qin'), done = quizEl.querySelector('.qdone');
+      task.shown = m; let fixing = false, quick = false; const inside = [];      // quick: testkörningar hoppar över hoppen
+      document.querySelectorAll('.qfly').forEach((f) => f.remove());
+      // Huset ritas om efter varje drag: sakerna i huset i rader om fem, och efter ett fel de tomma platserna som fattas.
+      const draw = () => {
+        inn.innerHTML = '';
+        for (const b of inside) { const s = document.createElement('button'); s.className = 'qslot'; s.innerHTML = one; s.setAttribute('aria-label', obj.en); s.onclick = () => out(b); inn.appendChild(s); b.qs = s; }
+        if (fixing) for (let i = inside.length; i < n; i++) { const e = document.createElement('i'); e.className = 'qslot empty'; inn.appendChild(e); }
+        home.classList.toggle('some', inside.length > 0); done.classList.toggle('tapme', fixing && inside.length === n);
+      };
+      // Hoppet är bara utseende: en kopia flyger från rutan r till elementet to. Själva flytten är redan gjord.
+      const hop = (r, to) => {
+        if (quick || !r || !to || typeof to.animate !== 'function' || !r.width) return;
+        const b = to.getBoundingClientRect(); if (!b.width) return;
+        const f = document.createElement('div'); f.className = 'qfly'; f.innerHTML = one; Object.assign(f.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' }); document.body.appendChild(f);
+        const dx = b.left + b.width / 2 - (r.left + r.width / 2), dy = b.top + b.height / 2 - (r.top + r.height / 2), k = b.width / r.width;
+        to.style.visibility = 'hidden';
+        const a = f.animate([{ transform: 'translate(0, 0) scale(1)' }, { transform: `translate(${dx / 2}px, ${Math.min(0, dy) / 2 - 46}px) scale(${(1 + k) / 2 + 0.1})`, offset: 0.5 }, { transform: `translate(${dx}px, ${dy}px) scale(${k})` }], { duration: 380, easing: 'ease-in-out' });
+        const end = () => { f.remove(); to.style.visibility = ''; }; a.onfinish = end; a.oncancel = end; setTimeout(end, 900);
+      };
+      const into = (b, r) => {
+        if (locked || b.in) return;
+        if (fixing && inside.length >= n) { b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); return; }      // efter ett fel: huset är fullt
+        r = r || (quick ? null : b.getBoundingClientRect()); b.in = true; inside.push(b); b.classList.add('gone'); draw(); hop(r, b.qs);
+      };
+      const out = (b, force) => {
+        if ((locked && !force) || !b.in) return;
+        const r = !quick && b.qs && b.qs.getBoundingClientRect(); b.in = false; inside.splice(inside.indexOf(b), 1); draw(); b.classList.remove('gone'); hop(r, b);
+      };
+      const things = Array.from({ length: m }, () => {
+        const b = document.createElement('button'); b.className = 'qthing'; b.innerHTML = one; b.setAttribute('aria-label', obj.en); yard.appendChild(b);
+        b.onclick = () => { if (performance.now() - (b.dragEnd || -1e9) < 400) return; into(b); };
+        // Dra: saken följer fingret, och släpps den över huset (med god marginal) går den in. Annars glider den tillbaka.
+        b.onpointerdown = (e) => {
+          if (locked || b.in) return;
+          const sx = e.clientX, sy = e.clientY; let moved = false;
+          try { b.setPointerCapture(e.pointerId); } catch (err) { /* äldre webbläsare */ }
+          b.onpointermove = (ev) => { const dx = ev.clientX - sx, dy = ev.clientY - sy; if (!moved && Math.hypot(dx, dy) < 10) return; moved = true; b.classList.add('drag'); b.style.transform = `translate(${dx}px, ${dy}px) scale(1.12)`; };
+          b.onpointerup = b.onpointercancel = (ev) => {
+            b.onpointermove = b.onpointerup = b.onpointercancel = null; if (!moved) return;
+            b.dragEnd = performance.now(); const r = b.getBoundingClientRect(), h = home.getBoundingClientRect(), pad = 36;
+            b.classList.remove('drag'); b.style.transform = '';
+            if (ev.type === 'pointerup' && ev.clientX > h.left - pad && ev.clientX < h.right + pad && ev.clientY > h.top - pad && ev.clientY < h.bottom + pad) into(b, r);
+          };
+        };
+        return b;
+      });
+      const numSlow = `audio/${it.audio}.slow.mp3`;
+      done.onclick = () => {
+        if (locked) return;
+        const k = inside.length;
+        if (fixing) { if (k === n) { done.classList.remove('tapme'); home.classList.remove('bad'); P(en); finish(false); } else say([numSlow]); return; }      // efter fel: klart när huset har rätt antal
+        if (k === n) { home.classList.add('ok'); P(en); return finish(true); }
+        task.chosen = String(k); fixing = true; home.classList.add('bad'); if (this.sfx) this.sfx('wrong');
+        say([numSlow]);                                                       // rösten säger talet igen, långsamt
+        const extra = inside.slice(n);
+        if (extra.length) { extra.forEach((b) => b.qs && b.qs.classList.add('extra')); setTimeout(() => extra.forEach((b) => out(b, true)), 650); }      // de extra hoppar ut
+        draw(); extra.forEach((b) => b.qs && b.qs.classList.add('extra'));
+        if (!fixOn) { while (inside.length > n) out(inside[inside.length - 1], true); finish(false); }
+      };
+      this._auto = () => { quick = true; while (inside.length > n) out(inside[inside.length - 1], true); for (const b of things) if (inside.length < n && !b.in) into(b); done.click(); };      // används av testkörningar
+      say(sp.urls); return;
     }
     // Bild och skrivet ord tillsammans: läsaren väljer svenskan, den som inte läser hör två ord och väljer det som hör till bilden.
     if (T === 'picword_sv') { word(`<span class="pic">${pic(it)}</span> ${esc(it.en)}`); return choice(withFoils(this.nOpts(it, true) - 1, false, (o) => esc(o.sv)), true); }

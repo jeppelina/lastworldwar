@@ -143,7 +143,13 @@
 //                   tre respektive 0,8 på alla, båda bärs på axeln och hålls med två händer). Nya fade-gruppen 'sky' [5, 9, 0, 5]:
 //                   säljs bara i Molnslottet, Fire till Star. Typfaktorerna ligger på eller under de gamla högsta per plats (taket
 //                   för liv som i v20). Nya ikoner för händerna. Gamla föremål orörda.
-export const version = 23;
+//   v24  2026-11-16  Räkna med örat (quiz.js, words.js), förälderns önskemål: räknandet ska handla om att lyssna, inte läsa.
+//                   count_pick och count_word ersätts av välj gruppen (count_group: "Five cats.", välj kortet med fem) och lägg
+//                   dem i huset (count_house: "Put five cats in the house.", tryck eller dra in rätt antal, Done kontrollerar).
+//                   K.ex.count: group 0,25 från första mötet, house 0,25 från Iron (houseFrom), förut 0,4 för count_pick och
+//                   count_word. Svaret bokförs på talet under en äldre typ med samma vikt (NEW_AS), så gamla loggar och äldre
+//                   klienter räknar som förut. Ljud: game/audio/count/ (prototypes/audio/gen_count.py). Inte simulerat.
+export const version = 24;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -179,7 +185,8 @@ export const K = {
   // Gäller inte ja eller nej (alltid två), saknad bokstav (fyra) och meningens lucka (valen står i innehållet).
   choices: { byTier: [2, 3, 4], written: 2, hard: 2 },
   // De nya övningarna (v18, quiz.js och tasksFor i words.js). share = andel av frågorna på ett ord som passar övningen.
-  //   count    räkna bilder: "How many cats?". Ord för talen min till max. Siffror och ljud, skrivna tal från readFrom (läsare).
+  //   count    räkna med örat (v24): talen min till max. group = andel "välj gruppen", house = andel "lägg dem i huset" från
+  //            nivån houseFrom. Läsare ser frasen skriven från readFrom. Gården har n + extra[0] till n + extra[1] saker, högst most.
   //   picword  bild och skrivet ord: läsare väljer svenskan, den som inte läser hör två ord och väljer. Nivåerna from till to.
   //   fix      Page säger fel ord (andelen wrong) eller rätt ord under en bild. Bara substantiv, från nivån from.
   //   hunt     hör meningen och välj scenen. share = andel av läsarnas meningsturer, noread = chans per fråga för den som
@@ -188,7 +195,7 @@ export const K = {
   //   Både hunt och chant kräver att meningens innehållsord är mötta.
   ex: {
     on: true,
-    count: { share: 0.4, min: 2, max: 10, readFrom: 2 },
+    count: { group: 0.25, house: 0.25, houseFrom: 1, min: 2, max: 10, readFrom: 2, extra: [2, 3], most: 13 },
     picword: { share: 0.25, from: 1, to: 2 },
     fix: { share: 0.15, from: 1, wrong: 0.6 },
     hunt: { share: 0.3, noread: 0.2, cards: { read: 4, noread: 3 } },

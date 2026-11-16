@@ -15,12 +15,16 @@ const INTERVAL = [1, 1, 2, 3, 5, 8, 13, 21];          // dagar tills ordet vill 
 // Hur mycket ett rätt svar är värt per övningstyp: känna igen < koppla ord och skrift < plocka fram < stava.
 export const WEIGHT = { listen_pick_picture: 1, true_false: 1, picture_pick_word: 1.5, listen_pick_word: 1.5, read_pick_picture: 1.5, en_to_sv: 1.5, sv_to_en: 2, sentence_gap: 2, missing_letter: 2.5, spell_tiles: 3, build_sentence: 3,
   // Nya övningar (balans v18, 2026-11-16). Vikten är densamma som för typen i NEW_AS nedan. Meningarna bokförs inte i ordboken.
-  count_pick: 1, count_word: 1.5, picword_sv: 1, picword_hear: 1.5, fix_page: 1, scene_hunt: 2, spell_chant: 3 };
+  count_pick: 1, count_word: 1.5, picword_sv: 1, picword_hear: 1.5, fix_page: 1, scene_hunt: 2, spell_chant: 3,
+  // Räkna med örat (balans v24): välj gruppen (som att höra ett ord och välja bilden) och lägg dem i huset (svårare: att
+  // plocka fram rätt antal själv, som att höra ett ord och välja det skrivna). count_pick och count_word görs inte längre.
+  count_group: 1, count_house: 1.5 };
 
 // De nya ordövningarna bokförs i ordboken (och i händelsen 'words') under en äldre typ med samma vikt, som bossarnas
 // uppgifter (BOSS_AS). En äldre klient räknar då exakt samma ordbok ur samma rader. Övningens eget namn sparas bara i
 // svarsloggen (lv_answers, fältet exercise). Ändra aldrig en rad här: vikten för en sparad rad får inte ändras i efterhand.
-export const NEW_AS = { count_pick: 'listen_pick_picture', count_word: 'listen_pick_word', picword_sv: 'listen_pick_picture', picword_hear: 'listen_pick_word', fix_page: 'true_false' };
+export const NEW_AS = { count_pick: 'listen_pick_picture', count_word: 'listen_pick_word', picword_sv: 'listen_pick_picture', picword_hear: 'listen_pick_word', fix_page: 'true_false',
+  count_group: 'listen_pick_picture', count_house: 'listen_pick_word' };
 // Taltal, för räkneövningen. Ett ord är ett tal om det har kategorin 'number' och står här.
 export const NUMS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
 export const numOf = (item) => (item && item.cat === 'number' && NUMS[String(item.en).toLowerCase()]) || 0;
@@ -114,7 +118,10 @@ export function tasksFor(item, rec, reading = true, extra = false) {
   const base = baseTasks(item, rec, reading), E = K.ex;
   if (!extra || !rec || !E || !E.on) return base;
   const t = Math.max(0, tierOf(rec)), add = [], n = numOf(item);
-  if (n >= E.count.min && n <= E.count.max) add.push([reading && t >= E.count.readFrom ? 'count_word' : 'count_pick', E.count.share]);
+  if (n >= E.count.min && n <= E.count.max) {      // räkna med örat (v24): välj gruppen från första mötet, lägg dem i huset från houseFrom
+    add.push(['count_group', E.count.group]);
+    if (t >= E.count.houseFrom) add.push(['count_house', E.count.house]);
+  }
   else if (item.pic && item.pos !== 'phrase') {
     if (t >= E.picword.from && t <= E.picword.to) add.push([reading ? 'picword_sv' : 'picword_hear', E.picword.share]);
     if (t >= E.fix.from && item.pos === 'noun') add.push(['fix_page', E.fix.share]);
