@@ -35,25 +35,35 @@ export const SLOTS = [
 // Berlockerna har ett femte fält: sitt enda material (ingen materialstege), och fast pris TUNE.charmPrice * p.
 const TYPES = {
   weapon: [['dagger', 'Dagger', 0.7, 0], ['club', 'Club', 0.8, 0], ['sword', 'Sword', 1, 1], ['axe', 'Axe', 1.1, 2], ['spear', 'Spear', 1.15, 2], ['hammer', 'Hammer', 1.25, 3], ['bow', 'Bow', 1.2, 2], ['staff', 'Staff', 1.35, 3], ['orb', 'Magic Orb', 1.5, 4], ['great', 'Greatsword', 1.6, 4],
-    ['knives', 'Throwing Knives', 1, 1]],
-  helmet: [['cap', 'Cap', 0.6, 0], ['hood', 'Hood', 0.8, 1], ['helm', 'Helmet', 1, 1], ['phones', 'Headphones', 1.05, 2], ['horned', 'Horned Helmet', 1.2, 2], ['wizard', 'Wizard Hat', 1.3, 3], ['great', 'Knight Helmet', 1.45, 3], ['crown', 'Crown', 1.7, 4]],
-  armor: [['tunic', 'Tunic', 0.7, 0], ['chain', 'Chainmail', 1, 1], ['robe', 'Robe', 1.2, 2], ['plate', 'Armor', 1.5, 3], ['vest', 'Ranger Vest', 0.85, 0]],
-  shield: [['round', 'Round Shield', 0.8, 0], ['kite', 'Kite Shield', 1.1, 2], ['tower', 'Tower Shield', 1.4, 3], ['quiver', 'Quiver', 0.9, 0]],
-  back: [['cape', 'Cape', 0.8, 1], ['wings', 'Wings', 1.3, 3], ['dragonwings', 'Dragon Wings', 1.5, 4], ['jetpack', 'Jetpack', 1.7, 4], ['leafcloak', 'Leaf Cloak', 0.9, 1]],
+    ['knives', 'Throwing Knives', 1, 1], ['stars', 'Throwing Stars', 1.1, 2],
+    ['katana', 'Katana', 1.5, 3], ['greataxe', 'Great Axe', 1.6, 3], ['javelin', 'Throwing Spear', 1.3, 2], ['crossbow', 'Crossbow', 1.4, 3], ['bomb', 'Bomb', 1.45, 3], ['halberd', 'Halberd', 1.5, 3],
+    ['giantblade', 'Giant Blade', 1.7, 4], ['gianthammer', 'Giant Hammer', 1.75, 4]],
+  helmet: [['cap', 'Cap', 0.6, 0], ['hood', 'Hood', 0.8, 1], ['helm', 'Helmet', 1, 1], ['phones', 'Headphones', 1.05, 2], ['horned', 'Horned Helmet', 1.2, 2], ['wizard', 'Wizard Hat', 1.3, 3], ['great', 'Knight Helmet', 1.45, 3], ['crown', 'Crown', 1.7, 4], ['bandana', 'Bandana', 0.75, 1], ['kabuto', 'Samurai Helmet', 1.3, 2], ['goggles', 'Goggle Cap', 0.9, 1], ['circlet', 'Winged Circlet', 1.6, 4]],
+  armor: [['tunic', 'Tunic', 0.7, 0], ['chain', 'Chainmail', 1, 1], ['robe', 'Robe', 1.2, 2], ['plate', 'Armor', 1.5, 3], ['vest', 'Ranger Vest', 0.85, 0], ['coat', 'Long Coat', 1.05, 1], ['furvest', 'Fur Vest', 1, 1], ['lamellar', 'Lamellar Armor', 1.3, 2], ['overalls', 'Overalls', 1, 1], ['skyplate', 'Sky Plate', 1.5, 4]],
+  shield: [['round', 'Round Shield', 0.8, 0], ['kite', 'Kite Shield', 1.1, 2], ['tower', 'Tower Shield', 1.4, 3], ['quiver', 'Quiver', 0.9, 0], ['parry', 'Parrying Dagger', 0.95, 1], ['book', 'Spell Book', 1.15, 2], ['fan', 'War Fan', 1, 1], ['cog', 'Cog Shield', 1.2, 2], ['sunshield', 'Sun Shield', 1.4, 4]],
+  back: [['cape', 'Cape', 0.8, 1], ['wings', 'Wings', 1.3, 3], ['dragonwings', 'Dragon Wings', 1.5, 4], ['jetpack', 'Jetpack', 1.7, 4], ['leafcloak', 'Leaf Cloak', 0.9, 1], ['tattered', 'Tattered Cloak', 0.95, 1], ['mantle', 'Star Mantle', 1.2, 2], ['furcloak', 'Fur Cloak', 1, 1], ['banner', 'Back Banner', 1.2, 2], ['halo', 'Star Halo', 1.6, 4]],
   pet: [['slime', 'Slime', 0.8, 2], ['bat', 'Bat', 1, 2], ['ghost', 'Ghost', 1.2, 3], ['drone', 'Drone', 1.4, 4], ['dragon', 'Baby Dragon', 1.7, 4]],
-  hands: [['bracers', 'Archer Bracers', 1, 0], ['gauntlets', 'Gauntlets', 1.2, 1]],
-  legs: [['trousers', 'Ranger Trousers', 1, 0], ['greaves', 'Greaves', 1.2, 1]],
-  feet: [['tallboots', 'Tall Boots', 1, 0], ['sabatons', 'Knight Boots', 1.2, 1]],
-  belt: [['pouchbelt', 'Pouch Belt', 1, 0], ['swordbelt', 'Sword Belt', 1.2, 1]],
+  hands: [['bracers', 'Archer Bracers', 1, 0], ['gauntlets', 'Gauntlets', 1.2, 1], ['fingerless', 'Fingerless Gloves', 1, 0], ['runebracers', 'Rune Bracers', 1.1, 1], ['furcuffs', 'Fur Cuffs', 1, 0], ['kote', 'Armored Sleeves', 1.15, 1], ['workgloves', 'Work Gloves', 1.05, 0], ['skygloves', 'Sky Gauntlets', 1.2, 4]],
+  legs: [['trousers', 'Ranger Trousers', 1, 0], ['greaves', 'Greaves', 1.2, 1], ['strapped', 'Strapped Trousers', 1, 0], ['leggings', 'Star Leggings', 1.1, 1], ['wrapped', 'Wrapped Trousers', 1, 0], ['hakama', 'Hakama', 1.1, 1], ['cargo', 'Cargo Pants', 1.05, 0], ['skygreaves', 'Cloud Greaves', 1.2, 4]],
+  feet: [['tallboots', 'Tall Boots', 1, 0], ['sabatons', 'Knight Boots', 1.2, 1], ['softboots', 'Soft Boots', 1, 0], ['curled', 'Curled Shoes', 1.1, 1], ['furboots', 'Fur Boots', 1.05, 0], ['sandals', 'Straw Sandals', 0.95, 0], ['workboots', 'Work Boots', 1.1, 1], ['skyboots', 'Winged Boots', 1.2, 4]],
+  belt: [['pouchbelt', 'Pouch Belt', 1, 0], ['swordbelt', 'Sword Belt', 1.2, 1], ['bandolier', 'Knife Bandolier', 1, 0], ['ropebelt', 'Rope Belt', 1.1, 1], ['hornbelt', 'Horn Belt', 1.05, 0], ['obi', 'Sash', 1.1, 1], ['toolbelt', 'Tool Belt', 1.1, 1], ['skysash', 'Sky Sash', 1.2, 4]],
   charm: [['pouch', 'Pouch', 0.8, 0, 'tra'], ['keys', 'Keys', 0.9, 0, 'guld'], ['horn', 'Horn', 1, 0, 'jarn'], ['potion', 'Potion', 1, 0, 'is'], ['scroll', 'Scroll', 1.1, 0, 'guld'], ['lantern', 'Lantern', 1.2, 0, 'eld'], ['owl', 'Owl', 1.2, 0, 'stal']],
 };
 // Byggena (utrustning v4): en sort per plats på kroppen, och byggets vapen (räknas inte i setet). Setbonusen är bara utseende:
 // tre delar av samma bygge i vilket material som helst ger en ring på marken i byggets färg, sex delar byggets egen effekt
-// (hero.js). Fler byggen kommer i senare steg (Rogue, Mage, Viking, Samurai, Engineer).
+// (hero.js). home = världen där bygget hör hemma (hyllans byggplats väljer världens bygge när barnet inte har börjat på något).
+// Steg 3 (balans v21): Rogue och Mage (Svampträsket). Steg 4 (balans v22): Viking och Samurai (Frostbergen), Engineer (Meningsvulkanen).
+// Steg 5 (balans v23): Celestial, Molnslottets eget toppbygge, säljs bara där (Fire till Star).
 export const SET_SLOTS = ['helmet', 'armor', 'hands', 'legs', 'feet', 'belt', 'shield', 'back'];
 export const BUILDS = {
-  ranger: { name: 'Ranger', hex: '#5aa646', weapon: 'bow', pieces: { helmet: 'cap', armor: 'vest', hands: 'bracers', legs: 'trousers', feet: 'tallboots', belt: 'pouchbelt', shield: 'quiver', back: 'leafcloak' } },
-  knight: { name: 'Knight', hex: '#c3d0de', weapon: 'sword', pieces: { helmet: 'great', armor: 'plate', hands: 'gauntlets', legs: 'greaves', feet: 'sabatons', belt: 'swordbelt', shield: 'kite', back: 'cape' } },
+  ranger: { name: 'Ranger', hex: '#5aa646', weapon: 'bow', home: 0, pieces: { helmet: 'cap', armor: 'vest', hands: 'bracers', legs: 'trousers', feet: 'tallboots', belt: 'pouchbelt', shield: 'quiver', back: 'leafcloak' } },
+  knight: { name: 'Knight', hex: '#c3d0de', weapon: 'sword', home: 1, pieces: { helmet: 'great', armor: 'plate', hands: 'gauntlets', legs: 'greaves', feet: 'sabatons', belt: 'swordbelt', shield: 'kite', back: 'cape' } },
+  rogue: { name: 'Rogue', hex: '#9a6bff', weapon: 'knives', home: 2, pieces: { helmet: 'bandana', armor: 'coat', hands: 'fingerless', legs: 'strapped', feet: 'softboots', belt: 'bandolier', shield: 'parry', back: 'tattered' } },
+  mage: { name: 'Mage', hex: '#5a8cff', weapon: 'staff', home: 2, pieces: { helmet: 'wizard', armor: 'robe', hands: 'runebracers', legs: 'leggings', feet: 'curled', belt: 'ropebelt', shield: 'book', back: 'mantle' } },
+  viking: { name: 'Viking', hex: '#d9cbb0', weapon: 'greataxe', home: 3, pieces: { helmet: 'horned', armor: 'furvest', hands: 'furcuffs', legs: 'wrapped', feet: 'furboots', belt: 'hornbelt', shield: 'round', back: 'furcloak' } },
+  samurai: { name: 'Samurai', hex: '#f5a3c7', weapon: 'katana', home: 3, pieces: { helmet: 'kabuto', armor: 'lamellar', hands: 'kote', legs: 'hakama', feet: 'sandals', belt: 'obi', shield: 'fan', back: 'banner' } },
+  engineer: { name: 'Engineer', hex: '#ff9a3c', weapon: 'crossbow', home: 4, pieces: { helmet: 'goggles', armor: 'overalls', hands: 'workgloves', legs: 'cargo', feet: 'workboots', belt: 'toolbelt', shield: 'cog', back: 'jetpack' } },
+  celestial: { name: 'Celestial', hex: '#ffe27a', weapon: 'giantblade', home: 5, pieces: { helmet: 'circlet', armor: 'skyplate', hands: 'skygloves', legs: 'skygreaves', feet: 'skyboots', belt: 'skysash', shield: 'sunshield', back: 'halo' } },
 };
 // Bygget som en sort hör till (null = inget). it = { slot, type }.
 export const buildOf = (it) => { if (!it || !SET_SLOTS.includes(it.slot)) return null; for (const id in BUILDS) if (BUILDS[id].pieces[it.slot] === it.type) return id; return null; };
@@ -143,6 +153,9 @@ export function makeCatalog(T = TUNE, shopRules = BK.shop) {
     const cap = Math.max(0, Math.min(W.hi, Math.floor(f[1] + f[2] * (k - f[0]))));
     return [Math.min(W.lo, cap), cap];
   }
+  // Världen där en sort hör hemma (v21): fade-gruppens fjärde tal om det finns, annars första världen. Före den världen är sorten
+  // en försmak (bara Wooden) och får vikten shopRules.preview på hyllan i stället för vikten för en ny sort.
+  const homeOf = (it) => { const v = kindOf(it.slot, it.type); if (v == null || typeof v === 'number' || !shopRules.fade[v]) return typeWorld(it); const f = shopRules.fade[v]; return f[3] != null ? f[3] : f[0]; };
   const KIND = {};                                               // 'plats.sort' -> föremålen, lägsta materialet först
   for (const it of ITEMS) (KIND[it.slot + '.' + it.type] || (KIND[it.slot + '.' + it.type] = [])).push(it);
   function worldShop(profile, day, k) {
@@ -192,11 +205,15 @@ export function makeCatalog(T = TUNE, shopRules = BK.shop) {
     const wt = shopRules.weight || [1, 1, 1], perSlot = shopRules.perSlot || 99;
     const inSpan = (i) => { const sp = kindSpan(i.slot, i.type, k); return sp === 'fixed' || (!!sp && i.tier >= sp[0] && i.tier <= sp[1]); };
     // Sorterna som säljs här, med de föremål som går att köpa (inte ägda, nivån räcker), nyaste materialet först.
+    // firstWeapon (förslag v21, av som förval): så länge hjälten inte äger något vapen visar hyllan inget som är billigare än
+    // det billigaste vapnet som nivån räcker till, så att ett barn som alltid köper det billigaste köper ett vapen först.
+    const fw = shopRules.firstWeapon && shopRules.weaponFirst && !profile.owned.some(isW);
+    const minP = fw ? Math.min(Infinity, ...ITEMS.filter((i) => i.slot === 'weapon' && i.level <= L && !owned.has(i.id) && inSpan(i)).map((i) => i.price)) : 0;
     const kinds = [];
     for (const key in KIND) {
-      const its = KIND[key].filter((i) => !owned.has(i.id) && inSpan(i) && i.level <= L).reverse(); if (!its.length) continue;
-      const age = k - typeWorld(its[0]);
-      kinds.push({ key, slot: its[0].slot, its, w: wt[Math.min(wt.length - 1, Math.max(0, age))] });
+      const its = KIND[key].filter((i) => !owned.has(i.id) && inSpan(i) && i.level <= L && (minP === Infinity || i.price >= minP)).reverse(); if (!its.length) continue;
+      const age = k - homeOf(its[0]);
+      kinds.push({ key, slot: its[0].slot, its, w: age < 0 ? (shopRules.preview != null ? shopRules.preview : wt[Math.min(1, wt.length - 1)]) : wt[Math.min(wt.length - 1, age)] });
     }
     const picks = [], used = new Set(), per = {};
     const room = (slot) => (per[slot] || 0) < (slot === 'charm' ? 1 : perSlot);
@@ -205,7 +222,9 @@ export function makeCatalog(T = TUNE, shopRules = BK.shop) {
     let setPick = null;
     if (shopRules.setSlot) {
       const have = setCounts(profile.owned.map((id) => BY_ID[id]).filter(Boolean));
-      const order = Object.keys(BUILDS).sort((a, b) => (have[b] || 0) - (have[a] || 0));
+      // flest ägda delar först; vid lika världens eget bygge, sedan det som hör hemma närmast bakåt i kartan (v21)
+      const near = (b) => { const h = BUILDS[b].home || 0; return h <= k ? k - h : 10 + h - k; };
+      const order = Object.keys(BUILDS).sort((a, b) => (have[b] || 0) - (have[a] || 0) || near(a) - near(b));
       for (const b of order) {
         const ownKinds = new Set(profile.owned.map((id) => BY_ID[id]).filter(Boolean).map((i) => i.slot + '.' + i.type));
         const miss = SET_SLOTS.map((sl) => sl + '.' + BUILDS[b].pieces[sl]).filter((key) => !ownKinds.has(key));
@@ -229,7 +248,7 @@ export function makeCatalog(T = TUNE, shopRules = BK.shop) {
       if (!draw(true) && !draw(false)) break;
     }
     // 3. billiga saker
-    const cheapN = shopRules.cheap || 0;
+    const cheapN = fw ? 0 : shopRules.cheap || 0;
     if (cheapN && picks.length) {
       const cheapOk = () => { const mx = Math.max(...picks.map((i) => i.price)); return picks.filter((i) => i.price <= mx / 4).length; };
       const pool = kinds.filter((x) => !used.has(x.key)).map((x) => x.its[x.its.length - 1]).sort((a, b) => a.price - b.price);

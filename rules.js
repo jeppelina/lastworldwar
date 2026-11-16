@@ -45,6 +45,17 @@ export const WEAPON_RULES = {
   orb: { hits: [1], aoe: true },
   bow: { hits: [1] },
   knives: { hits: [0.4, 0.4, 0.4] },     // kastknivar (v20): tre kast mot den främsta, summan 1,2 som dolken
+  stars: { hits: [0.45, 0.45], cleave: 2 },   // kaststjärnor (v21): två kast som går genom de två främsta, 0,9 mot en ensam fiende
+  // Steg 4 (v22): större område betyder lägre skada per träff (docs/research/utrustning.md avsnitt 5)
+  katana: { hits: [0.4, 0.4, 0.4] },          // språng förbi fienden och tre snitt mot den främsta
+  greataxe: { hits: [0.75], cleave: 3 },      // ett helt varv genom de tre främsta
+  javelin: { hits: [1] },                     // kastspjutet sticker i den främsta och kommer tillbaka
+  crossbow: { hits: [0.7], cleave: 2 },       // bulten går rakt genom de två främsta
+  bomb: { hits: [0.7], aoe: true },           // smäller över alla
+  halberd: { hits: [0.85], cleave: 2 },       // stöt och hugg med kroken genom de två främsta
+  // Steg 5 (v23): Molnslottets jättevapen
+  giantblade: { hits: [0.8], cleave: 3 },     // hopp och ett slag rakt ned, chockvåg genom de tre främsta
+  gianthammer: { hits: [0.8], aoe: true },    // som hammaren men större, marken spricker under alla
 };
 
 // ---------- Banans strider ----------

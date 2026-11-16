@@ -586,9 +586,11 @@ const SLOT_SIDE = { L: ['helmet', 'armor', 'hands', 'legs', 'feet'], R: ['weapon
 // En tom plats visar en grå skugga av en enkel sak där (inte ett plustecken), så att den yngsta ser var saken hamnar.
 const GHOST = { helmet: 'helmet.cap.tra', armor: 'armor.tunic.tra', hands: 'hands.bracers.tra', legs: 'legs.trousers.tra', feet: 'feet.tallboots.tra', weapon: 'weapon.sword.tra', shield: 'shield.round.tra', belt: 'belt.pouchbelt.tra', back: 'back.cape.tra', pet: 'pet.slime.tra' };
 // Prickarna under hjälten: en rad per bygge som har minst en del på, åtta prickar, en stjärna när alla åtta sitter på.
+// Med åtta byggen (steg 5) blir det för många rader på en telefon: byggen med minst två delar, flest först, högst tre rader.
+// Har inget bygge två delar visas det första med en del.
 function setDots(gear) {
-  const c = setCounts(gear);
-  return Object.keys(BUILDS).filter((b) => c[b]).map((b) => `<span style="--sc:${BUILDS[b].hex}">${BUILDS[b].name} <i>${c[b] >= 8 ? '★' : '●'.repeat(c[b])}</i>${c[b] >= 8 ? '' : '○'.repeat(8 - c[b])}</span>`).join('');
+  const c = setCounts(gear), on = Object.keys(BUILDS).filter((b) => c[b]).sort((a, b) => c[b] - c[a]), two = on.filter((b) => c[b] >= 2);
+  return (two.length ? two.slice(0, 3) : on.slice(0, 1)).map((b) => `<span style="--sc:${BUILDS[b].hex}">${BUILDS[b].name} <i>${c[b] >= 8 ? '★' : '●'.repeat(c[b])}</i>${c[b] >= 8 ? '' : '○'.repeat(8 - c[b])}</span>`).join('');
 }
 function openGear(tab) { gSel = null; pSel = null; pConfirm = false; if (typeof tab === 'string') gTab = tab; show('gear'); paintGearBg(); renderGear(); }
 async function paintGearBg() {

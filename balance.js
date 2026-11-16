@@ -123,7 +123,27 @@
 //                   K.shop.types). Världens materialspann och fyndens chans är som förut. En plats på hyllan visar en del som fattas
 //                   i ett bygge (setSlot), minst `cheap` saker är billiga och högst `perSlot` per plats. Gamla föremål: samma id,
 //                   pris, styrka och nivåkrav; ägda föremål som förut. Setbonusen är bara utseende. Simulering: se PLAN.md 2026-11-16.
-export const version = 20;
+//   v21  2026-11-16  Utrustning v4, steg 3 (docs/research/utrustning.md): Rogue- och Mage-byggena (Svampträsket), kaststjärnor
+//                   (WEAPON_RULES.stars: två kast som går genom de två främsta, 0,45 per träff), Spell Book och Parrying Dagger
+//                   i off-hand-platsen. Nya fade-gruppen 'swamp' [1, 0, 2,5, 2]: sorterna finns som försmak i Solöknen (bara
+//                   Wooden), i Steel i Svampträsket där de hör hemma och i hela spannet från Frostbergen. Ett fjärde tal i en
+//                   fade-grupp är sortens hemvärld: före den får sorten vikten K.shop.preview (0,4) på hyllan, från den som en ny
+//                   sort. Byggets plats på hyllan väljer världens eget bygge när barnet inte har börjat på något (BUILDS.home).
+//                   De nya sorternas typfaktorer ligger inom de gamla per plats, så taket för en hel uppsättning (liv) är detsamma
+//                   som i v20. Gamla föremål: samma id, pris, styrka och nivåkrav. Simulering: se PLAN.md 2026-11-16, steg 3.
+//   v22  2026-11-16  Utrustning v4, steg 4: tvåhandsgreppet (skölden hänger på ryggen och ger sitt liv som förut), Viking-, Samurai-
+//                   och Engineer-byggena och sex nya vapen med egna regler i WEAPON_RULES (större område, lägre skada per träff):
+//                   katana [0,4 x 3], stridsyxa 0,75 på tre, kastspjut 1, armborst 0,7 genom två, bomb 0,7 på alla, hillebard 0,85
+//                   på två. Nya fade-grupper: 'frost' [2, 0, 3, 3] (Viking och Samurai: försmak i Svampträsket, Golden i
+//                   Frostbergen där de hör hemma), 'bigw' [1, 0, 2,5, 3] (katana, stridsyxa, kastspjut: en Wooden stridsyxa redan i
+//                   Solöknen, hela spannet i Frostbergen), 'volcano' [2, 0, 3, 4] (Engineer, armborst, bomb, hillebard). Typfaktorerna
+//                   för de nya delarna ligger inom de gamla per plats (taket för liv som i v20). Gamla föremål orörda.
+//   v23  2026-11-16  Utrustning v4, steg 5: Celestial, Molnslottets eget toppbygge (Winged Circlet, Sky Plate, Sky Gauntlets, Cloud
+//                   Greaves, Winged Boots, Sky Sash, Sun Shield, Star Halo), jättesvärdet och jättehammaren (WEAPON_RULES: 0,8 på
+//                   tre respektive 0,8 på alla, båda bärs på axeln och hålls med två händer). Nya fade-gruppen 'sky' [5, 9, 0, 5]:
+//                   säljs bara i Molnslottet, Fire till Star. Typfaktorerna ligger på eller under de gamla högsta per plats (taket
+//                   för liv som i v20). Nya ikoner för händerna. Gamla föremål orörda.
+export const version = 23;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -197,26 +217,35 @@ export const K = {
     //   mid    från Solöknen (Wooden där), Steel i Svampträsket, hela spannet från Frostbergen
     //   late   från Svampträsket (Wooden där), Golden i Frostbergen, hela spannet från Meningsvulkanen
     //   top    från Frostbergen (Wooden där), bara Emerald i Meningsvulkanen, hela spannet i Molnslottet
-    fade: { start: [0, 1, 2], early: [0, 0, 2], mid: [1, 0, 2.5], late: [2, 0, 3], top: [3, 0, 4.5] },
+    //   swamp  (v21) Rogue och Mage: försmak i Solöknen (Wooden), Steel i Svampträsket där de hör hemma, sedan hela spannet
+    // Ett fjärde tal är sortens hemvärld (v21): före den är sorten en försmak och får vikten `preview` på hyllan.
+    //   frost  (v22) Viking och Samurai: försmak i Svampträsket (Wooden), Golden i Frostbergen, sedan hela spannet
+    //   bigw   (v22) katana, stridsyxa, kastspjut: Wooden i Solöknen, Steel i Svampträsket, hela spannet från Frostbergen
+    //   volcano (v22) Engineer, armborst, bomb, hillebard: som frost men hemma i Meningsvulkanen
+    //   sky    (v23) Celestial och jättevapnen: bara i Molnslottet, i hela spannet Fire till Star
+    fade: { start: [0, 1, 2], early: [0, 0, 2], mid: [1, 0, 2.5], late: [2, 0, 3], top: [3, 0, 4.5], swamp: [1, 0, 2.5, 2], frost: [2, 0, 3, 3], bigw: [1, 0, 2.5, 3], volcano: [2, 0, 3, 4], sky: [5, 9, 0, 5] },
     // Varje sort och dess grupp. Berlockerna har ett tal: världen där de börjar säljas (de finns i ett enda material).
     // En sort som saknas här säljs inte (men går alltid att bära om den ägs).
     kinds: {
-      weapon: { dagger: 'start', club: 'start', sword: 'start', bow: 'start', axe: 'early', spear: 'early', knives: 'early', hammer: 'mid', staff: 'mid', orb: 'late', great: 'top' },
-      helmet: { cap: 'start', hood: 'start', helm: 'early', phones: 'mid', horned: 'mid', wizard: 'mid', great: 'mid', crown: 'top' },
-      armor: { tunic: 'start', vest: 'start', chain: 'early', robe: 'mid', plate: 'mid' },
-      shield: { round: 'start', quiver: 'start', kite: 'early', tower: 'mid' },
-      back: { cape: 'start', leafcloak: 'start', wings: 'early', dragonwings: 'late', jetpack: 'top' },
+      weapon: { dagger: 'start', club: 'start', sword: 'start', bow: 'start', axe: 'early', spear: 'early', knives: 'early', hammer: 'mid', staff: 'mid', orb: 'late', great: 'top', stars: 'swamp', katana: 'bigw', greataxe: 'bigw', javelin: 'bigw', crossbow: 'volcano', bomb: 'volcano', halberd: 'volcano', giantblade: 'sky', gianthammer: 'sky' },
+      helmet: { cap: 'start', hood: 'start', helm: 'early', phones: 'mid', horned: 'mid', wizard: 'mid', great: 'mid', crown: 'top', bandana: 'swamp', kabuto: 'frost', goggles: 'volcano', circlet: 'sky' },
+      armor: { tunic: 'start', vest: 'start', chain: 'early', robe: 'mid', plate: 'mid', coat: 'swamp', furvest: 'frost', lamellar: 'frost', overalls: 'volcano', skyplate: 'sky' },
+      shield: { round: 'start', quiver: 'start', kite: 'early', tower: 'mid', parry: 'swamp', book: 'swamp', fan: 'frost', cog: 'volcano', sunshield: 'sky' },
+      back: { cape: 'start', leafcloak: 'start', wings: 'early', dragonwings: 'late', jetpack: 'top', tattered: 'swamp', mantle: 'swamp', furcloak: 'frost', banner: 'frost', halo: 'sky' },
       pet: { slime: 'early', bat: 'early', ghost: 'mid', drone: 'late', dragon: 'top' },
-      hands: { bracers: 'start', gauntlets: 'early' },
-      legs: { trousers: 'start', greaves: 'early' },
-      feet: { tallboots: 'start', sabatons: 'early' },
-      belt: { pouchbelt: 'start', swordbelt: 'early' },
+      hands: { bracers: 'start', gauntlets: 'early', fingerless: 'swamp', runebracers: 'swamp', furcuffs: 'frost', kote: 'frost', workgloves: 'volcano', skygloves: 'sky' },
+      legs: { trousers: 'start', greaves: 'early', strapped: 'swamp', leggings: 'swamp', wrapped: 'frost', hakama: 'frost', cargo: 'volcano', skygreaves: 'sky' },
+      feet: { tallboots: 'start', sabatons: 'early', softboots: 'swamp', curled: 'swamp', furboots: 'frost', sandals: 'frost', workboots: 'volcano', skyboots: 'sky' },
+      belt: { pouchbelt: 'start', swordbelt: 'early', bandolier: 'swamp', ropebelt: 'swamp', hornbelt: 'frost', obi: 'frost', toolbelt: 'volcano', skysash: 'sky' },
       charm: { pouch: 0, keys: 0, horn: 1, potion: 1, scroll: 2, lantern: 2, owl: 3 },
     },
     // Hyllans regler. weight: vikt för en sort efter hur länge den har funnits [ny i världen, från förra världen, äldre].
     // setSlot: en plats visar en del som fattas i ett bygge (det barnet har flest delar av, annars det första), billigast först.
     // cheap: minst så många saker kostar högst en fjärdedel av det dyraste. perSlot: högst så många per plats på kroppen.
-    weight: [1, 0.4, 0.15], setSlot: true, cheap: 2, perSlot: 2,
+    // preview (v21): vikten för en sort som säljs före sin hemvärld (fade-gruppens fjärde tal), en försmak i Wooden.
+    // firstWeapon (förslag v21, AV): så länge hjälten inte äger något vapen visar hyllan inget billigare än det billigaste vapnet,
+    // och regeln cheap gäller inte. Mätt i grind A och E (se PLAN.md, steg 3). Slå på med true.
+    weight: [1, 0.4, 0.15], setSlot: true, cheap: 2, perSlot: 2, preview: 0.4, firstWeapon: false,
   },
   // Avtrappning (regel a): full belöning från slagna fiender upp till `free` nivåer över banans rek, sedan
   // minus `step` per nivå, lägst `floor`. Banbonusen och xp för ord påverkas inte. type 'none' stänger av.

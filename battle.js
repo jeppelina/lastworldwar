@@ -58,7 +58,44 @@ export const ATTACKS = {      // exporteras för provscenen på fliken Powers (s
   // Kastknivar (v20): tre snabba kast med handleden, knivarna flyger rakt. Varje kniv är en av de tre träffarna i WEAPON_RULES.
   knives: { dur: 0.95, ev: [0.34, 0.45, 0.56].flatMap((at, i) => [{ at, shoot: { knife: true, dur: 0.12, from: 'hand' } }, { at: at + 0.12, hit: i, fx: i === 2 ? 'slash' : undefined }]),
     pose: (p) => { const f = [0.34, 0.45, 0.56].some((e) => p > e - 0.08 && p < e); return { wAng: f ? 1.4 : 0.3, hand: [f ? 7 : p > 0.2 && p < 0.68 ? -1 : 0, -5] }; } },
+  // Kaststjärnor (v21): två kast, stjärnan snurrar rakt genom de två främsta (pierce). Handen är tom en stund efter varje kast.
+  stars: { dur: 1, ev: [0.36, 0.58].flatMap((at, i) => [{ at, shoot: { star: true, pierce: true, dur: 0.18, from: 'hand' } }, { at: at + 0.18, hit: i, fx: i === 1 ? 'slash' : undefined }]),
+    pose: (p) => { const f = [0.36, 0.58].some((e) => p > e - 0.1 && p < e); return { wAng: 0, noW: [0.36, 0.58].some((e) => p >= e && p < e + 0.12), hand: [f ? 8 : p > 0.18 && p < 0.72 ? -3 : 0, f ? -7 : -4] }; } },
 };
+// ---------- Steg 4 (v22): tvåhandsvapen och nya kastvapen. Närmaste handen följer greppet på tvåhandsvapnen (hero.js TWO). ----------
+Object.assign(ATTACKS, {
+  // Katana: kort laddning, ett blixtsnabbt språng förbi fienden (streak = vita streck efter hjälten), tre vita snitt efteråt.
+  katana: { dur: 1.25, streak: [0.18, 0.36], ev: [0.5, 0.57, 0.64].map((at, i) => ({ at, hit: i, fx: 'cut' })),
+    pose: (p, D, w, ew = 30) => {
+      const past = D + 24 + ew * 0.55 + 22, dx = p < 0.18 ? -4 * ease(p / 0.18) : p < 0.34 ? lerp(-4, past, ease(seg(p, 0.18, 0.34))) : p < 0.72 ? past : lerp(past, 0, ease(seg(p, 0.72, 1)));
+      const wAng = p < 0.18 ? lerp(0.62, -0.9, ease(p / 0.18)) : p < 0.34 ? lerp(-0.9, 2.3, seg(p, 0.18, 0.34)) : p < 0.72 ? 2.3 : lerp(2.3, 0.62, seg(p, 0.72, 1));
+      return { dx, dy: p > 0.18 && p < 0.34 ? 2 : 0, wAng, hand: [p > 0.18 && p < 0.72 ? 4 : 0, -3] };
+    } },
+  // Stridsyxa: tar sats bakåt och svingar ett helt varv (2 pi) innan bladet landar på de tre främsta.
+  greataxe: { dur: 1.2, shake: 7, ev: [{ at: 0.6, hit: 0, fx: 'bigslash' }], pose: (p, D) => ({ dx: dash(p, D, 0.4, 0.76), dy: p > 0.25 && p < 0.6 ? -bump(seg(p, 0.25, 0.6)) * 6 : 0,
+    wAng: p < 0.22 ? lerp(0.25, -1.3, ease(p / 0.22)) : p < 0.6 ? lerp(-1.3, 2 + Math.PI * 2, ease(seg(p, 0.22, 0.6))) : p < 0.76 ? 2 : lerp(2, 0.25, seg(p, 0.76, 1)) }) },
+  // Kastspjut: kastas i en flack båge, sticker i fienden en stund och flyger tillbaka till handen (handen är tom så länge).
+  javelin: { dur: 1.25, ev: [{ at: 0.3, shoot: { javelin: true, dur: 0.2, stay: 0.28, back: 0.2, from: 'hand' } }, { at: 0.3 + 0.2 / 1.25, hit: 0, fx: 'slash' }],
+    pose: (p) => ({ wAng: p < 0.3 ? lerp(0.18, -0.5, ease(p / 0.3)) : 1.45, noW: p >= 0.3 && p < 0.84, hand: [p < 0.3 ? -6 * ease(p / 0.3) : p < 0.4 ? 9 : p > 0.84 ? 2 : 0, p < 0.3 ? -6 : -3] }) },
+  // Armborst: siktar, bulten går rakt genom de två främsta (pierce), rekyl bakåt. Bulten har pilarnas effekter (arrowLook).
+  crossbow: { dur: 1, ev: [{ at: 0.45, shoot: { arrow: true, bolt: true, pierce: true, dur: 0.12, from: 'tip' } }, { at: 0.57, hit: 0, fx: 'slash' }],
+    pose: (p) => ({ wAng: 1.57, hand: [p < 0.3 ? 3 * ease(p / 0.3) : 3, -6], dx: p > 0.45 && p < 0.75 ? -bump(seg(p, 0.45, 0.75)) * 5 : 0 }) },
+  // Bomb: lobbas i en hög båge, smäll med rök och gnistor över alla. Smällen växer med materialet.
+  bomb: { dur: 1.2, shake: 6, ev: [{ at: 0.32, shoot: { bomb: true, dur: 0.42, from: 'hand' } }, { at: 0.32 + 0.42 / 1.2, hit: 0, fx: 'bomb' }],
+    pose: (p) => ({ wAng: 0, noW: p >= 0.32 && p < 0.85, hand: [p < 0.32 ? -5 * ease(p / 0.32) : p < 0.42 ? 7 : 0, p < 0.32 ? -9 * ease(p / 0.32) : -4] }) },
+  // Hillebard: lång stöt framåt, sedan ett hugg med kroken över de två främsta.
+  halberd: { dur: 1.15, shake: 4, ev: [{ at: 0.66, hit: 0, fx: 'bigslash' }], pose: (p, D) => ({ dx: dash(p, D - 16, 0.3, 0.78),
+    wAng: p < 0.3 ? lerp(0.08, 1.45, ease(p / 0.3)) : p < 0.44 ? 1.45 : p < 0.54 ? lerp(1.45, 0.05, ease(seg(p, 0.44, 0.54))) : p < 0.66 ? lerp(0.05, 2.1, seg(p, 0.54, 0.66)) : p < 0.8 ? 2.1 : lerp(2.1, 0.08, seg(p, 0.8, 1)),
+    hand: [p > 0.3 && p < 0.44 ? 12 : p > 0.44 && p < 0.6 ? -2 : 0, p > 0.44 && p < 0.6 ? -8 : -4] }) },
+  // Steg 5 (v23). Jättesvärdet: hopp högt upp och ett slag rakt ned, chockvåg längs marken, stor skakning.
+  giantblade: { dur: 1.3, shake: 11, ev: [{ at: 0.6, hit: 0, fx: 'quake' }], pose: (p, D) => ({ dx: dash(p, D, 0.42, 0.78), dy: p < 0.1 ? 0 : p < 0.45 ? -34 * ease(seg(p, 0.1, 0.45)) : p < 0.6 ? -34 * (1 - seg(p, 0.45, 0.6)) : 0,
+    wAng: p < 0.15 ? lerp(-1.0, -0.3, ease(p / 0.15)) : p < 0.45 ? lerp(-0.3, -0.9, seg(p, 0.15, 0.45)) : p < 0.6 ? lerp(-0.9, 2.2, ease(seg(p, 0.45, 0.6))) : p < 0.8 ? 2.2 : lerp(2.2, -1.0, seg(p, 0.8, 1)), hand: [0, p > 0.15 && p < 0.6 ? -8 : 0] }) },
+  // Jättehammaren: som hammaren men större, marken spricker under alla fiender.
+  gianthammer: { dur: 1.35, shake: 12, ev: [{ at: 0.62, hit: 0, fx: 'quake' }], pose: (p, D) => ({ dx: dash(p, D, 0.5, 0.78), dy: p < 0.62 ? -bump(p / 0.62) * 30 : 0,
+    wAng: p < 0.45 ? lerp(-0.9, -1.5, ease(p / 0.45)) : p < 0.62 ? lerp(-1.5, 2.3, seg(p, 0.45, 0.62)) : p < 0.8 ? 2.3 : lerp(2.3, -0.9, seg(p, 0.8, 1)), hand: [0, p > 0.1 && p < 0.62 ? -6 : 0] }) },
+});
+// Kastvapen (v21, v22): skotten får materialets spår och träff som pilarna (arrowTrail, arrowHit), bara utseende.
+const THROWN = { knives: 1, stars: 1, javelin: 1, bomb: 1 };
 
 // Storsvärdets vinkel när det släpas: spetsen mot marken. Vapnets längd beror på materialet (v3), så vinkeln räknas ur
 // längden (handen är 16,5 pixlar över marken). Utan vapen (provscenen) som förut.
@@ -156,8 +193,8 @@ export function tintApply(g, sn, rp, q) {
 //   Star     komet: lysande huvud och en lång svans av stjärnor, stjärnor vid träffen
 // Spåret blir tätare och längre för varje steg. Skadan, tiderna och reglerna är desamma som för en vanlig pil.
 const AC = { wood: ramp('#9a6b3f'), iron: ramp('#6b7384'), red: ramp('#d8433b') };
-function drawArrow(g, al, x, y, an, now) {
-  const t = al ? al.t : 0, m = al ? ramp(al.hex) : WHITE, fl = al ? ramp(al.fletch) : WHITE, L = 9 + Math.min(3, t * 0.4);
+function drawArrow(g, al, x, y, an, now, bolt = false) {        // bolt (v22): armborstets kortare bult med samma effekter
+  const t = al ? al.t : 0, m = al ? ramp(al.hex) : WHITE, fl = al ? ramp(al.fletch) : WHITE, L = (bolt ? 5 : 9) + Math.min(3, t * 0.4);
   g.push(x, y, an);
   if (t >= 9) { g.ell(4, 0, 3.2, 3.2, MC.fire2); g.ell(4, 0, 1.6, 1.6, WHITE, false, null, 5); }                             // kometens huvud
   g.thick(-L, 0, 2, 0, 1.6, t === 7 ? MC.smoke : t >= 2 ? DUST : AC.wood, 3);
@@ -186,6 +223,13 @@ function arrowTrail(fx, al, x, y, an, now) {
     if (t >= 5 && i % 2 === 0) fx.push({ kind: 'p', t0: now, dur: d, x: jx, y: jy, vx: -6, vy: 0, rp: t === 7 ? MC.vio : t === 9 ? MC.fire2 : m, lv: 5 });   // en lysande kärna i spåret
   }
 }
+// Kaststjärnan i luften (v21): fyra uddar, sex från Golden, snurrar fort. Spåret och träffen kommer från pilarnas regler.
+function drawStarShot(g, al, m, x, y, now) {
+  const t = al ? al.t : 0, n = t >= 3 ? 6 : 4, r = 4 + Math.min(2, t * 0.25);
+  g.push(x, y, now * 22);
+  for (let i = 0; i < n; i++) { g.push(0, 0, i * 6.283 / n); g.poly([[-1.5, 0], [0, -r], [1.5, 0]], m, i % 2 ? 3 : 5); g.pop(); }
+  g.ell(0, 0, 1.3, 1.3, t >= 5 ? WHITE : DUST); g.pop();
+}
 // Glöden vid träffen för Steel, Golden och Emerald (från Ice tar materialets egen träff över, matHit, och blir större).
 function arrowHit(fx, al, x, y, now, sup) {
   const t = al.t, m = ramp(al.hex), n = (4 + t * 2) * (sup ? 2 : 1);
@@ -196,7 +240,9 @@ function arrowHit(fx, al, x, y, now, sup) {
 // ---------- Hjälten parerar när fienden slår (bara utseende: skadan, tiderna och reglerna är desamma) ----------
 // Vapnets vinkel i en parad: [hög, låg] (0 = rakt upp, positivt = framåt). Båge, klot och tomma händer saknas här: då viker
 // hjälten undan och tar emot slaget i stället. Skölden lyfts med a.guard i hero.js (närmaste handen och skölden flyttas).
-const GUARD = { dagger: [1.7, 2.1], club: [0.85, 1.45], sword: [0.95, 1.55], axe: [0.7, 1.35], spear: [0.55, 1.25], hammer: [0.25, 1.0], staff: [1.35, 1.0], great: [0.2, 0.9] };
+const GUARD = { dagger: [1.7, 2.1], club: [0.85, 1.45], sword: [0.95, 1.55], axe: [0.7, 1.35], spear: [0.55, 1.25], hammer: [0.25, 1.0], staff: [1.35, 1.0], great: [0.2, 0.9],
+  katana: [0.6, 1.3], greataxe: [0.3, 1.0], halberd: [0.15, 0.9], javelin: [0.55, 1.25],      // steg 4 (v22)
+  giantblade: [0.2, 0.9], gianthammer: [0.25, 1.0] };                                         // steg 5 (v23)
 // Hur mycket hjälten har lyft parad (0..1) under fiendens slag (p = 0..1, slaget landar vid 0,5) och stöten efter träffen.
 const guardUp = (p) => (p < 0.2 ? 0 : p < 0.42 ? ease(seg(p, 0.2, 0.42)) : p < 0.66 ? 1 : p < 0.94 ? 1 - ease(seg(p, 0.66, 0.94)) : 0);
 const guardJolt = (p) => (p > 0.5 ? bump(Math.min(1, seg(p, 0.5, 0.8))) : 0);
@@ -229,8 +275,9 @@ export class Battle {
     const wp = this.gear.weapon, pt = this.gear.pet;
     this.mk = wp ? MATFX[wp.mat] || null : null; this.pk = pt && tierOf(pt) >= 5 ? MATFX[pt.mat] || 'star' : null;
     // Pilarna (v20, bara utseende): bågens eller kogrets material, det högsta. Elementet följer pilen, så ett Fire-koger ger eldpilar.
-    this.arrow = wp && wp.type === 'bow' ? arrowLook(wp, this.gear.shield) : null;
+    this.arrow = wp && (wp.type === 'bow' || wp.type === 'crossbow') ? arrowLook(wp, this.gear.shield) : null;      // armborstets bultar som pilarna (v22)
     if (this.arrow) this.mk = MATFX[this.arrow.mat] || null;
+    this.shot = this.arrow || (wp && THROWN[wp.type] ? { t: tierOf(wp), mat: wp.mat, hex: wp.hex, fletch: wp.hex } : null);   // skottens utseende (v21)
     el.innerHTML = `<div class="scene"><canvas class="bg"></canvas><canvas class="fg"></canvas><div class="floaters"></div>
       <div class="hud"><div class="hp me"><b>♥</b><div class="bar"><i></i></div><span></span></div>
       <div class="mid"><span class="wave"></span><span class="streak"><i></i><i></i><i></i></span></div>
@@ -394,8 +441,10 @@ export class Battle {
     const a = this.anim, mat = this.gear.weapon ? ramp(this.gear.weapon.hex) : WHITE, [tx, ty] = this.target3();
     if (ev.shoot) {
       const from = ev.shoot.from === 'tip' ? this.tip : ev.shoot.from === 'over' ? this.over3 : this.hand;
-      const shots = ev.shoot.arrow && a.sup ? [-10, 0, 10] : ev.shoot.knife && a.sup ? [-5, 5] : [0];
-      for (const off of shots) this.fx.push({ kind: 'proj', t0: this.now(), dur: ev.shoot.dur, x0: from[0], y0: from[1], x1: tx, y1: ty + off, r: (ev.shoot.r || 1) * (a.sup ? 1.3 : 1), arrow: ev.shoot.arrow, knife: ev.shoot.knife, al: ev.shoot.arrow ? this.arrow : null, mat });
+      const shots = ev.shoot.arrow && a.sup ? [-10, 0, 10] : (ev.shoot.knife || ev.shoot.star) && a.sup ? [-5, 5] : [0];
+      const al = this.alive(), far = ev.shoot.pierce && al.length > 1 ? al[1].x + 8 : tx;          // pierce: skottet går genom de två främsta
+      const S = ev.shoot, thrown = S.knife || S.star || S.javelin || S.bomb;
+      for (const off of shots) this.fx.push({ kind: 'proj', t0: this.now(), dur: S.dur + (S.stay || 0) + (S.back || 0), fly: S.dur, stay: S.stay || 0, x0: from[0], y0: from[1], x1: S.javelin ? tx - 4 : far, y1: ty + off, r: (S.r || 1) * (a.sup ? 1.3 : 1), arrow: S.arrow, bolt: S.bolt, knife: S.knife, star: S.star, javelin: S.javelin, bomb: S.bomb, al: S.arrow ? this.arrow : thrown ? this.shot : null, mat });
       return;
     }
     // träff
@@ -406,7 +455,7 @@ export class Battle {
       if (m.hp <= 0 && !m.deadAt) { m.deadAt = this.now(); this.burst(m.x, this.groundY - this.enemy.f.def.h * 0.4, 12, DUST, 40); if (this.mb) this.miniDown = m; }
     }
     this.shake = Math.max(this.shake, (a.A.shake || 2) * (a.sup ? 1.5 : 1));
-    if (ev.hit !== undefined && this.arrow && this.arrow.t >= 2) arrowHit(this.fx, this.arrow, tx, ty, this.now(), a.sup);   // pilens glöd vid träffen (v20)
+    if (ev.hit !== undefined && this.shot && this.shot.t >= 2) arrowHit(this.fx, this.shot, tx, ty, this.now(), a.sup);   // pilens och kastvapnets glöd vid träffen (v20, v21)
     if (ev.hit !== undefined && (this.mk || (a.sup && this.pk))) {      // materialets träff och fiendens färg (v3)
       const h = this.enemy.f.def.h, now = this.now(), al = this.alive(), hitM = al.length ? al : this.enemy.members.slice(0, 1);
       const tint = matHit(this.fx, this.mk, tx, ty, now, { sup: a.sup, burst: !(this.lk && this.lk.trail), h });
@@ -417,6 +466,22 @@ export class Battle {
     if (ev.fx === 'slash' || ev.fx === 'bigslash') this.fx.push({ kind: 'slash', t0: this.now(), dur: 0.16, x: tx - 4, y: ty, r: (ev.fx === 'bigslash' ? 22 : 12) * (a.sup ? 1.4 : 1), mat });
     if (ev.fx === 'shock' || ev.fx === 'dust') this.fx.push({ kind: 'shock', t0: this.now(), dur: 0.4, x: this.heroX + a.D + 18, y: this.groundY, r: ev.fx === 'shock' ? 60 : 16 });
     if (ev.fx === 'boom' || ev.fx === 'bigboom') this.burst(tx, ty, ev.fx === 'bigboom' ? 40 : 18, mat, ev.fx === 'bigboom' ? 130 : 80);
+    if (ev.fx === 'quake') {                                               // jättevapnen (v23): en chockvåg åt båda hållen, damm och sprickor i marken
+      const gy = this.groundY, x0 = this.heroX + a.D + 22;
+      this.fx.push({ kind: 'shock', t0: this.now(), dur: 0.5, x: x0, y: gy, r: 90 }); this.fx.push({ kind: 'shock', t0: this.now() + 0.08, dur: 0.45, x: x0, y: gy, r: 60 });
+      for (let i = 0; i < 18; i++) this.fx.push({ kind: 'p', t0: this.now(), dur: 0.5, x: x0 + rr(-10, 60), y: gy - 1, vx: rr(-20, 40), vy: rr(-80, -30), rp: DUST, lv: 3 + (i % 3) });
+      this.fx.push({ kind: 'crack', t0: this.now(), dur: 0.9, x: x0, y: gy, r: 30 + (this.gear.weapon ? tierOf(this.gear.weapon) * 4 : 0) });      // sprickan blir längre för varje material
+      this.burst(tx, ty, a.sup ? 30 : 16, mat, 110);
+    }
+    if (ev.fx === 'cut') this.fx.push({ kind: 'cut', t0: this.now(), dur: 0.22, x: tx, y: ty, r: (this.enemy.f.def.h * 0.5 + 6) * (a.sup ? 1.3 : 1), an: [-0.7, 0.5, -0.15][ev.hit % 3], mat });   // katanans snitt (v22)
+    if (ev.fx === 'bomb') {                                                // bombens smäll (v22): gnistor, rök och en tryckvåg, mer för varje material
+      const t = this.shot ? this.shot.t : 0, k = a.sup ? 1.5 : 1;
+      this.burst(tx, ty, Math.round((16 + t * 3) * k), SPARK, 100 + t * 6); this.burst(tx, ty, Math.round((10 + t) * k), DUST, 50);
+      for (let i = 0; i < 4 + Math.floor(t / 2); i++) { const an = i * 2.4; this.fx.push(mf('puff', this.now() + i * 0.03, 0.5 + t * 0.03, tx + Math.cos(an) * 6, ty + Math.sin(an) * 4, { r: 3 + t * 0.25, vx: Math.cos(an) * 14, vy: -10 - i })); }
+      this.fx.push({ kind: 'shock', t0: this.now(), dur: 0.4, x: tx, y: this.groundY, r: 30 + t * 4 });
+      const BC = { 5: MC.ice, 7: MC.vio, 8: MC.pink, 9: MC.fire2 }[t] || MC.fire;      // eldklotets färg: eld, is, skugga, kristall, stjärna
+      this.fx.push({ kind: 'boom', t0: this.now(), dur: 0.5 + t * 0.02, x: tx, y: ty, r: (9 + t * 1.5 + this.enemy.f.def.h * 0.3) * k, rp: BC });
+    }
     this.hud();
   }
   sparks(x, y, n) { this.burst(x, y, n, SPARK, 90); }
@@ -508,7 +573,7 @@ export class Battle {
     const lk = this.lk;
     if (lk && this.bf && this.bf.defeated && !this.cheered && !this.anim) this.cheer();      // en hjälpt boss: segerposen medan bossen säger sin sista replik
     let hp = {}, a = this.anim, p = a ? (now - a.t0) / a.dur : 0;
-    if (a && a.who === 'hero') hp = a.A.pose(Math.min(1, p), a.D, this.gear.weapon) || {};
+    if (a && a.who === 'hero') hp = a.A.pose(Math.min(1, p), a.D, this.gear.weapon, this.enemy.f.def.w) || {};      // ew = fiendens bredd (katanans språng förbi fienden)
     else if (a && a.who === 'cheer') hp = SFX.victoryPose(lk, Math.min(1, p)) || {};
     else if (a && a.who === 'enemy' && a.guard) hp = this.guardPose(a.guard, Math.min(1, p));      // paraden
     const hurt = Math.max(0, 1 - (now - this.hero.hurtAt) / 0.25), dx = (hp.dx || 0) - hurt * 5, dy = hp.dy || 0;
@@ -534,6 +599,8 @@ export class Battle {
       }
     }
     if (lk) SFX.drawTrail(g, this.sk, lk, now);
+    // katanans språng: vita streck efter hjälten (v22)
+    if (a && a.who === 'hero' && a.A.streak && p > a.A.streak[0] && p < a.A.streak[1]) for (let i = 0; i < 3; i++) this.fx.push({ kind: 'p', t0: now, dur: 0.16, x: hx - 8 - i * 3, y: groundY - 10 - i * 9 - Math.round(Math.random() * 3), vx: -60, vy: 0, rp: WHITE, lv: 5 });
     // storsvärdet river upp gnistor när det släpas
     if (a && a.who === 'hero' && a.A.drag && p > 0.12 && p < 0.45 && this.tip) this.fx.push({ kind: 'p', t0: now, dur: 0.25, x: this.tip[0], y: groundY, vx: -30 - Math.random() * 30, vy: -20 - Math.random() * 30, rp: SPARK, lv: 5 });
     // fienderna
@@ -600,19 +667,35 @@ export class Battle {
         if (q < 0.4) { g.set(e.x, e.y, WHITE, 5); g.set(e.x + 1, e.y, WHITE, 5); g.set(e.x, e.y + 1, WHITE, 5); g.set(e.x - 1, e.y, WHITE, 5); g.set(e.x, e.y - 1, WHITE, 5); }
       }
       if (e.kind === 'whiff') for (let j = 0; j < 3; j++) { const x0 = Math.round(e.x + 4 + q * 10 + j * 2), y = e.y + j * 5 - 5, len = Math.round(9 - j * 2 - q * 6); for (let i = 0; i < len; i++) { g.set(x0 + i, y, WHITE, i < 2 ? 3 : 5); if (i > 1) g.set(x0 + i, y + 1, SHADOW, 2); } }   // mörk kant under, så att det syns mot moln och snö
+      if (e.kind === 'boom') {                                   // bombens eldklot (v22): vit kärna, materialets färg, grå rök i kanten som glesnar
+        const r = e.r * Math.sqrt(q), r2 = r * r, core = r * (0.55 - q * 0.5);
+        for (let dy = -Math.ceil(r); dy <= r; dy++) for (let dx = -Math.ceil(r); dx <= r; dx++) {
+          const d2 = dx * dx + dy * dy; if (d2 > r2) continue;
+          const edge = d2 > r2 * 0.6; if (q > 0.5 && (dx + dy + Math.floor(q * 8)) & 1) continue;
+          g.set(Math.round(e.x + dx), Math.round(e.y + dy - q * 6), d2 < core * core ? WHITE : edge && q > 0.3 ? DUST : e.rp, d2 < core * core ? 5 : edge ? 2 : 4);
+        }
+      }
+      if (e.kind === 'crack') { const L = e.r * Math.min(1, q * 4); for (let j = 0; j < L; j++) { const z = Math.round(Math.sin(j * 0.9 + e.x) * 1.2); g.set(Math.round(e.x + j), e.y + z, SHADOW, 0); if (j % 7 === 3) g.set(Math.round(e.x + j), e.y + z - 1, SHADOW, 0); if (q < 0.3 && j % 5 === 0) g.set(Math.round(e.x + j), e.y + z - 2, SPARK, 5); } }   // spricka i marken (v23)
+      if (e.kind === 'cut') { const L = e.r * Math.min(1, q * 3), c = Math.cos(e.an), s = Math.sin(e.an); for (let j = -L; j <= L; j++) { const x = Math.round(e.x + c * j), y = Math.round(e.y + s * j); g.set(x, y, WHITE, 5); if (q < 0.5) g.set(x, y + 1, e.mat, 4); } }   // katanans snitt: en vit linje rakt genom fienden
       if (e.kind === 'slash') for (let k = -1; k <= 1; k += 0.08) { const an = k * 1.1, rr = e.r * (0.8 + q * 0.5); g.set(Math.round(e.x + Math.cos(an) * rr), Math.round(e.y + Math.sin(an) * rr), k * k < 0.3 ? WHITE : e.mat, 5); g.set(Math.round(e.x + Math.cos(an) * (rr - 1)), Math.round(e.y + Math.sin(an) * rr), e.mat, 4); }
       return true;
     });
     if (any) g.end({ outline: false, edge: false });
     for (const e of this.fx) if (e.kind === 'proj') {
-      const q = Math.min(1, (now - e.t0) / e.dur), x = lerp(e.x0, e.x1, q), y = lerp(e.y0, e.y1, q) - (e.arrow ? bump(q) * 6 : 0);
-      const an = Math.atan2(e.y1 - e.y0 - (e.arrow ? 6 * Math.PI * Math.cos(Math.PI * q) : 0), e.x1 - e.x0);      // pilen följer sin båge
+      // arc = bågens höjd: pilen 6, bomben 38, bulten och kastspjutet flackt. Kastspjutet sticker i fienden (stay) och flyger tillbaka.
+      const arc = e.bomb ? 38 : e.javelin ? 8 : e.arrow && !e.bolt ? 6 : 0, tt = now - e.t0;
+      let q = Math.min(1, tt / (e.fly || e.dur)), x = lerp(e.x0, e.x1, q), y = lerp(e.y0, e.y1, q) - bump(q) * arc;
+      let an = Math.atan2(e.y1 - e.y0 - arc * Math.PI * Math.cos(Math.PI * q), e.x1 - e.x0);      // skottet följer sin båge
+      if (e.javelin && tt > e.fly + e.stay && this.hand) { const u = Math.min(1, (tt - e.fly - e.stay) / Math.max(0.01, e.dur - e.fly - e.stay)); x = lerp(e.x1, this.hand[0], u); y = lerp(e.y1, this.hand[1] - 6, u) - bump(u) * 10; an = -Math.PI / 2 + u * 9; }
       g.begin();
-      if (e.arrow) drawArrow(g, e.al, x, y, an, now);
+      if (e.arrow) drawArrow(g, e.al, x, y, an, now, e.bolt);
       else if (e.knife) { g.push(x, y, an); g.poly([[-3, -1.2], [5, -0.6], [8, 0], [5, 0.6], [-3, 1.2]], e.mat, 4); g.rect(-6, -1, 3, 2, DUST, 2); g.pop(); }   // kniven flyger rakt med spetsen före
+      else if (e.star) drawStarShot(g, e.al, e.mat, x, y, now);                                                                // stjärnan snurrar
+      else if (e.javelin) { g.push(x, y, an); g.thick(-15, 0, 6, 0, 1.5, AC.wood, 3); g.poly([[5, -2], [11, 0], [5, 2]], e.mat, 5); g.poly([[-15, -2.5], [-11, 0], [-15, 2.5]], RED, 4); g.pop(); }   // kastspjutet (v22)
+      else if (e.bomb) { const k = Math.floor(now * 12) % 2; g.ell(x, y, 3.6, 3.6, SHADOW); g.ell(x, y, 3.6, 3.6, e.mat, false, (dx, dy) => Math.abs(dy) < 0.3, 4); g.dot(Math.round(x + 2), Math.round(y - 4), k ? SPARK : RED, 5); g.dot(Math.round(x - 1), Math.round(y - 2), WHITE, 5); }   // bomben med stubin (v22)
       else g.ell(x, y, e.r, e.r, e.mat);
       g.end();
-      if (e.arrow) arrowTrail(this.fx, e.al, x, y, an, now);
+      if (e.arrow || e.al) arrowTrail(this.fx, e.al, x, y, an, now);
       else if (Math.random() < 0.8) this.fx.push({ kind: 'p', t0: now, dur: 0.25, x: x - 3, y: y + (Math.random() - 0.5) * e.r, vx: -20, vy: 0, rp: e.mat, lv: 5 });
       if (lk && lk.trail) SFX.trailPush(this.sk, [x, y], [x - 1, y], now);
     }
