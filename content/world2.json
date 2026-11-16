@@ -274,7 +274,7 @@
    "sv": "ny",
    "pos": "adj",
    "cat": "describe",
-   "pic": null,
+   "pic": "✨",
    "say": "New.",
    "audio": "new",
    "node": 3,
@@ -282,7 +282,8 @@
    "accept": [
     "knew",
     "nu"
-   ]
+   ],
+   "newPic": true
   },
   {
    "id": "old",
@@ -290,13 +291,14 @@
    "sv": "gammal",
    "pos": "adj",
    "cat": "describe",
-   "pic": null,
+   "pic": "🧸",
    "say": "Old.",
    "audio": "old",
    "node": 3,
    "foils": [
     "new"
-   ]
+   ],
+   "newPic": true
   },
   {
    "id": "tomato",
@@ -523,14 +525,15 @@
    "sv": "i",
    "pos": "function",
    "cat": "small",
-   "pic": null,
+   "pic": "📥",
    "say": "In.",
    "audio": "in",
    "node": 6,
    "foils": [],
    "accept": [
     "inn"
-   ]
+   ],
+   "newPic": true
   },
   {
    "id": "go_skiing",
@@ -616,11 +619,12 @@
    "sv": "hungrig",
    "pos": "adj",
    "cat": "describe",
-   "pic": null,
+   "pic": "🍽️",
    "say": "Hungry.",
    "audio": "hungry",
    "node": 8,
-   "foils": []
+   "foils": [],
+   "newPic": true
   },
   {
    "id": "thirsty",
@@ -628,13 +632,14 @@
    "sv": "törstig",
    "pos": "adj",
    "cat": "describe",
-   "pic": null,
+   "pic": "🥤",
    "say": "Thirsty.",
    "audio": "thirsty",
    "node": 8,
    "foils": [
     "hungry"
-   ]
+   ],
+   "newPic": true
   },
   {
    "id": "have",
@@ -732,13 +737,14 @@
    "sv": "på",
    "pos": "function",
    "cat": "small",
-   "pic": null,
+   "pic": "🔝",
    "say": "On.",
    "audio": "on",
    "node": 9,
    "foils": [
     "in"
-   ]
+   ],
+   "newPic": true
   },
   {
    "id": "under",
@@ -746,14 +752,15 @@
    "sv": "under",
    "pos": "function",
    "cat": "small",
-   "pic": null,
+   "pic": "⬇️",
    "say": "Under.",
    "audio": "under",
    "node": 9,
    "foils": [
     "on",
     "in"
-   ]
+   ],
+   "newPic": true
   },
   {
    "id": "open",
@@ -924,6 +931,70 @@
    "say": "Good morning!",
    "audio": "ph_good_morning",
    "node": 1
+  },
+  {
+   "id": "hot_milk",
+   "en": "hot milk",
+   "sv": "varm mjölk",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": "☕",
+   "say": "Hot milk.",
+   "audio": "hot_milk",
+   "node": 2,
+   "combo": true,
+   "parts": [
+    "hot",
+    "milk"
+   ]
+  },
+  {
+   "id": "cold_milk",
+   "en": "cold milk",
+   "sv": "kall mjölk",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": "🥛",
+   "say": "Cold milk.",
+   "audio": "cold_milk",
+   "node": 2,
+   "combo": true,
+   "parts": [
+    "cold",
+    "milk"
+   ]
+  },
+  {
+   "id": "old_shoe",
+   "en": "old shoe",
+   "sv": "gammal sko",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": "👞",
+   "say": "Old shoe.",
+   "audio": "old_shoe",
+   "node": 3,
+   "combo": true,
+   "parts": [
+    "old",
+    "shoe"
+   ]
+  },
+  {
+   "id": "new_shoe",
+   "en": "new shoe",
+   "sv": "ny sko",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": "👟",
+   "say": "New shoe.",
+   "audio": "new_shoe",
+   "node": 3,
+   "combo": true,
+   "parts": [
+    "new",
+    "shoe"
+   ]
   }
  ],
  "sentences": [
@@ -1779,7 +1850,9 @@
     "play_football"
    ],
    "phrases": [
-    "ph_please"
+    "ph_please",
+    "hot_milk",
+    "cold_milk"
    ],
    "sentences": []
   },
@@ -1798,7 +1871,9 @@
     "old"
    ],
    "phrases": [
-    "ph_here_you_are"
+    "ph_here_you_are",
+    "old_shoe",
+    "new_shoe"
    ],
    "sentences": [
     "d_cold_milk",

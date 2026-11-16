@@ -1,7 +1,7 @@
 // Gemensamma hjälpfunktioner för minispelen: bilder, ordurval, timers och pixelfigurer ritade i kod.
 // Kopia av prototypes/minigames/shared.js utan ljudmotorn och resultatrutan: i spelet kommer ljudet (play, sfx)
 // från spelets egen kö i main.js, och resultatrutan med belöningen ritas av skalet (main.js).
-import { picHTML } from '../pics.js';
+import { picHTML, artStillURL } from '../pics.js';
 
 export const GAME = new URL('../', import.meta.url).href;
 
@@ -22,8 +22,9 @@ export function timers() {
 // ---------- bilder ----------
 // pics.js vet vilka ord som har en bildfil men skriver en src som utgår från game/. Här frågas bara om filen finns.
 export const hasPic = (it) => picHTML(it.id, '') !== '';
-export const picOf = (it) => (hasPic(it) ? `<img class="mpic" src="${GAME}img/${it.id}.png" alt="" draggable="false">` : `<span class="memo">${esc(it.pic || it.hint || it.en)}</span>`);
-export const picUrl = (it) => `${GAME}img/${it.id}.png`;
+// Ord med en bild ritad i kod (wordart.js) visar dess första ruta som stillbild: brickorna här är inte alltid kvadratiska.
+export const picOf = (it) => { const a = artStillURL(it.id); return a ? `<img class="mpic" src="${a}" alt="" draggable="false">` : hasPic(it) ? `<img class="mpic" src="${GAME}img/${it.id}.png" alt="" draggable="false">` : `<span class="memo">${esc(it.pic || it.hint || it.en)}</span>`; };
+export const picUrl = (it) => artStillURL(it.id) || `${GAME}img/${it.id}.png`;
 
 // ---------- ordurval ----------
 // opts.pic: ordet måste ha en bildfil. opts.spell: ett enda ord, bara små bokstäver, minLen till maxLen tecken.

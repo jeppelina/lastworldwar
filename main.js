@@ -237,7 +237,7 @@ function enterMap(jump) {
 const THIN = {};
 const wordShare = (p = P) => (p && p.young ? K.young.thin : K.wordShare ?? 1);
 function contentFor(k, p = P) { const c = CONTENT[k], sh = wordShare(p); if (!c || !(sh < 1)) return c || null; const key = k + '|' + sh; return THIN[key] || (THIN[key] = thinContent(c, sh)); }
-const counts = (it, p) => p.reading !== false || !!it.pic;            // den som inte läser möter nästan bara ord med bild, så bara de räknas
+const counts = (it, p) => !it.combo && (p.reading !== false || (!!it.pic && !it.newPic));   // den som inte läser möter nästan bara ord med bild, så bara de räknas. Fraserna med ritad bild (combo) och ord som fått bild senare (newPic) räknas inte, så att ingens stjärnor eller mätare ändras
 // Orden som en bana inför (det är dem barnet övar mest när banan spelas om).
 function nodeWords(k, i, p = P) { const c = contentFor(k, p), nd = c && c.nodes[i]; if (!nd) return []; const by = c._by || (c._by = Object.fromEntries(c.items.map((it) => [it.id, it]))); return [...(nd.introduce || []), ...(nd.phrases || [])].map((id) => by[id]).filter((it) => it && counts(it, p)); }
 const unlearned = (k, i, p = P) => nodeWords(k, i, p).filter((it) => tierOf((p.words || {})[it.id]) < STEEL).length;

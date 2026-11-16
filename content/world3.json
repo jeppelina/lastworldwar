@@ -215,13 +215,14 @@
    "sv": "sitta",
    "pos": "verb",
    "cat": "action",
-   "pic": null,
+   "pic": "🪑",
    "say": "Sit.",
    "audio": "sit",
    "node": 3,
    "foils": [
     "stand"
-   ]
+   ],
+   "newPic": true
   },
   {
    "id": "nose",
@@ -859,6 +860,38 @@
    "say": "I don't know.",
    "audio": "ph_i_dont_know",
    "node": 9
+  },
+  {
+   "id": "draw_a_cat",
+   "en": "draw a cat",
+   "sv": "rita en katt",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": "🐈",
+   "say": "Draw a cat.",
+   "audio": "draw_a_cat",
+   "node": 4,
+   "combo": true,
+   "parts": [
+    "draw",
+    "cat"
+   ]
+  },
+  {
+   "id": "draw_a_dog",
+   "en": "draw a dog",
+   "sv": "rita en hund",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": "🐕",
+   "say": "Draw a dog.",
+   "audio": "draw_a_dog",
+   "node": 4,
+   "combo": true,
+   "parts": [
+    "draw",
+    "dog"
+   ]
   }
  ],
  "sentences": [
@@ -1731,7 +1764,10 @@
     "do_homework",
     "read_a_book"
    ],
-   "phrases": [],
+   "phrases": [
+    "draw_a_cat",
+    "draw_a_dog"
+   ],
    "sentences": [
     "e_draw_cat",
     "e_new_pencil",

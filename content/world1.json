@@ -849,7 +849,7 @@
    "sv": "stor",
    "pos": "adj",
    "cat": "describe",
-   "pic": null,
+   "pic": "🐘",
    "hint": "🐘",
    "say": "Big.",
    "audio": "big",
@@ -871,7 +871,8 @@
     "id": "c_big_bear",
     "en": "A big bear.",
     "sv": "En stor björn."
-   }
+   },
+   "newPic": true
   },
   {
    "id": "red",
@@ -1036,7 +1037,7 @@
    "sv": "liten",
    "pos": "adj",
    "cat": "describe",
-   "pic": null,
+   "pic": "🐜",
    "hint": "🐜",
    "say": "Small.",
    "audio": "small",
@@ -1058,7 +1059,8 @@
     "id": "c_small_horse",
     "en": "A small horse.",
     "sv": "En liten häst."
-   }
+   },
+   "newPic": true
   },
   {
    "id": "one",
@@ -2175,6 +2177,102 @@
    "cognate": false,
    "spell": false,
    "maxStage": 3
+  },
+  {
+   "id": "big_dog",
+   "en": "big dog",
+   "sv": "stor hund",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": "🐕",
+   "say": "Big dog.",
+   "audio": "big_dog",
+   "node": 5,
+   "combo": true,
+   "parts": [
+    "big",
+    "dog"
+   ]
+  },
+  {
+   "id": "small_dog",
+   "en": "small dog",
+   "sv": "liten hund",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": "🐶",
+   "say": "Small dog.",
+   "audio": "small_dog",
+   "node": 5,
+   "combo": true,
+   "parts": [
+    "small",
+    "dog"
+   ]
+  },
+  {
+   "id": "small_cat",
+   "en": "small cat",
+   "sv": "liten katt",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": "🐱",
+   "say": "Small cat.",
+   "audio": "small_cat",
+   "node": 5,
+   "combo": true,
+   "parts": [
+    "small",
+    "cat"
+   ]
+  },
+  {
+   "id": "run_fast",
+   "en": "run fast",
+   "sv": "springa fort",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": "💨",
+   "say": "Run fast.",
+   "audio": "run_fast",
+   "node": 10,
+   "combo": true,
+   "parts": [
+    "run",
+    "fast"
+   ]
+  },
+  {
+   "id": "run_slow",
+   "en": "run slow",
+   "sv": "springa långsamt",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": "🐢",
+   "say": "Run slow.",
+   "audio": "run_slow",
+   "node": 10,
+   "combo": true,
+   "parts": [
+    "run",
+    "slow"
+   ]
+  },
+  {
+   "id": "jump_high",
+   "en": "jump high",
+   "sv": "hoppa högt",
+   "pos": "phrase",
+   "cat": "phrase",
+   "pic": "⭐",
+   "say": "Jump high.",
+   "audio": "jump_high",
+   "node": 10,
+   "combo": true,
+   "parts": [
+    "jump",
+    "high"
+   ]
   },
   {
    "id": "map",
@@ -4573,7 +4671,11 @@
     "enemy",
     "go_to_bed"
    ],
-   "phrases": [],
+   "phrases": [
+    "big_dog",
+    "small_dog",
+    "small_cat"
+   ],
    "reviewNodes": [
     2,
     3
@@ -5023,7 +5125,11 @@
     "walk_the_dog",
     "preschool"
    ],
-   "phrases": [],
+   "phrases": [
+    "run_fast",
+    "run_slow",
+    "jump_high"
+   ],
    "reviewNodes": [
     5,
     8,
