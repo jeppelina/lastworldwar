@@ -744,8 +744,7 @@
    "node": 10,
    "foils": [
     "we"
-   ],
-   "isolated": false
+   ]
   },
   {
    "id": "they",
@@ -803,8 +802,7 @@
    "node": 10,
    "foils": [
     "now"
-   ],
-   "isolated": false
+   ]
   },
   {
    "id": "get_dressed",

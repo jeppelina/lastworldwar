@@ -2012,8 +2012,7 @@
     "id": "s_eat_apples",
     "en": "I can eat two apples.",
     "sv": "Jag kan äta två äpplen."
-   },
-   "isolated": false
+   }
   },
   {
    "id": "can",
@@ -2038,8 +2037,7 @@
     "id": "s_bird_fly",
     "en": "The bird can fly.",
     "sv": "Fågeln kan flyga."
-   },
-   "isolated": false
+   }
   },
   {
    "id": "ph_hello",
