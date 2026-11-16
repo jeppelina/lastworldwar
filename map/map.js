@@ -453,7 +453,7 @@
 
   // Berättelsen på kartan (map/story.js): det som ligger kvar efter en stund och de korta stunderna ovanpå kartan.
   // Saknas filen ritas inget. Ett fel i den får aldrig stoppa kartan.
-  const STORY = window.MAP_STORY ? window.MAP_STORY({ ctx, view, rect, getWorld, worlds, heroPos, now, size: () => ({ vw, vh }) }) : null;
+  const STORY = window.MAP_STORY ? window.MAP_STORY({ ctx, view, rect, img, state, getWorld, worlds, heroPos, now, size: () => ({ vw, vh }) }) : null;
   const story = (fn, t) => { if (!STORY) return; try { STORY[fn](t); } catch (e) { if (!story.err) { story.err = 1; console.error('story', e); } } };
 
   let lastT = now();
@@ -699,7 +699,8 @@
       let best = -1, side = -1, bd = 1e9;
       m.pts.forEach((p, i) => { const tp = w.nodes[i].type, big = tp === 'boss', mini = tp === 'mini', d = Math.hypot(x - p.x, y - (p.y - (big ? 8 : mini ? 5 : 2))); if (d < (big ? 18 : mini ? 15 : 13) && d < bd) { bd = d; best = i; } });
       m.sides.forEach((p, j) => { const d = Math.hypot(x - p.x, y - (p.y - 5)); if (d < 15 && d < bd) { bd = d; side = j; } });
-      if (side >= 0) openCard(-1, side); else if (best >= 0) openCard(best); else closeCard();
+      if (side >= 0) openCard(-1, side); else if (best >= 0) openCard(best);
+      else { closeCard(); if (STORY && STORY.tap) try { STORY.tap(x, y); } catch (e) { console.error('story', e); } }      // noderna går alltid först, sedan det som lever på kartan
     }
   }
   $('#back').onclick = () => setView('overview');
@@ -755,6 +756,6 @@
   // setInterval i stället för requestAnimationFrame: tickar även när rutan är dold.
   setInterval(frame, 50);
   frame();
-  window.__map = { state, view, setView, completeCurrent, worlds, unlocked, load, finish, curWorld, curNode, updateHud, setHero, setInfo, focus, openCard, closeCard, world: (k) => getWorld(k), scale: () => S, story: STORY };
+  window.__map = { state, view, setView, completeCurrent, worlds, unlocked, load, finish, curWorld, curNode, updateHud, setHero, setInfo, focus, openCard, closeCard, world: (k) => getWorld(k), scale: () => S, story: STORY, frame };
   if (window.parent && window.parent.GAME && window.parent.GAME.mapReady) window.parent.GAME.mapReady(window.__map);
 })();

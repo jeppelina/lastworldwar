@@ -8,6 +8,7 @@ import * as R from './rules.js';
 import { pic } from './pics.js';
 import { looks } from './skills.js';
 import * as SFX from './skillfx.js';
+import * as MB from './miniboss.js';
 
 const BIOMES = ['forest', 'desert', 'swamp', 'ice', 'volcano', 'cloud'];
 const SHADOW = ramp('#1d1b2e'), WHITE = ramp('#ffffff'), DUST = ramp('#cdbb9a'), SPARK = ramp('#ffd84a'), RED = ramp('#e2473d');
@@ -33,7 +34,11 @@ export const roster = () => ROSTER;
 
 // ---------- Banans strider (reglerna står i rules.js) ----------
 // army (valfri): kejsarens armé ur berättelsen, se armyFor i story.js och buildRun i rules.js. Utan den är allt som förut.
-export const buildRun = (worldIdx, nodeIdx, node, army = null) => R.buildRun(worldIdx, nodeIdx, node, ROSTER, Math.random, army);
+// mini (valfri): världens miniboss kan bli sista striden (K.miniboss, miniFight i rules.js). null = aldrig.
+export const buildRun = (worldIdx, nodeIdx, node, army = null, mini = null) => R.buildRun(worldIdx, nodeIdx, node, ROSTER, Math.random, army, mini);
+// Minibossar i vanliga banor med sannolikheten i balance.js. o.mini === false stänger av dem. För prov i webbläsaren:
+// globalThis.LV_MINI = 1 ger en miniboss i varje bana som kan ha en (bara i minnet, sparas aldrig).
+const miniOdds = (o) => (o.mini === false || !R.K.miniboss ? null : typeof globalThis.LV_MINI === 'number' ? { chance: globalThis.LV_MINI } : {});
 
 // ---------- Attacker: en per vapentyp. pose(p, D) ger hjältens läge, events avfyras när p passerar "at".
 // hit = vilken av vapnets träffar i WEAPON_RULES (rules.js) som landar. Skadan och hur många som träffas står där. ----------
@@ -66,11 +71,12 @@ export class Battle {
     Object.assign(this, o); this.el = el;
     this.gear = Object.fromEntries(Object.entries(o.profile.eq).filter(([, id]) => id).map(([k, id]) => [k, BY_ID[id]]));
     // run = regeltillståndet (liv, strid, rad, guld, xp). Scenen lägger bara till det som behövs för att rita.
-    this.run = R.newRun(heroStats(o.profile), buildRun(o.worldIdx, o.nodeIdx, o.node, o.army || null));
+    this.run = R.newRun(heroStats(o.profile), buildRun(o.worldIdx, o.nodeIdx, o.node, o.army || null, miniOdds(o)));
     this.hero = Object.assign(this.run.hero, { flashUntil: 0, hurtAt: -9 });
     this.fx = []; this.anim = null; this.phase = 'intro'; this.shake = 0;
     this.q = R.newQuiz(); this.target = null; this.over = false; this.bf = null;
     this.paused = false; this.pauseAt = 0; this.away = 0; this.held = []; this.task = null;
+    this.mb = null; this.cine = null; this.ov = null; this.miniDown = null;      // miniboss: filmen som spelas och lagret över scenen (miniboss.js)
     // Skillträdet: det hjälten bär (bara utseende, se skills.js och skillfx.js). lk = null när inget bärs, då ritas allt som förut.
     const lk = o.profile.skills && o.profile.skills.worn ? looks(o.profile.skills) : null;
     this.lk = lk && lk.any ? lk : null; this.sk = SFX.newFxState(); this.cheered = false;
@@ -88,7 +94,7 @@ export class Battle {
     this.timer = setInterval(() => this.frame(), 45);
     this.nextFight();
   }
-  destroy() { this.over = true; this.held = []; if (this.bf) this.bf.stop(); clearInterval(this.timer); clearTimeout(this.bt); this.el.innerHTML = ''; }
+  destroy() { this.over = true; this.held = []; if (this.ov) { this.ov.remove(); this.ov = null; } this.cine = null; if (this.bf) this.bf.stop(); clearInterval(this.timer); clearTimeout(this.bt); this.el.innerHTML = ''; }
   // Stridens klocka i sekunder. Den står still medan striden väntar, så att en attack som pågick fortsätter där den var.
   now() { return ((this.paused ? this.pauseAt : performance.now()) - this.away) / 1000; }
   pause() { if (this.paused || this.over) return false; this.pauseAt = performance.now(); this.paused = true; return true; }
@@ -126,9 +132,23 @@ export class Battle {
     else { b.begin(); b.rect(0, 0, W, this.groundY, ramp('#7fb7e6'), 3); b.rect(0, this.groundY - 3, W, H, ramp('#5aa257'), 3); b.end({ outline: false, edge: false }); }
     b.paint(bg.getContext('2d'));
     this.bf = f.tier === 'boss' && this.bossFor && this.quiz && R.stoneBoss(d) ? this.bossFor(this, d) : null;      // boss med egen mekanik
-    this.banner(f.tier === 'boss' ? `BOSS: ${d.name}` : n > 1 ? `${n} × ${d.name}` : d.name, f.tier === 'boss');
+    this.mb = f.mini && MB.has(d.id) ? MB.MB[d.id] : null; this.$('.foe').classList.toggle('mini', !!this.mb);
     this.hud(); this.phase = 'intro'; this.introAt = this.now();
+    // Miniboss: entrén och namnskylten i stället för den vanliga skylten, och första frågan när filmen är slut eller överhoppad.
+    if (this.mb) { this.introAt = -99; return this.startCine('enter', en.members[0], () => { if (!this.over) this.ask(); }); }
+    this.banner(f.tier === 'boss' ? `BOSS: ${d.name}` : n > 1 ? `${n} × ${d.name}` : d.name, f.tier === 'boss');
     this.later(() => { if (!this.over) this.ask(); }, f.tier === 'boss' ? 1500 : 900);
+  }
+  // ----- minibossens filmer (miniboss.js): kind 'enter' eller 'defeat', m = medlemmen som filmen gäller, done = det som kommer sedan -----
+  startCine(kind, m, done) {
+    if (this.ov) this.ov.remove();
+    this.cine = { kind, spec: this.mb[kind], m, t0: this.now(), done, fired: new Set() };
+    this.ov = MB.overlay(this.$('.scene'), () => this.endCine());
+  }
+  endCine() {
+    const c = this.cine; if (!c) return;
+    this.cine = null; if (this.ov) { this.ov.remove(); this.ov = null; }
+    if (c.done) this.hold(c.done);
   }
   banner(text, big) { const b = this.$('.banner'); b.textContent = text; b.className = 'banner on' + (big ? ' boss' : ''); clearTimeout(this.bt); this.bt = setTimeout(() => (b.className = 'banner'), big ? 1600 : 1000); }
   alive() { return R.alive(this.run); }
@@ -230,7 +250,7 @@ export class Battle {
       m.flashUntil = this.now() + 0.12; m.hurtAt = this.now();
       this.float(dmg, m.x, this.groundY - this.enemy.f.def.h - 6, a.sup || a.mult > 1 ? 'crit' : '');
       this.burst(m.x, this.groundY - this.enemy.f.def.h * 0.5, a.sup ? 14 : 7, mat, 60);
-      if (m.hp <= 0 && !m.deadAt) { m.deadAt = this.now(); this.burst(m.x, this.groundY - this.enemy.f.def.h * 0.4, 12, DUST, 40); }
+      if (m.hp <= 0 && !m.deadAt) { m.deadAt = this.now(); this.burst(m.x, this.groundY - this.enemy.f.def.h * 0.4, 12, DUST, 40); if (this.mb) this.miniDown = m; }
     }
     this.shake = Math.max(this.shake, (a.A.shake || 2) * (a.sup ? 1.5 : 1));
     if (this.lk) this.fx.push(...SFX.impactFx(this.lk, { now: this.now(), x: tx, y: ty, gy: this.groundY, hx: this.heroX, hy: this.groundY - 26 }));   // träffen från det burna steget på nivå 3
@@ -251,7 +271,10 @@ export class Battle {
       const gold = Math.round(f.gold * (this.rewardMult ?? 1));      // samma avtrappning som resultatskärmen räknar med (reward i rules.js)
       if (gold > 0) this.float(`+${gold} gold`, this.enemy.members[0].x, this.groundY - f.def.h - 14, 'gold');
       if (next === 'won') this.cheer();
-      this.later(() => { if (this.over) return; if (next === 'next') this.nextFight(); else this.finish(true); }, 900);
+      const go = () => { if (this.over) return; if (next === 'next') this.nextFight(); else this.finish(true); };
+      // Slagen miniboss: nederlagsfilmen först (går att hoppa över), sedan som vanligt.
+      if (this.mb && this.miniDown) { const m = this.miniDown; this.banner('Mini-boss defeated!', true); this.$('.banner').classList.add('mini'); if (this.sfx) this.sfx('win'); return this.startCine('defeat', m, () => { this.miniDown = null; this.later(go, 250); }); }
+      this.later(go, 900);
       return;
     }
     if (next === 'enemy') this.enemyAttack(); else { this.hud(); this.phase = 'wait'; this.askSoon(free ? 900 : 2000); }
@@ -283,6 +306,8 @@ export class Battle {
     if (this.paused) return;                                     // boken är öppen: scenen står still
     const now = this.now(), g = this.g, { W, H, groundY } = this; if (!g) return;
     g.clear();
+    const cn = this.cine, cp = cn ? Math.min(1, (now - cn.t0) / cn.spec.dur) : 0;      // minibossens film och hur långt den har kommit
+    if (cn && cn.spec.shake) this.shake = Math.max(this.shake, cn.spec.shake(cp) || 0);
     const sh = this.shake > 0.3 ? Math.round((Math.random() - 0.5) * this.shake) : 0; this.shake *= 0.8;
     if (BD && BD.drawAmbient) { try { BD.drawAmbient(g, BIOMES[this.worldIdx] || 'forest', W, H, groundY, now); } catch (e) {} }
     // hjältens läge
@@ -311,8 +336,21 @@ export class Battle {
     if (a && a.who === 'hero' && a.A.drag && p > 0.12 && p < 0.45 && this.tip) this.fx.push({ kind: 'p', t0: now, dur: 0.25, x: this.tip[0], y: groundY, vx: -30 - Math.random() * 30, vy: -20 - Math.random() * 30, rp: SPARK, lv: 5 });
     // fienderna
     const f = this.enemy.f, d = f.def, ea = a && a.who === 'enemy' ? Math.min(1, p) : 0, al = this.alive();
+    const cc = (m) => ({ x: m.x, gy: groundY, W, H, h: d.h, w: d.w, t: now });
+    try { if (cn && cn.spec.back) cn.spec.back(g, cp, cc(cn.m)); else if (!cn && this.mb && this.mb.stay && this.enemy.members[0].hp > 0) this.mb.stay(g, cc(this.enemy.members[0])); } catch (e) { if (!this.err) { this.err = 1; console.error(e); } }
     this.enemy.members.forEach((m, i) => {
-      const dead = m.deadAt ? now - m.deadAt : -1; if (dead > 0.5) return;
+      if (cn && cn.m === m) {                                    // minibossen i sin film: läge, vridning och skala från miniboss.js
+        let c = {}; try { c = cn.spec.pose(cp, cc(m)) || {}; } catch (e) { if (!this.err) { this.err = 1; console.error(e); } }
+        if (c.hide) return;
+        const draw = (gg) => {
+          gg.push(Math.round(m.x + (c.dx || 0) + sh), Math.round(groundY + (c.dy || 0) - (c.piv || 0)), c.ang || 0, c.k || 1); if (c.piv) gg.push(0, c.piv);
+          try { d.draw(gg, now + m.ph, Object.assign({ attack: 0, hurt: 0 }, c.pose)); } catch (e) { if (!this.err) { this.err = 1; console.error(d.id, e); } }
+          if (c.piv) gg.pop(); gg.pop();
+        };
+        if (c.clip) MB.clipped(g, groundY + 1, draw); else draw(g);
+        return;
+      }
+      const dead = m.deadAt && m !== this.miniDown ? now - m.deadAt : -1; if (dead > 0.5) return;
       const lunge = ea && (al[0] === m || f.n > 1) ? -bump(ea) * Math.max(0, m.x - this.heroX - d.w / 2 - 14) * (f.tier === 'boss' ? 0.35 : 0.8) : 0;
       const hurtE = Math.max(0, 1 - (now - m.hurtAt) / 0.3), intro = Math.max(0, 1 - (now - this.introAt) / 0.5);
       const ex = Math.round(m.x + lunge + hurtE * 4 + intro * intro * 80 + sh);
@@ -324,6 +362,12 @@ export class Battle {
       try { d.draw(g, now + m.ph, pose); } catch (e) { if (!this.err) { this.err = 1; console.error(d.id, e); } }
       g.flash = false; g.pop();
     });
+    if (cn) {
+      try { if (cn.spec.front) cn.spec.front(g, cp, cc(cn.m)); } catch (e) { if (!this.err) { this.err = 1; console.error(e); } }
+      for (const [j, e] of (cn.spec.ev || []).entries()) if (cp >= e.at && !cn.fired.has(j)) { cn.fired.add(j); if (this.sfx && e.sfx) this.sfx(e.sfx); }
+      if (this.ov) this.ov.update(cp, cn.spec, this.mb, d.name, now, cn.kind);
+      if (cp >= 1) this.endCine();
+    }
     // händelser
     if (a) {
       if (a.who === 'hero') {

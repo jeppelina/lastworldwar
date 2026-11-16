@@ -1,6 +1,6 @@
 // Spelets skal: vem spelar, karta, strid, resultat, utrustning och dagens butik.
 import { G, ramp } from './pixel.js';
-import { W, H, drawHero, drawIcon, HAIR_STYLES } from './hero.js';
+import { W, H, drawHero, drawIcon, HAIR_STYLES, drawPet } from './hero.js';
 import { ITEMS, BY_ID, SLOTS, RARITY, dailyShop, heroStats, xpToLevel, levelKeepGrant } from './catalog.js';
 import { Battle, loadArt } from './battle.js';
 import { Quiz } from './quiz.js';
@@ -439,6 +439,7 @@ function endBattle(r, k, i, node, w) {
     `<b>+${fmt(rw.gold)} gold</b>   <b>+${fmt(rw.xp)} XP</b>` +
     (st.words ? `\n<b class="grow">${st.words} ${st.words === 1 ? 'word' : 'words'} got stronger</b>   <b>+${fmt(st.wordXp)} XP</b>` + (st.wordGold ? `   <b>+${fmt(st.wordGold)} gold</b>` : '') : '') +
     (rw.factor < 1 ? '\nToo easy now: small reward.' : '') +
+    (r.mini ? `\n<b style="color:#ffd84a">★ Mini-boss defeated!</b> ${esc(r.mini.name)} dropped <b>+${fmt(Math.round(r.mini.gold * rw.factor))} bonus gold</b>.` : '') +      // minibossens extra guld (ingår i summan ovan)
     (ups ? `\n<b>Level ${P.level}!</b> You are stronger now.` : '') +
     (newSparks ? `\n<span class="newspark"><i class="spark"></i>${newSparks > 1 ? newSparks + ' new sparks!' : 'New spark!'}</span>` : '') +
     (under ? `\n<b class="warn">This level is Lv ${node.rec}. You are Lv ${P.level}.</b>` : '') +
@@ -764,9 +765,50 @@ function greetSparks() {
 // Uppspelning från föräldraskärmen (replay) bokför ingenting.
 let ARMY = [], ARMY_TEST = null, storyOn = null, storyT = 0, storyFixed;      // ARMY_TEST och storyFixed sätts bara av testkroken
 const strongWords = (p = P) => Object.values(p.words || {}).filter((r) => tierOf(r) >= STEEL).length;
-const storyDue = (on) => (P && P.story ? ST.due(P.story, { on, done: P.done || {}, strong: strongWords(), gateOpen: (k) => { const g = bossGate(k); return !g || g.open; } }) : null);
-// Det som ligger kvar på kartan efter sedda stunder (brännmärket, flaggan, ballongen i trädet).
-function pushStory() { if (MAP && MAP.story && P) MAP.story.set(ST.decor(P.story)); }
+// here = världen som syns på kartan (händelserna i ST.BEATS väntar tills deras värld syns), today = dagens nummer för spåren.
+const storyCtx = (on) => ({ on, done: P.done || {}, strong: strongWords(), gateOpen: (k) => { const g = bossGate(k); return !g || g.open; },
+  here: MAP && MAP.view && MAP.view.mode === 'world' ? MAP.view.world : null, today: ST.dayNo(Date.now() + (S.dayOffset || 0) * 864e5) });
+const storyDue = (on) => (P && P.story ? ST.dueAny(P.story, storyCtx(on)) : null);
+// Andra lagret (2026-11-16): spåren på kartan bokförs här, tyst, så fort deras villkor gäller (story.js, TRACES), med
+// engångsnyckel. De nya får ett glitter när kartan ritar dem första gången (storyFresh). Inget guld, ingen xp, inga ord.
+let storyFresh = [], STORY_KEYS = null, heroArt = { key: null, v: null };
+function recordTraces() {
+  let tr = ST.foldTraces(sync.eventsFor(pid(P))); const add = ST.pendingTraces(storyCtx(), tr); if (!add.length) return tr;
+  const home = R.WORLD_IDS[curWorldIdx(P)];
+  for (const t of add) {
+    const pl = { op: 'trace', id: t.id }; if (t.kind === 'bloom') pl.w = home;
+    if (sync.record(pid(P), 'story', pl, { once: ST.traceKey(tr, t.id) })) storyFresh.push(t.kind === 'bloom' ? [home, 'garden'] : [R.WORLD_IDS[t.world], t.kind]);
+  }
+  return ST.foldTraces(sync.eventsFor(pid(P)));
+}
+// Barnet trycker upp kistan i värld k: bokförs som spåret open-<k>, och kartan visar skämtet (aldrig guld eller saker).
+function storyOpenChest(k) {
+  if (!P) return null; const tr = ST.foldTraces(sync.eventsFor(pid(P))), id = ST.openId(k);
+  if (!tr.got[`chest-${k + 1}`] || tr.got[id]) return null;
+  sync.record(pid(P), 'story', { op: 'trace', id }, { once: ST.traceKey(tr, id) });
+  setTimeout(pushStory, 0);                                      // kistan byts mot den öppnade efter trycket, inte mitt i kartans ritning
+  return ST.CHEST_JOKE[k] || null;
+}
+// Hjältens färg (flaggan), en grå bild av gubben (statyn) och husdjuret i två bilder (besöket). Ritas om bara när utseendet ändras.
+function storyHero() {
+  const gear = gearOf(P), key = JSON.stringify([P.look, P.eq]); if (heroArt.key === key) return heroArt.v;
+  const color = ['armor', 'helmet', 'shield', 'weapon'].map((s) => gear[s] && gear[s].hex).find(Boolean) || '#3a8ee6';
+  const g = new G(40, 38); g.push(0, 0, 0, 0.5); SFX.drawHeroWithSkills(g, P.look, gear, { t: 0.9, noShadow: true, noPet: true, noFx: true, busy: true }, null, null); g.pop();
+  const c = document.createElement('canvas'); c.width = 40; c.height = 38; const cx = c.getContext('2d'); g.paint(cx);
+  const im = cx.getImageData(0, 0, 40, 38), d = im.data;
+  for (let i = 0; i < d.length; i += 4) if (d[i + 3]) { const v = Math.round(84 + (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11) * 0.56); d[i] = v; d[i + 1] = v; d[i + 2] = Math.min(255, v + 12); }
+  cx.putImageData(im, 0, 0);
+  let pet = null;
+  if (gear.pet) pet = [0.1, 0.45].map((t) => { const pg = new G(20, 18); pg.push(0, 0, 0, 0.5); drawPet(pg, gear.pet, 20, 24, t); pg.pop(); const pc = document.createElement('canvas'); pc.width = 20; pc.height = 18; pg.paint(pc.getContext('2d')); return { cv: pc, ax: 10, ay: 16 }; });
+  heroArt = { key, v: { color, statue: { cv: c, ax: 19, ay: 31 }, pet } };
+  return heroArt.v;
+}
+// Det som ligger kvar på kartan (brännmärket, flaggan, ballongen i trädet, och andra lagrets spår) och livet på kartan.
+function pushStory() {
+  if (!(MAP && MAP.story && P)) return;
+  const tr = recordTraces();
+  MAP.story.set({ ...ST.decorAll(P.story, tr), keys: STORY_KEYS || (STORY_KEYS = ST.decorKeys()), hero: storyHero(), amb: K.happen && K.happen.ambient, fresh: storyFresh.splice(0), onOpen: storyOpenChest });
+}
 function storySeen(m) { sync.record(pid(P), 'story', { op: 'seen', id: m.id }, { once: ST.onceKey(P.story, m.id) }); adopt(P); }
 // En helskärmsstund. then körs när den är slut eller förbitryckt. p = barnet vars hjälte syns i bilden.
 function storyFull(m, replay, then, p = P) {
@@ -780,6 +822,7 @@ function storyFull(m, replay, then, p = P) {
 function storyMap(m, replay) {
   if (storyOn || !P || screen !== 'map' || !MAP || !MAP.story || MAP.view.mode !== 'world' || !$('result').hidden) return false;
   if (!replay && P.story.seen[m.id]) return true;
+  if (!replay && m.here && MAP.view.world !== (m.world || 0)) return false;      // händelsen hör till en annan värld: vänta
   if (!MAP.story.play(m.scene, { dur: m.dur + 0.5 })) return false;
   MAP.closeCard();
   if (!replay) storySeen(m);
@@ -804,7 +847,9 @@ function storyAfter(fn) { const m = storyDue('win'); if (!m) return fn(); if (m.
 function storyReplay(p, id) {
   const m = ST.BY_ID[id]; if (!m || storyOn) return;
   if (m.where === 'full') return storyFull(m, true, null, p);
-  P = p; adopt(P); enterMap(true); storyLater(m, 1500, true);
+  P = p; adopt(P); enterMap(true);
+  if (m.here && MAP && MAP.unlocked(m.world || 0)) MAP.setView('world', m.world || 0, true);      // en händelse i andra lagret spelas i sin värld
+  storyLater(m, 1500, true);
 }
 
 // Vad ett föremål ger, skrivet så att det går att jämföra: "+5 ⚔" eller "+8 ♥", och skillnaden mot det man har på sig.
@@ -944,15 +989,19 @@ function namesForm() {
       const sp = p.sparks || { earned: 0, level: 0, bosses: 0, book: 0 }, used = p.skills ? SK.spent(p.skills) : 0;
       const powers = `<small>Krafter: ${sp.earned} sparks tjänade (nivå ${sp.level}, bossar ${sp.bosses}, boken ${sp.book}), ${used} använda, ${Object.keys((p.skills || {}).worn || {}).length} steg på.</small>` + (used ? `<button type="button" class="btn alt big" data-k="${i}">Nollställ krafter (alla sparks tillbaka)</button>` : '');
       // Berättelsen: vilka stunder barnet har sett. Ett tryck på en stund spelar upp den igen (utan att bokföra något).
-      const sts = p.story || ST.fresh(), nSeen = ST.MOMENTS.filter((m) => sts.seen[m.id]).length;
-      const story = `<details class="story" data-s="${i}"${storyOpen.has(i) ? ' open' : ''}><summary>Berättelsen: ${nSeen} av ${ST.MOMENTS.length} stunder sedda</summary>` +
-        ST.MOMENTS.map((m) => `<button type="button" class="btn alt${sts.seen[m.id] ? ' seen' : ''}" data-m="${i}:${m.id}" aria-label="Spela upp ${m.sv}${sts.seen[m.id] ? ' (sedd)' : ''}">${sts.seen[m.id] ? '✓' : '▶'} ${m.sv}</button>`).join('') +
+      const sts = p.story || ST.fresh(), nSeen = ST.MOMENTS.filter((m) => sts.seen[m.id]).length, nBeat = ST.BEATS.filter((m) => sts.seen[m.id]).length;
+      const mBtn = (m) => `<button type="button" class="btn alt${sts.seen[m.id] ? ' seen' : ''}" data-m="${i}:${m.id}" aria-label="Spela upp ${m.sv}${sts.seen[m.id] ? ' (sedd)' : ''}">${sts.seen[m.id] ? '✓' : '▶'} ${m.sv}</button>`;
+      const trg = ST.foldTraces(sync.eventsFor(pid(p))).got, nT = (pre) => Object.keys(trg).filter((id) => id.startsWith(pre)).length;
+      const traceTxt = `Spår på kartan: ${nT('flag-')} flaggor vid slagna bossar, ${nT('statue-')} statyer, ${nT('chest-')} hittade kistor (${nT('open-')} öppnade), ${nT('bloom-')} blommor` + (trg['lantern-dark'] ? (sts.seen['b1-lantern'] ? ', lyktan är tänd' : ', en släckt lykta') : '') + (trg['bridge-broken'] ? (sts.seen['b3-bridge'] ? ', bron är lagad' : ', en trasig bro') : '') + '.';
+      const story = `<details class="story" data-s="${i}"${storyOpen.has(i) ? ' open' : ''}><summary>Berättelsen: ${nSeen} av ${ST.MOMENTS.length} stunder och ${nBeat} av ${ST.BEATS.length} små händelser sedda</summary>` +
+        ST.MOMENTS.map(mBtn).join('') + '<small>Små händelser på kartan</small>' + ST.BEATS.map(mBtn).join('') + `<small>${traceTxt}</small>` +
         (sts.count ? `<button type="button" class="btn alt big" data-sr="${i}">Nollställ berättelsen</button>` : '') + '</details>';
       return `<div class="kid"><input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}"><label class="chk"><input type="checkbox" data-r="${i}" ${p.reading !== false ? 'checked' : ''}> Läser</label><label class="chk"><input type="checkbox" data-y="${i}" ${p.young ? 'checked' : ''}> Yngre barn</label>${gate}${powers}${story}</div>`;
     }).join('') + `</div><p class="dim">Utan "Läser" får barnet nästan bara bilduppgifter, och högst två val när något ska läsas.</p>
     <p class="dim">"Yngre barn": ${pct(K.young.thin)} procent av orden på varje bana, bossen öppnar när ${pct(K.young.bossShare)} procent av världens ord är Steel (annars ${pct(K.gate.boss.share)}), och varje ord som blir starkare ger ${K.young.learnMult} gånger så mycket xp.</p>
     <p class="dim">"Öppna bossen för hand" släpper barnet förbi ordmätaren i den värld det står i. Använd den om barnet har fastnat.</p>
     <p class="dim">Berättelsen: korta stunder där kejsaren visar sig, efter verkliga framsteg och med minst ${K.story.gap} vunna strider emellan. De ger och tar ingenting. Tryck på en stund för att spela upp den igen. "Nollställ berättelsen" gör att barnet får se dem på nytt, och det som stunderna har ändrat på kartan försvinner tills dess.</p>
+    <p class="dim">Små händelser (sedan 2026-11-16): korta skämt och spår på kartan i takt med framstegen, med samma avstånd som stunderna. Spåren (flagga vid en slagen boss, staty dagen efter, en hittad kista med ett skämt i, en blomma per ${K.happen.bloomEvery} starka ord) och livet på kartan (djur, väder, vagn, båt, fyrverkeri, husdjuret) ger heller ingenting.</p>
     <p class="dim">Krafter (fliken Powers på Gear) ändrar bara hur hjälten ser ut. En spark på nivå ${K.skill.levelFirst} och sedan var ${K.skill.levelEvery}:e nivå, en per slagen världsboss och en per ${K.skill.bookStep} ord som nått Steel i boken (högst ${K.skill.bookMax}).</p>`;
 }
 function bindNames() {
@@ -1040,7 +1089,7 @@ if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.se
     // banans boksida: sidan som är öppen (eller null), vredena i balance.js, och ljudkön (för provkörning)
     page: () => pageUp, K, hush, voice: () => ({ waiting, gen: vgen, playing: !!vcur }),
     // berättelsen: tabellen, barnets tillstånd, vad som står på tur, och krokar för att spela upp, frysa tiden (fix) och tvinga fram armén (army = sannolikhet)
-    story: { ST, state: () => P && P.story, due: storyDue, on: () => (storyOn ? storyOn.id : null), enter: storyEnter, after: storyAfter, replay: (id, p = P) => storyReplay(p, id), stop: () => { if (storyOn) storyOn.stop(); }, fix: (t) => (storyFixed = t), army: (x) => (ARMY_TEST = x), pool: () => ARMY },
+    story: { ST, state: () => P && P.story, due: storyDue, traces: () => P && ST.foldTraces(sync.eventsFor(pid(P))), push: pushStory, happen: (kind) => MAP && MAP.story && MAP.story.happen(kind), hero: () => P && storyHero(), on: () => (storyOn ? storyOn.id : null), enter: storyEnter, after: storyAfter, replay: (id, p = P) => storyReplay(p, id), stop: () => { if (storyOn) storyOn.stop(); }, fix: (t) => (storyFixed = t), army: (x) => (ARMY_TEST = x), pool: () => ARMY },
     // skillträdet: reglerna, fliken, provscenen (step fryser klockan vid t sekunder och ritar en bildruta, run släpper den)
     SK, greetSparks, powers: { open: () => openGear('powers'), tap: (id) => tapPower(SK.NODES[id]), pick: pickPower, select: (id) => { pSel = id; renderGear(); }, stage: () => powersStage(), step: (t) => { pFixed = t; powersStage().frame(t); }, run: () => { pFixed = null; } } };
 })();

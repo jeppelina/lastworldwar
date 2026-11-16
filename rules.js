@@ -70,7 +70,9 @@ export function enemyStats(rec, ease, t, def) {
 // army (valfri): { pool, chance, max } = kejsarens armé ur berättelsen (talen står under story.army i balance.js). Med sannolikheten chance byts högst
 // max av banans fiender mot en ur pool av SAMMA typ, aldrig i en bossbana. Värdena räknas som för den fiende som byttes ut,
 // så balansen är densamma. Utan army dras inga extra slumptal: simulatorn och gamla anrop ger samma följd som förut.
-export function buildRun(worldIdx, nodeIdx, node, roster, rnd = Math.random, army = null) {
+// mini (valfri): { chance } = världens miniboss (K.miniboss) kan bli banans sista strid, se miniFight. Utan mini dras inga
+// extra slumptal, så simulatorn och gamla anrop ger samma följd som förut.
+export function buildRun(worldIdx, nodeIdx, node, roster, rnd = Math.random, army = null, mini = null) {
   const info = node.rec != null ? node : nodeInfo(worldIdx, nodeIdx), rec = info.rec, ease = info.ease ?? 1;
   const inWorld = roster.filter((e) => e.world === worldIdx || e.world === -1);
   const byTier = (t) => { const c = inWorld.filter((e) => e.tier === t); return c.length ? c : roster.filter((e) => e.tier === t); };
@@ -83,7 +85,25 @@ export function buildRun(worldIdx, nodeIdx, node, roster, rnd = Math.random, arm
     const slots = tiers.map((t, i) => i).filter((i) => army.pool.some((e) => e.tier === tiers[i]));
     for (let n = 0; n < (army.max || 1) && slots.length; n++) { const i = slots.splice(Math.floor(rnd() * slots.length), 1)[0]; defs[i] = pick(army.pool.filter((e) => e.tier === tiers[i]), rnd); }
   }
-  return tiers.map((t, i) => enemyStats(rec, ease, t, defs[i]));
+  const fights = tiers.map((t, i) => enemyStats(rec, ease, t, defs[i]));
+  const md = mini && miniDef(worldIdx, nodeIdx, node, roster);
+  if (md && rnd() < (mini.chance ?? K.miniboss.chance)) { const last = fights.length - 1; fights[last] = miniFight(rec, ease, tiers[last], md); }
+  return fights;
+}
+
+// ---------- Minibossar (K.miniboss) ----------
+// Världens miniboss om banan kan ha en: en vanlig bana (aldrig boss) vars sista strid är minst typ minTier. Annars null.
+export function miniDef(worldIdx, nodeIdx, node, roster) {
+  const M = K.miniboss; if (!M || !M.ids || node.type === 'boss') return null;
+  const tiers = wavesFor(nodeIdx, node), lt = tiers[tiers.length - 1];
+  if (typeof lt !== 'number' || lt < (M.minTier || 1)) return null;
+  const id = M.ids[worldIdx]; return (id && roster.find((e) => e.id === id && e.tier !== 'boss')) || null;
+}
+// Minibossens värden: typens värden för platsen (t), sedan K.miniboss.hp, atk, xp och extra guld. mini = true märker striden.
+export function miniFight(rec, ease, t, def) {
+  const M = K.miniboss, f = enemyStats(rec, ease, t, def), n = f.n, bonus = Math.max(1, Math.round(M.gold * enemyGold(rec)));
+  return Object.assign(f, { mini: true, n, hpEach: Math.max(1, Math.round(f.hpEach * M.hp)), atk: Math.max(1, Math.round(f.atk * M.atk)),
+    xp: Math.max(1, Math.round(f.xp * M.xp)), gold: f.gold + bonus, miniGold: bonus });
 }
 
 // ---------- En omgång (en bana): tillstånd och turordning ----------
@@ -125,6 +145,7 @@ export function heroHit(run, weaponType, hitIdx, sup, rnd = Math.random, mult = 
 export function afterHeroAttack(run, free = false) {
   if (!alive(run).length) {
     const f = run.enemy.f; run.gold += f.gold; run.xp += f.xp; run.kills++;
+    if (f.mini) run.mini = { id: f.def.id, name: f.def.name, gold: f.miniGold };      // slagen miniboss: en rad på resultatskärmen
     return run.fi + 1 < run.fights.length ? 'next' : 'won';
   }
   if (free) return 'ask';
@@ -144,6 +165,7 @@ export const defeated = (run) => run.hero.hp <= 0;
 export function stars(run) { const frac = run.hero.hp / run.hero.maxHp; return frac > K.stars[0] ? 3 : frac > K.stars[1] ? 2 : 1; }
 export function result(run, win) {
   const res = { win, stars: win ? stars(run) : 0, gold: run.gold, xp: win ? run.xp : Math.round(run.xp * K.lossXp), kills: run.kills, fights: run.fights.length };
+  if (run.mini) res.mini = run.mini;
   if (run.boss) res.boss = { lit: run.boss.lit, stones: run.boss.stones, keep: win ? 0 : bossKeep(run.boss), wrong: run.boss.wrong };   // stenar som står kvar tända till nästa försök
   return res;
 }

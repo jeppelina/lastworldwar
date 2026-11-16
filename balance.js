@@ -77,9 +77,22 @@
 //                   svaret dubbelt. Ordbokens poäng påverkas inte av det. Bokknappen mitt i en fråga på ett av sidans ord
 //                   (K.page.peek 'helped'): svaret spelas som vanligt i striden men ger ordet inga poäng den gången.
 //                   Simulering: node game/sim/learn.mjs --exp R (se PLAN.md, tillägget 2026-11-13, för hur talen rörde sig).
-//   v16  2026-11-16  Ordurvalet (K.pick, quiz.js), publicerat före v14 och v15 (fiender och kartan byggs fortfarande):
-//                   högst 3 frågor per ord och strid, 12 per dag, möt-kort igen efter två missar, tryck på rätt kort efter fel,
-//                   två val för svåra ord. Bilder till känslor, verb och tal. Underlag: docs/research/ovningar2.md.
+//   v14  2026-11-16  Minibossar (K.miniboss, game/miniboss.js): en stor fiende per värld kan komma som SISTA striden i en vanlig
+//                   bana (sannolikhet chance per omgång, bara banor vars sista strid är typ 2 eller 3, aldrig i en bossbana).
+//                   Den har typens värden för den platsen gånger hp (liv) och atk (skada), xp gånger xp, och guld plus `gold`
+//                   fienders guld på banans rek. Nedräkningen (every) är som för typen. Inga andra tal är ändrade: vanliga
+//                   fiender, bossarna och trollets och sfinxens bossfighter räknas som förut. Inte simulerat: simulatorn
+//                   skickar inte in minibossar och drar därför exakt samma slumptal som före ändringen.
+//   v15  2026-11-16  Andra lagret i berättelsen (K.happen, game/story.js och game/map/story.js): små händelser på kartan.
+//                   Bara hur ofta saker syns: korta stunder (BEATS) delar avståndet K.story.gap med de stora stunderna,
+//                   spår som ligger kvar (flagga, staty, kista, blommor) och liv på kartan (djur, väder, vagn, båt, fyrverkeri,
+//                   husdjuret, bossen som städar, fiender i en buske). Inget ger eller tar guld, xp, ord eller banor, och
+//                   kistan på kartan innehåller bara ett skämt. Inga andra tal är ändrade. Inte simulerat (inget att simulera).
+//   v16  2026-11-16  Ordurvalet (K.pick, quiz.js): ett ord frågas högst K.pick.perBattle gånger per strid och K.pick.perDay per dag,
+//                   så att ett svagt ord inte fastnar först i kön (ett barn fick 'sad' 53 gånger på en dag). Ett ord som missas två
+//                   gånger i en strid lärs ut igen med ett möt-kort. Efter fel svar trycker barnet på rätt kort innan striden går vidare.
+//                   Svåra ord (fler fel än rätt, minst K.pick.hardWrong fel) får bara två val. Bilder till känslor, verb och tal.
+//                   Underlag: docs/research/ovningar2.md. Inte simulerat.
 export const version = 16;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
@@ -110,7 +123,7 @@ export const K = {
   stars: [0.66, 0.33], // andel liv kvar som ger tre respektive två stjärnor
   newPerRun: 5,        // högst så här många nya ord per omgång på en bana (ung-läge: newPerRunYoung). Resten kommer vid omspel.
   newPerRunYoung: 3,
-  pick: { perBattle: 3, perDay: 12, reteachAfter: 2, hardWrong: 2, fixTap: true },   // ordurvalet i quiz.js (v16)
+  pick: { perBattle: 3, perDay: 12, reteachAfter: 2, hardWrong: 2, fixTap: true },   // ordurvalet i quiz.js, se ändringsloggen v16
   requeueGap: 2,       // ett missat ord kommer tillbaka tidigast efter så här många frågor (världar utan innehållsfil)
   options: 4,          // antal svarskort (världar utan innehållsfil)
 
@@ -169,10 +182,29 @@ export const K = {
     review: 0.3,                 // andel av uppgifterna som hämtar sitt ord ur tidigare världar (repetition)
     talkMs: 2600,                // så länge står en replik från bossen kvar (går att trycka bort)
   },
+  // Minibossar (game/miniboss.js, buildRun i rules.js). ids: en fiende per värld i kartans ordning (index = världens index).
+  // Med sannolikheten chance blir SISTA striden i en vanlig bana världens miniboss, om den platsen är minst typ minTier
+  // (vågorna i K.waves: banor från nodindex 3 och framåt). Aldrig i en bossbana. Värdena är typens för den platsen, och sedan:
+  // liv gånger hp, skada gånger atk, xp gånger xp och guld plus `gold` fienders guld på banans rek (samma avtrappning som
+  // annat fiendeguld). Ta bort ett id (sätt null) så kommer den världen aldrig att ha någon miniboss.
+  miniboss: {
+    ids: ['morr', 'snubbel', 'grumpstump', 'gasp', 'glodhund', 'rostis'],   // Growl, Stumbles, Grumpstump, Snooze, Scorch, Sir Clank
+    chance: 0.35, minTier: 2,
+    hp: 1.35, atk: 1.1, xp: 1.5, gold: 3,
+  },
   // Berättelsen (game/story.js). gap: så många vunna strider (banor eller bossar, omspel räknas) måste ligga mellan två
   // stunder, om stunden inte har ett eget tal i tabellen. army: när kejsarens trupper har visat sig (stunden w2-march) kan
   // en fiende i en vanlig bana bytas mot en ur armén av samma typ. chance = sannolikhet per bana, max = högst så många per bana.
   story: { gap: 3, army: { chance: 0.2, max: 1 } },
+  // Andra lagret i berättelsen (v15): små händelser på kartan. Påverkar aldrig balansen, bara hur ofta något syns.
+  //   ambient.first  sekunder i en världsvy innan det första lilla livet (djur, väder, vagn, båt, fyrverkeri, husdjur, buske) kommer
+  //   ambient.pause  [minst, högst] sekunder mellan två sådana. Högst ett åt gången, aldrig under en stund ur berättelsen.
+  //   ambient.dur    [minst, högst] sekunder som ett sådant syns
+  //   chestDays      speldagar sedan första striden i en värld innan världens hittade kista dyker upp (värld 1 till 3)
+  //   chestLevels    och minst så många klarade banor i världen
+  //   statueDays     speldagar efter dagen då bossen slogs innan statyn av hjälten står där ("byggd över natten")
+  //   bloomEvery     en blomma per så många starka ord (Steel eller bättre), i världen där barnet är. bloomMax = högst så många
+  happen: { ambient: { first: 8, pause: [18, 40], dur: [7, 11] }, chestDays: 3, chestLevels: 3, statueDays: 1, bloomEvery: 10, bloomMax: 8 },
   // Ung-läge (bocken "Yngre barn" per barn på föräldraskärmen). bossStones: antal ordstenar i en bossfight.
   young: { thin: 0.5, bossShare: 0.35, learnMult: 3, bossStones: 6 },
   // Skillträdet (game/skills.js): sparks låser upp steg som ändrar hur hjälten ser ut. Antalet sparks sparas aldrig, det

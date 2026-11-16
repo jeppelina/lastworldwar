@@ -5,6 +5,7 @@ import { ramp as R } from './pixel.js';
 import { ROSTER_NEW } from './enemies-new.js';
 import { ROSTER_BOSSES } from './bosses.js';
 import { ROSTER_BLOBS } from './blobs.js';
+import { ROSTER_FACELIFT } from './facelift.js';
 
 const C = {
   dark: R('#2b2740'), white: R('#ffffff'), bone: R('#ece4cf'), gold: R('#f2b632'), red: R('#d8433b'),
@@ -1595,4 +1596,8 @@ for (const id of ['magmus', 'skuggriddaren']) { const i = ROSTER.findIndex((e) =
 for (const b of ROSTER_BOSSES) { const old = ROSTER.find((e) => e.id === b.id); if (old) Object.assign(old, { draw: b.draw, h: b.h, w: b.w, name: b.name }); }
 // Omritade klumpfiender (blobs.js, 2026-11-12): samma id, värld och typ, ny bild och storlek.
 for (const b of ROSTER_BLOBS) { const old = ROSTER.find((e) => e.id === b.id); if (old) Object.assign(old, { draw: b.draw, h: b.h, w: b.w, name: b.name }); }
+// Ansiktslyftet (facelift.js, 2026-11-16): åtta vanliga fiender omritade, samma id, namn, värld, typ och antal.
+// De gamla bilderna sparas i FACELIFT_OLD för granskningssidan (prototypes/enemies-v4). Ta bort raden så är de tillbaka.
+export const FACELIFT_OLD = {};
+for (const b of ROSTER_FACELIFT) { const old = ROSTER.find((e) => e.id === b.id); if (old) { FACELIFT_OLD[b.id] = { draw: old.draw, h: old.h, w: old.w }; Object.assign(old, { draw: b.draw, h: b.h, w: b.w }); } }
 export const BY_ID = Object.fromEntries(ROSTER.map((e) => [e.id, e]));
