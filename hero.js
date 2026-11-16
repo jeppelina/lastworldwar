@@ -401,6 +401,16 @@ const HELM = {
 };
 
 // ---------- Rustning: ben, överkropp, armar ----------
+// Ben i valfri ställning (ordbilderna): lår och smalben som tjocka linjer, stöveln vriden efter fotvinkeln.
+function poseLegs(g, L, pants, boot) {
+  g.begin();
+  for (const [k, hip, lv] of [['b', 35.5, 3], ['f', 42, 2]]) {
+    const p = L[k]; if (!p) continue; const [kx, ky, fx, fy, fa = 0] = p;
+    g.thick(hip, HIP, kx, ky, 6, pants, lv); g.thick(kx, ky, fx, fy, 5.4, pants, lv);
+    g.push(fx, fy, fa); g.poly([[-3.2, -2], [2.6, -2], [5.6, 1.8], [5.6, 4.6], [-3.2, 4.6]], boot, lv); g.pop();
+  }
+  g.end();
+}
 // Bredbent stridsställning: bakre benet (vänster i bild) rakt, främre benet framåt.
 function drawLegs(g, armor, ar, skin) {
   const type = armor ? armor.type : 'rags', s = armor ? mat(armor) : PLAIN;
@@ -586,7 +596,7 @@ export function heroPose(gear = {}, t = 0, a = {}) {
   setBody();
   const b = Math.sin(t * 2.6) > 0.3 ? 1 : 0, hover = gear.back && HOVER[gear.back.type] ? 4 + rd(Math.sin(t * 2.2) * 1.5) : 0;
   const bd = a.build || 0, Y = SH - 10 + b - hover, hd = a.hand || [0, 0], visor = !!(gear.helmet && gear.helmet.type === 'great');
-  const fx = gear.shield ? 29.5 : 30.5, fy = (gear.shield ? HIP - 3 : HIP - 1.5) + b - hover;
+  const gd = a.guard || [0, 0], fx = (gear.shield ? 29.5 : 30.5) + gd[0], fy = (gear.shield ? HIP - 3 : HIP - 1.5) + b - hover + gd[1];   // a.guard: parera (striden), närmaste handen och skölden flyttas [dx, dy]
   return {
     b, hover, build: bd, eyes: [[42, Y], [47, Y]], eyeH: visor ? 1 : 3, head: [39.5, Y + 0.5], top: Y - 10,
     neck: [38, SH + b - hover], chest: [38.5, SH + 6 + b - hover], belt: HIP - 3 - hover,
@@ -599,6 +609,8 @@ export function heroPose(gear = {}, t = 0, a = {}) {
 }
 // gear: { weapon, helmet, armor, shield, back, pet } där varje är ett föremål ur katalogen (eller saknas)
 // a: { t: sekunder, blink: bool, swing: radianer, wAng, hand: [dx, dy], noShadow, noPet, noFx, noScarf, build: -1 | 0 | 1 | 2 }
+// Ställningar för ordbilderna (wordart.js), utan dem ritas hjälten som förut: handB/handF = bortre/närmaste handens läge [x, y],
+// bendB/bendF = armbågens utskjut [x, y], legs = { b: [knäX, knäY, fotledX, fotledY, fotvinkel], f: [...] } för bakre/främre benet.
 // noScarf: hjältens egen halsduk ritas inte (för färdighetsträdets längre halsduk, som annars hamnar ovanpå den).
 export function drawHero(g, look, gear, a = {}) {
   const t = a.t || 0, P = heroPose(gear, t, a), { b, hover, build: bd } = P; T = t;
@@ -612,15 +624,15 @@ export function drawHero(g, look, gear, a = {}) {
   g.push(0, -hover);          // allt nedan ritas i svävade koordinater, därför läggs hover tillbaka på lägena ur P
   if (gear.back) BACK[gear.back.type](g, gear.back, R(gear.back.hex), b, t, mat(gear.back));
   // bortre armen håller vapnet (a.hand flyttar handen under attacker)
-  const [[bsx, bsy], [hx, hy0]] = P.armBack, hy = hy0 + hover;
-  g.begin(); arm(g, type, ar, skin, as, bsx, bsy + hover, hx, hy, [-1.5, 1.5], 2, bd); g.end();
+  const [[bsx, bsy], [hx0, hyA]] = P.armBack, [hx, hy0] = a.handB || [hx0, hyA], hy = hy0 + hover;
+  g.begin(); arm(g, type, ar, skin, as, bsx, bsy + hover, hx, hy, a.bendB || [-1.5, 1.5], 2, bd); g.end();
   g.anchor.hand = g.pt(hx + 0.5, hy + 0.5);
   if (gear.weapon) {
     const idle = a.wAng === undefined ? Math.sin(t * 2.6 - 0.6) * 0.035 : 0;         // vapnet väger lite i handen
     g.begin(); g.push(hx + 0.5, hy + 0.5, a.wAng !== undefined ? a.wAng : HOLD[gear.weapon.type] + (a.swing || 0) + idle); drawWeapon(g, gear.weapon); g.pop(); g.end();
   }
   g.begin(); g.ell(hx + 0.5, hy + 0.5, hr, hr, type === 'plate' ? ar : skin, 0.75); g.end();
-  drawLegs(g, gear.armor, ar, skin);
+  if (a.legs) poseLegs(g, a.legs, type === 'rags' ? C.rag2 : type === 'plate' || type === 'chain' ? ar : C.pants, type === 'plate' ? ar : C.leather); else drawLegs(g, gear.armor, ar, skin);
   drawTorso(g, gear.armor, ar, b, t, bd);
   if (type !== 'robe' && type !== 'plate' && !a.noScarf) drawScarf(g, look.scarf ? R(look.scarf) : gear.armor ? as.cloth : C.red, b, t);
   const hm = gear.helmet ? HELM[gear.helmet.type] : null;
@@ -628,14 +640,14 @@ export function drawHero(g, look, gear, a = {}) {
   if (hm) { g.begin(); hm.draw(g, gear.helmet, R(gear.helmet.hex), SH - 10 + b, mat(gear.helmet), sw); g.end(); }
   // närmaste armen: bakom skölden, eller knuten näve vid höften
   g.begin();
-  const [[fsx, fsy], [nx, ny0]] = P.armFront, ny = ny0 + hover, px = 31.5 - bw(bd) * 0.5, pw = bw(bd) * 0.4;
-  arm(g, type, ar, skin, as, fsx, fsy + hover, nx, ny, [-2.2, 0.5], 3, bd);
+  const [[fsx, fsy], [nxA, nyA]] = P.armFront, [nx, ny0] = a.handF || [nxA, nyA], ny = ny0 + hover, px = 31.5 - bw(bd) * 0.5, pw = bw(bd) * 0.4;
+  arm(g, type, ar, skin, as, fsx, fsy + hover, nx, ny, a.bendF || [-2.2, 0.5], 3, bd);
   g.ell(nx, ny + 0.5, hr, hr, type === 'plate' ? ar : skin, 0.75);
   if (type === 'plate') { g.ell(px, SH + 2 + b, 5.4 + pw, 4.3 + pw * 0.7, ar); g.ell(px, SH + 2 + b, 5.4 + pw, 4.3 + pw * 0.7, as.trim, false, (dx, dy, d2) => d2 > 0.6 && dy > 0.1, 3); flair(g, as, ar, px - 1.5, SH + b); }   // stort axelskydd
   else if (type === 'chain') { g.ell(px + 0.5, SH + 2 + b, 4.2 + pw, 3.2 + pw * 0.6, C.leather); g.dot(px - 0.5, SH + 2 + b, C.steel, 5); }
   else if (type === 'robe') g.poly([[28 - bw(bd), SH + b], [35, SH + b - 0.5], [35.5, SH + 4 + b], [29 - bw(bd), SH + 5.5 + b]], ar, 5);
   g.end();
-  if (gear.shield) drawShield(g, gear.shield, 26.5, HIP - 2 + b);
+  if (gear.shield) { const gd = a.guard || [0, 0]; drawShield(g, gear.shield, 26.5 + gd[0], HIP - 2 + b + gd[1]); g.anchor.shield = g.pt(27 + gd[0], HIP - 1.5 + b + gd[1]); }
   const w = gear.weapon;
   if (w && w.fx && !a.noFx && !small) weaponFx(g, w, t);
   g.pop();

@@ -1,6 +1,7 @@
 // Ordens styrka. Räknas i bakgrunden efter varje svar och syns som färg i boken, från Wood till Neutron Star.
 // Två saker krävs för att ett ord ska stiga: poäng (rätt svar, svårare övningar ger mer) och antal olika dagar
 // man svarat rätt. Det går alltså inte att nöta upp ett ord till toppen på en kväll.
+import { K } from './balance.js';
 
 export const TIERS = [
   { name: 'Wood', color: '#a9743f', ink: '#2a1a0a' }, { name: 'Iron', color: '#8793a3', ink: '#10151c' }, { name: 'Steel', color: '#c3d0de', ink: '#182230' },
@@ -12,7 +13,17 @@ const NEED_DAYS = [0, 1, 1, 2, 3, 5, 7, 10];          // Steel går att nå för
 const INTERVAL = [1, 1, 2, 3, 5, 8, 13, 21];          // dagar tills ordet vill repeteras igen, per nivå
 
 // Hur mycket ett rätt svar är värt per övningstyp: känna igen < koppla ord och skrift < plocka fram < stava.
-export const WEIGHT = { listen_pick_picture: 1, true_false: 1, picture_pick_word: 1.5, listen_pick_word: 1.5, read_pick_picture: 1.5, en_to_sv: 1.5, sv_to_en: 2, sentence_gap: 2, missing_letter: 2.5, spell_tiles: 3, build_sentence: 3 };
+export const WEIGHT = { listen_pick_picture: 1, true_false: 1, picture_pick_word: 1.5, listen_pick_word: 1.5, read_pick_picture: 1.5, en_to_sv: 1.5, sv_to_en: 2, sentence_gap: 2, missing_letter: 2.5, spell_tiles: 3, build_sentence: 3,
+  // Nya övningar (balans v18, 2026-11-16). Vikten är densamma som för typen i NEW_AS nedan. Meningarna bokförs inte i ordboken.
+  count_pick: 1, count_word: 1.5, picword_sv: 1, picword_hear: 1.5, fix_page: 1, scene_hunt: 2, spell_chant: 3 };
+
+// De nya ordövningarna bokförs i ordboken (och i händelsen 'words') under en äldre typ med samma vikt, som bossarnas
+// uppgifter (BOSS_AS). En äldre klient räknar då exakt samma ordbok ur samma rader. Övningens eget namn sparas bara i
+// svarsloggen (lv_answers, fältet exercise). Ändra aldrig en rad här: vikten för en sparad rad får inte ändras i efterhand.
+export const NEW_AS = { count_pick: 'listen_pick_picture', count_word: 'listen_pick_word', picword_sv: 'listen_pick_picture', picword_hear: 'listen_pick_word', fix_page: 'true_false' };
+// Taltal, för räkneövningen. Ett ord är ett tal om det har kategorin 'number' och står här.
+export const NUMS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+export const numOf = (item) => (item && item.cat === 'number' && NUMS[String(item.en).toLowerCase()]) || 0;
 
 // Bossarnas egna uppgifter (game/boss/) bokförs som vanliga stridssvar, med vikten för en övningstyp som redan finns.
 // Därför räknar en äldre klient ordboken exakt likadant. Bossuppgiftens eget namn sparas bara i svarsloggen.
@@ -95,7 +106,26 @@ export function thinContent(content, share) {
 
 // Vilka övningar som passar ordet just nu. Ord med bild börjar med att lyssna och peka; ord utan bild börjar
 // med svensk översättning. Högre nivå ger övningar som kräver mer: läsa, översätta åt andra hållet, stava.
-export function tasksFor(item, rec, reading = true) {
+// extra: de nya övningarna (K.ex i balance.js) blandas in med sina andelar. Striderna skickar true; ordgymmet och
+// simulatorn anropar utan och får samma listor som förut. Listan blir då 60 platser lång, så att andelarna stämmer när
+// quiz.js drar en plats på måfå: varje ny typ får round(andel * 60) platser och resten fylls med de vanliga typerna.
+// Om en ny typ inte går att göra just då (inget att räkna, inget felalternativ) väljer quiz.js ur den vanliga listan.
+export function tasksFor(item, rec, reading = true, extra = false) {
+  const base = baseTasks(item, rec, reading), E = K.ex;
+  if (!extra || !rec || !E || !E.on) return base;
+  const t = Math.max(0, tierOf(rec)), add = [], n = numOf(item);
+  if (n >= E.count.min && n <= E.count.max) add.push([reading && t >= E.count.readFrom ? 'count_word' : 'count_pick', E.count.share]);
+  else if (item.pic && item.pos !== 'phrase') {
+    if (t >= E.picword.from && t <= E.picword.to) add.push([reading ? 'picword_sv' : 'picword_hear', E.picword.share]);
+    if (t >= E.fix.from && item.pos === 'noun') add.push(['fix_page', E.fix.share]);
+  }
+  if (!add.length) return base;
+  const N = 60, out = [];
+  for (const [type, share] of add) for (let i = 0; i < Math.round(share * N); i++) out.push(type);
+  for (let i = 0; out.length < N; i++) out.push(base[i % base.length]);
+  return out;
+}
+function baseTasks(item, rec, reading) {
   if (!reading) {      // barn som inte läser än: nästan bara bilder. Skrivna ord bara med två val.
     const t0 = Math.max(0, tierOf(rec));
     if (!item.pic) return ['en_to_sv'];

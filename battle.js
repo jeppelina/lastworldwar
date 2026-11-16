@@ -2,7 +2,7 @@
 // Reglerna (skada, turordning, fiendens nedräkning, superattack, belöningar, stjärnor) ligger i rules.js,
 // som också simulatorn i sim/ kör. Ändra siffror där, inte här.
 import { G, ramp } from './pixel.js';
-import { drawHero, drawPet } from './hero.js';
+import { drawHero, drawPet, drawShield, HOLD } from './hero.js';
 import { BY_ID, heroStats } from './catalog.js';
 import * as R from './rules.js';
 import { pic } from './pics.js';
@@ -56,6 +56,14 @@ export const ATTACKS = {      // exporteras för provscenen på fliken Powers (s
   orb: { dur: 1.45, shake: 5, ev: [{ at: 0.62, shoot: { r: 15, dur: 0.26, from: 'over' } }, { at: 0.88, hit: 0, fx: 'bigboom' }], charge: { from: 0.05, to: 0.62, r0: 3, r1: 15, at: 'over' }, pose: (p) => ({ wAng: 0, noW: p > 0.05 && p < 0.95, hand: [p < 0.62 ? 0 : 5, p < 0.62 ? -9 * ease(p / 0.3) : -3] }) },
   bow: { dur: 0.85, ev: [{ at: 0.42, shoot: { arrow: true, dur: 0.18, from: 'hand' } }, { at: 0.6, hit: 0, fx: 'slash' }], pose: (p) => ({ wAng: 0, hand: [p < 0.42 ? 3 - 3 * ease(p / 0.42) : 4, -5] }) },
 };
+
+// ---------- Hjälten parerar när fienden slår (bara utseende: skadan, tiderna och reglerna är desamma) ----------
+// Vapnets vinkel i en parad: [hög, låg] (0 = rakt upp, positivt = framåt). Båge, klot och tomma händer saknas här: då viker
+// hjälten undan och tar emot slaget i stället. Skölden lyfts med a.guard i hero.js (närmaste handen och skölden flyttas).
+const GUARD = { dagger: [1.7, 2.1], club: [0.85, 1.45], sword: [0.95, 1.55], axe: [0.7, 1.35], spear: [0.55, 1.25], hammer: [0.25, 1.0], staff: [1.35, 1.0], great: [0.2, 0.9] };
+// Hur mycket hjälten har lyft parad (0..1) under fiendens slag (p = 0..1, slaget landar vid 0,5) och stöten efter träffen.
+const guardUp = (p) => (p < 0.2 ? 0 : p < 0.42 ? ease(seg(p, 0.2, 0.42)) : p < 0.66 ? 1 : p < 0.94 ? 1 - ease(seg(p, 0.66, 0.94)) : 0);
+const guardJolt = (p) => (p > 0.5 ? bump(Math.min(1, seg(p, 0.5, 0.8))) : 0);
 
 export class Battle {
   // el: tomt element. o: { profile, worldIdx, nodeIdx, node (med rec och ease), words, play(url), onEnd(result),
@@ -280,7 +288,41 @@ export class Battle {
     if (next === 'enemy') this.enemyAttack(); else { this.hud(); this.phase = 'wait'; this.askSoon(free ? 900 : 2000); }
   }
   // kind: vilken av bossens två attacker som spelas (bara bossar med egen mekanik skickar med den).
-  enemyAttack(kind) { R.resetCountdown(this.run); this.anim = { who: 'enemy', t0: this.now(), dur: this.bf ? 1.05 : 0.85, fired: new Set(), kind: kind || 0 }; }
+  enemyAttack(kind) { R.resetCountdown(this.run); this.anim = { who: 'enemy', t0: this.now(), dur: this.bf ? 1.05 : 0.85, fired: new Set(), kind: kind || 0, guard: this.guardFor() }; }
+  // Vilken parad hjälten tar den här gången. Växlar i tur och ordning (ingen slump, så inget slumptal i spelet rörs):
+  // med sköld: sköldmur, skölden högt och långt fram (oftare mot flygande fiender) eller sköld och vapen i kors; utan sköld: hög eller låg parad med
+  // vapnet, och var tredje gång viker hjälten undan och tar emot slaget; utan närstridsvapen: viker undan eller duckar.
+  guardFor() {
+    const n = this.parryN = (this.parryN || 0) + 1, w = this.gear.weapon, melee = !!(w && GUARD[w.type]), fly = !!(this.enemy && this.enemy.f.def.fly);
+    if (this.gear.shield) return { kind: 'shield', v: fly && n % 2 ? 1 : n % 3 === 2 && melee ? 2 : n % 3 === 1 ? 1 : 0 };
+    if (melee) return n % 3 === 0 ? { kind: 'dodge', v: n % 2 } : { kind: 'weapon', v: fly ? 0 : n % 3 === 1 ? 0 : 1 };
+    return { kind: 'dodge', v: n % 2 };
+  }
+  // Hjältens läge i paraden: dx, dy, wAng, hand och guard (som i ATTACKS). gd = guardFor(), p = slagets förlopp.
+  guardPose(gd, p) {
+    const r = guardUp(p), k = guardJolt(p), w = this.gear.weapon, hold = w ? HOLD[w.type] ?? 0 : 0, G = w && GUARD[w.type];
+    const turn = (to) => (G ? hold + (to - hold) * r : undefined);
+    if (gd.kind === 'shield') {
+      if (gd.v === 1) return { dx: 2 * r - 6 * k, dy: 0.5 * r, guard: [23 * r - 3 * k, -9 * r], hand: [-2 * r, r] };                  // skölden högt och långt fram, hjälten kikar över kanten
+      if (gd.v === 2) return { dx: -4 * k, dy: r, guard: [15 * r - 2 * k, -4 * r], wAng: turn(G ? G[0] : 0), hand: [2 * r, -6 * r] };   // sköld och vapen i kors
+      return { dx: -4 * k, dy: r, guard: [19 * r - 2.5 * k, -6 * r], hand: [-3 * r, -r] };                                              // sköldmur, böjda knän
+    }
+    if (gd.kind === 'weapon') {
+      const to = G[gd.v], wa = turn(to) - 0.3 * k;
+      return gd.v ? { dx: -4 * k, dy: 2 * r, wAng: wa, hand: [5 * r, -2 * r] } : { dx: -4 * k, wAng: wa, hand: [3 * r, -8 * r] };
+    }
+    return gd.v ? { dx: -3 * r - k, dy: 4 * r, hand: [-2 * r, -3 * r] } : { dx: -7 * r - 2 * k, dy: 2 * r, hand: [-3 * r, -4 * r] };       // duckar, eller lutar sig bakåt och tar emot
+  }
+  // Klang där slaget tar emot (sköld eller klinga), med gnistor och lite damm vid fötterna. En svisch om hjälten viker undan.
+  clang(gd) {
+    const now = this.now(), gy = this.groundY, rot = (this.parryN % 4) * 0.2;
+    let at = null;
+    if (gd.kind === 'shield' && this.guardAt) at = [this.guardAt[0] + 7, this.guardAt[1] - 1];
+    else if (gd.kind === 'weapon' && this.tip && this.hand) at = [lerp(this.hand[0], this.tip[0], 0.6) + 2, lerp(this.hand[1], this.tip[1], 0.6)];
+    if (at) { this.fx.push({ kind: 'clang', t0: now, dur: 0.26, x: Math.round(at[0]), y: Math.round(at[1]), rot }); this.burst(at[0], at[1], 7, SPARK, 70); }
+    else this.fx.push({ kind: 'whiff', t0: now, dur: 0.24, x: this.heroX + 10, y: gy - 30 + (gd.v ? 8 : 0) });
+    for (let i = 0; i < 4; i++) this.fx.push({ kind: 'p', t0: now, dur: 0.3, x: this.heroX - 6 + i * 4, y: gy - 1, vx: -25 - i * 8, vy: -15 - i * 4, rp: DUST, lv: 4 });
+  }
   enemyHit() {
     const dmg = this.bf ? this.bf.strike() : R.enemyStrike(this.run);
     this.hero.flashUntil = this.now() + 0.14; this.hero.hurtAt = this.now(); this.shake = Math.max(this.shake, this.bf ? 6 : 4);
@@ -290,7 +332,7 @@ export class Battle {
   slip() {
     if (this.over || this.phase !== 'ask' || this.bf) return;
     if (this.anim) { this.enemyHit(); return this.afterSlip(); }               // redan mitt i ett slag: skadan direkt
-    this.anim = { who: 'enemy', t0: this.now(), dur: 0.7, fired: new Set(), kind: 0, slip: true };
+    this.anim = { who: 'enemy', t0: this.now(), dur: 0.7, fired: new Set(), kind: 0, slip: true, guard: this.guardFor() };
   }
   afterSlip() { if (R.defeated(this.run)) { this.phase = 'anim'; this.hero.deadAt = this.now(); this.later(() => this.finish(false), 900); } else this.hud(); }
   afterEnemy() { if (this.bf) return this.bf.afterEnemy(); if (R.defeated(this.run)) { this.hero.deadAt = this.now(); this.later(() => this.finish(false), 900); } else { this.hud(); this.phase = 'wait'; this.askSoon(3200); } }
@@ -316,6 +358,7 @@ export class Battle {
     let hp = {}, a = this.anim, p = a ? (now - a.t0) / a.dur : 0;
     if (a && a.who === 'hero') hp = a.A.pose(Math.min(1, p), a.D) || {};
     else if (a && a.who === 'cheer') hp = SFX.victoryPose(lk, Math.min(1, p)) || {};
+    else if (a && a.who === 'enemy' && a.guard) hp = this.guardPose(a.guard, Math.min(1, p));      // paraden
     const hurt = Math.max(0, 1 - (now - this.hero.hurtAt) / 0.25), dx = (hp.dx || 0) - hurt * 5, dy = hp.dy || 0;
     const hx = this.heroX + dx + sh;
     g.begin(); g.ell(hx, groundY + 1.5, 12 + dy / 6, 2.4, SHADOW, false, null, 1); g.end({ outline: false, edge: false });
@@ -324,10 +367,12 @@ export class Battle {
       if (this.gear.pet) drawPet(g, this.gear.pet, hx - 28, groundY - 30 + Math.round(Math.sin(now * 2) * 2), now);
       if (!(lk && SFX.heroHidden(lk, a && a.who === 'hero' && a.sup, Math.min(1, p)))) {      // under Shadow Strike är hjälten borta en stund
         g.push(Math.round(hx - 38.5), Math.round(groundY - 61 + dy)); g.flash = now < this.hero.flashUntil;
-        const gear = hp.noW ? Object.assign({}, this.gear, { weapon: null }) : this.gear, args = { t: now, wAng: hp.wAng, hand: hp.hand, noShadow: true, noPet: true };
+        const gear = hp.noW ? Object.assign({}, this.gear, { weapon: null }) : this.gear, args = { t: now, wAng: hp.wAng, hand: hp.hand, guard: hp.guard, noShadow: true, noPet: true };
         // off = hur långt hjälten är från sin plats (så att sällskapet står kvar), busy = småvanorna vilar under attacker
         if (lk) SFX.drawHeroWithSkills(g, this.profile.look, gear, { ...args, off: [Math.round(dx), Math.round(dy)], busy: !!a }, lk, this.sk); else drawHero(g, this.profile.look, gear, args);
-        g.flash = false; this.tip = g.anchor.tip || g.anchor.hand; this.hand = g.anchor.hand; this.over3 = [this.hand[0] - 4, this.hand[1] - 34]; g.pop();
+        g.flash = false; this.tip = g.anchor.tip || g.anchor.hand; this.hand = g.anchor.hand; this.guardAt = g.anchor.shield || null; this.over3 = [this.hand[0] - 4, this.hand[1] - 34]; g.pop();
+        // skillträdets saker framför hjälten (axelplattor, krage) ritas efter skölden: en lyft sköld ritas en gång till ovanpå
+        if (lk && hp.guard && this.gear.shield && this.guardAt && (hp.guard[0] || hp.guard[1])) drawShield(g, this.gear.shield, this.guardAt[0] - 0.5, this.guardAt[1] - 0.5);
         if (lk && lk.trail && a && a.who === 'hero' && !this.fx.some((e) => e.kind === 'proj')) SFX.trailPush(this.sk, this.tip, this.hand, now);   // medan ett skott flyger hör spåret till skottet
       }
     }
@@ -377,7 +422,7 @@ export class Battle {
         if (p >= 1) { this.anim = null; this.afterHero(a); }
       } else if (a.who === 'cheer') { if (p >= 1) this.anim = null; }
       else {
-        if (p >= 0.5 && !a.fired.has(0)) { a.fired.add(0); this.enemyHit(); }
+        if (p >= 0.5 && !a.fired.has(0)) { a.fired.add(0); this.enemyHit(); if (a.guard) this.clang(a.guard); }
         if (p >= 1) { const slip = a.slip; this.anim = null; if (slip) this.afterSlip(); else this.afterEnemy(); }
       }
     }
@@ -388,6 +433,12 @@ export class Battle {
       const q = (now - e.t0) / e.dur; if (q >= 1) return false; any = true;
       if (e.kind === 'p') { const tt = now - e.t0; g.set(Math.round(e.x + e.vx * tt), Math.round(e.y + e.vy * tt + 60 * tt * tt), e.rp, q < 0.5 ? e.lv : 3); }
       if (e.kind === 'shock') for (let s = -1; s <= 1; s += 2) for (let j = 0; j < 5; j++) g.set(Math.round(e.x + s * (q * e.r + j * 2)), Math.round(e.y - j * (1 - q) * 2 - 1), DUST, 4 - (j % 2));
+      if (e.kind === 'clang') {                                  // stjärna med åtta strålar som skjuter ut och slocknar
+        const L = 4 + 9 * Math.sqrt(q), c0 = q < 0.5 ? 1 : Math.round(L * 0.45);
+        for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4 + e.rot, len = i % 2 ? L * 0.55 : L; for (let j = c0; j <= len; j++) { const x = Math.round(e.x + Math.cos(an) * j), y = Math.round(e.y + Math.sin(an) * j); g.set(x, y, j < len * 0.6 ? WHITE : SPARK, 5); if (!(i % 2) && j < len * 0.6) g.set(x + Math.round(-Math.sin(an)), y + Math.round(Math.cos(an)), SPARK, 5); } }   // de fyra stora strålarna är två pixlar breda
+        if (q < 0.4) { g.set(e.x, e.y, WHITE, 5); g.set(e.x + 1, e.y, WHITE, 5); g.set(e.x, e.y + 1, WHITE, 5); g.set(e.x - 1, e.y, WHITE, 5); g.set(e.x, e.y - 1, WHITE, 5); }
+      }
+      if (e.kind === 'whiff') for (let j = 0; j < 3; j++) { const x0 = Math.round(e.x + 4 + q * 10 + j * 2), y = e.y + j * 5 - 5, len = Math.round(9 - j * 2 - q * 6); for (let i = 0; i < len; i++) { g.set(x0 + i, y, WHITE, i < 2 ? 3 : 5); if (i > 1) g.set(x0 + i, y + 1, SHADOW, 2); } }   // mörk kant under, så att det syns mot moln och snö
       if (e.kind === 'slash') for (let k = -1; k <= 1; k += 0.08) { const an = k * 1.1, rr = e.r * (0.8 + q * 0.5); g.set(Math.round(e.x + Math.cos(an) * rr), Math.round(e.y + Math.sin(an) * rr), k * k < 0.3 ? WHITE : e.mat, 5); g.set(Math.round(e.x + Math.cos(an) * (rr - 1)), Math.round(e.y + Math.sin(an) * rr), e.mat, 4); }
       return true;
     });

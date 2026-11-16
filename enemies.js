@@ -5,7 +5,7 @@ import { ramp as R } from './pixel.js';
 import { ROSTER_NEW } from './enemies-new.js';
 import { ROSTER_BOSSES } from './bosses.js';
 import { ROSTER_BLOBS } from './blobs.js';
-import { ROSTER_FACELIFT } from './facelift.js';
+import { ROSTER_VARIANTS } from './facelift.js';
 
 const C = {
   dark: R('#2b2740'), white: R('#ffffff'), bone: R('#ece4cf'), gold: R('#f2b632'), red: R('#d8433b'),
@@ -1596,8 +1596,10 @@ for (const id of ['magmus', 'skuggriddaren']) { const i = ROSTER.findIndex((e) =
 for (const b of ROSTER_BOSSES) { const old = ROSTER.find((e) => e.id === b.id); if (old) Object.assign(old, { draw: b.draw, h: b.h, w: b.w, name: b.name }); }
 // Omritade klumpfiender (blobs.js, 2026-11-12): samma id, värld och typ, ny bild och storlek.
 for (const b of ROSTER_BLOBS) { const old = ROSTER.find((e) => e.id === b.id); if (old) Object.assign(old, { draw: b.draw, h: b.h, w: b.w, name: b.name }); }
-// Ansiktslyftet (facelift.js, 2026-11-16): åtta vanliga fiender omritade, samma id, namn, värld, typ och antal.
-// De gamla bilderna sparas i FACELIFT_OLD för granskningssidan (prototypes/enemies-v4). Ta bort raden så är de tillbaka.
-export const FACELIFT_OLD = {};
-for (const b of ROSTER_FACELIFT) { const old = ROSTER.find((e) => e.id === b.id); if (old) { FACELIFT_OLD[b.id] = { draw: old.draw, h: old.h, w: old.w }; Object.assign(old, { draw: b.draw, h: b.h, w: b.w }); } }
+// Varianterna (facelift.js, ändrat 2026-11-16 efter förälderns besked): ansiktslyftets bilder ersätter inte längre originalen.
+// Originalen behåller id, namn, plats och bild; varje variant är en egen fiende direkt efter sitt original, i samma värld,
+// typ och antal. Fienden väljs som förut (rules.js buildRun: lika chans för varje fiende i världens typ). Ta bort raden så
+// finns de inte. VARIANT_OF: variantens id -> originalets id (för granskningssidan, prototypes/enemies-v4).
+export const VARIANT_OF = {};
+for (const v of ROSTER_VARIANTS) { const i = ROSTER.findIndex((e) => e.id === v.of); if (i >= 0 && !ROSTER.some((e) => e.id === v.id)) { ROSTER.splice(i + 1, 0, v); VARIANT_OF[v.id] = v.of; } }
 export const BY_ID = Object.fromEntries(ROSTER.map((e) => [e.id, e]));

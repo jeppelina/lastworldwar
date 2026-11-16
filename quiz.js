@@ -1,12 +1,35 @@
 // Övningsmotorn. Väljer nästa ord och övning utifrån hur bra barnet kan ordet (words.js), ritar övningen i
 // frågepanelen och rapporterar rätt eller fel till striden. Innehållet kommer från content/world<N>.json.
-import { record, meet, tasksFor, tierOf, isDue } from './words.js';
+import { record, meet, tasksFor, tierOf, isDue, NEW_AS, numOf } from './words.js';
 import { pic } from './pics.js';
 import { K } from './balance.js';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const SENT_TYPES = ['scene_hunt', 'spell_chant', 'build_sentence', 'sentence_gap'];
+// Testkrok: sätt globalThis.__quizForce till en övningstyp (t.ex. 'count_pick', 'scene_hunt') så väljer striden den när det går.
+const forced = () => globalThis.__quizForce || null;
+// Färgerna i meningarnas scener (scene.color) som en ram runt scenen.
+const COL = { red: '#e2473d', green: '#2fae62', blue: '#3d7be2', yellow: '#f2c632', black: '#26262e', white: '#ffffff', brown: '#8a5a2b', pink: '#ff8ad8', orange: '#f08a20', purple: '#8a4ad8', grey: '#8a8a96', gray: '#8a8a96' };
+// Plural till "How many cats?". Bara substantiv med ett ord kommer hit.
+const ODD = { mouse: 'mice', fish: 'fish', sheep: 'sheep', foot: 'feet', tooth: 'teeth', man: 'men', woman: 'women', child: 'children', person: 'people', deer: 'deer', goose: 'geese', leaf: 'leaves', wolf: 'wolves', knife: 'knives' };
+// Ord som inte går att räkna ("How many waters?"). De väljs aldrig som det som ska räknas.
+const MASS = new Set(['water', 'milk', 'juice', 'bread', 'cheese', 'rice', 'soup', 'tea', 'coffee', 'sand', 'snow', 'rain', 'ice', 'money', 'breakfast', 'lunch', 'dinner', 'grass', 'sun', 'moon', 'sky', 'fire', 'food', 'music', 'homework', 'hair', 'pasta', 'yoghurt', 'jam', 'butter', 'sugar', 'salt', 'meat', 'fish_food', 'wind', 'weather', 'air', 'gold', 'school', 'preschool', 'football', 'battle', 'gear', 'porridge', 'paper', 'forest', 'pants', 'enemy']);
+const plural = (w) => ODD[w] || (/(s|sh|ch|x|z)$/.test(w) ? w + 'es' : /[^aeiou]y$/.test(w) ? w.slice(0, -1) + 'ies' : w + 's');
+// Page, bokens ägare, som en liten bild (samma ritning som på boksidan). Ritas första gången den behövs; tills dess en bok.
+let PAGE_SRC = null;
+const pageIcon = () => {
+  if (PAGE_SRC === null && typeof document !== 'undefined') {
+    PAGE_SRC = '';
+    Promise.all([import('./pixel.js'), import('./intro.js')]).then(([px, intro]) => {
+      const g = new px.G(24, 22); g.push(12, 21); intro.drawPage(g, 0.4, {}); g.pop();
+      const c = document.createElement('canvas'); c.width = 24; c.height = 22; g.paint(c.getContext('2d')); PAGE_SRC = c.toDataURL();
+      document.querySelectorAll('.qpgi').forEach((e) => { e.innerHTML = pageIcon(); });
+    }).catch(() => {});
+  }
+  return PAGE_SRC ? `<img class="qpg" src="${PAGE_SRC}" alt="Page">` : '📖';
+};
 
 export class Quiz {
   // o: { content, prior (ord från tidigare världar), nodeIdx, book (profilens ordbok, ändras på plats), day, play(url), save(),
@@ -28,6 +51,9 @@ export class Quiz {
     if (this.reading === undefined) this.reading = true;
     this.meetOn = o.meet !== undefined ? !!o.meet : !!(K.meet && K.meet.on); this.meetGap = (K.meet && K.meet.gap) || 2;
     if (this.firstOptions === undefined) this.firstOptions = K.firstOptions || 2;
+    // De nya övningarna (K.ex): i striderna. Ordgymmet (GymQuiz i gym.js) får samma övningar som förut om det inte ber om dem.
+    this.extra = o.extra !== undefined ? !!o.extra : new.target === Quiz && !!(K.ex && K.ex.on);
+    this.hunts = this.extra ? this.sentences.filter((s) => this.huntable(s)) : [];     // meningar med scen (Scene Hunt), även för den som inte läser
     if (!this.reading) {          // utan läsning: ord utan bild tas nästan inte med (ungefär vart sjunde), och inga meningar
       const keep = (i) => !!i.pic || Math.random() < 0.15, hasPic = this.own.some((i) => i.pic);
       if (hasPic) this.own = this.own.filter(keep); this.earlier = this.earlier.filter((i) => !!i.pic); this.sentences = [];
@@ -44,7 +70,22 @@ export class Quiz {
     this.asked++;
     while (this.requeue.length && !this.requeue[0].reteach && !this.room(this.requeue[0].item)) this.requeue.shift();      // ord som har frågats nog i dag kommer inte tillbaka
     if (this.requeue.length && this.asked - this.requeue[0].at >= (this.requeue[0].gap || 2)) { const q = this.requeue.shift(); if (q.reteach) { this.last = q.item; return { item: q.item, type: 'meet', meet: true, reteach: true }; } return this.task(q.item); }
-    if (this.sentences.length && this.asked > 2 && Math.random() < 0.45) { const s = pick(this.sentences.filter((x) => x !== this.lastSentence).length ? this.sentences.filter((x) => x !== this.lastSentence) : this.sentences); this.lastSentence = s; return { sentence: s, type: s.gap && Math.random() < 0.3 ? 'sentence_gap' : 'build_sentence' }; }
+    const F = forced(), fs = SENT_TYPES.includes(F);
+    if (!this.reading && this.hunts.length && (F === 'scene_hunt' || (this.asked > 2 && Math.random() < K.ex.hunt.noread))) {      // den som inte läser: meningar som scener
+      const ok = this.hunts.filter((s) => this.ready(s)), s = pick(ok.filter((x) => x !== this.lastSentence).length ? ok.filter((x) => x !== this.lastSentence) : ok);
+      if (s) { this.lastSentence = s; return { sentence: s, type: 'scene_hunt' }; }
+    }
+    if (this.sentences.length && ((fs && this.reading) || (this.asked > 2 && Math.random() < 0.45))) {
+      let list = this.sentences.filter((x) => x !== this.lastSentence).length ? this.sentences.filter((x) => x !== this.lastSentence) : this.sentences;
+      if (F === 'scene_hunt' && list.some((x) => this.canHunt(x))) list = list.filter((x) => this.canHunt(x));
+      if (F === 'spell_chant' && list.some((x) => this.canChant(x))) list = list.filter((x) => this.canChant(x));
+      if (F === 'sentence_gap' && list.some((x) => x.gap)) list = list.filter((x) => x.gap);
+      const s = pick(list); this.lastSentence = s; return { sentence: s, type: this.sentenceType(s, F) };
+    }
+    if (F === 'count_pick' || F === 'count_word') {         // testkroken: ett mött tal att räkna
+      const n = this.reach.filter((i) => numOf(i) >= K.ex.count.min && numOf(i) <= K.ex.count.max && this.book[i.id] && i !== this.last);
+      if (n.length) return this.task(pick(n));
+    }
     const met = (i) => !!this.book[i.id], fresh = this.own.filter((i) => !met(i)), known = this.own.filter(met);
     if (fresh.length && (this.newSeen < this.newCap || !known.length) && (this.asked - this.lastNew >= 2 || !known.length)) { this.lastNew = this.asked; this.newSeen++; this.intro.add(fresh[0].id); return this.task(fresh[0]); }   // nya ord ett i taget, med gamla emellan
     const due = this.earlier.filter((i) => isDue(this.book[i.id], this.day) && i !== this.last && this.room(i));
@@ -59,7 +100,70 @@ export class Quiz {
     return this.task(any.length ? pick(any) : fresh[0] || this.own[0]);
   }
   // Första mötet: ett möt-kort (meet), eller med K.meet.on av en riskfri första fråga (free).
-  task(item) { const rec = this.book[item.id]; this.last = item; this.cnt[item.id] = (this.cnt[item.id] || 0) + 1; return { item, type: pick(tasksFor(item, rec, this.reading)), free: !rec && !this.meetOn, meet: !rec && this.meetOn }; }
+  // En ny övning (K.ex) som inte går att göra just nu (prep säger nej) byts mot en ur den vanliga listan.
+  task(item) {
+    const rec = this.book[item.id]; this.last = item; this.cnt[item.id] = (this.cnt[item.id] || 0) + 1;
+    const list = tasksFor(item, rec, this.reading, this.extra), F = forced();
+    const t = { item, type: F && list.includes(F) ? F : pick(list), free: !rec && !this.meetOn, meet: !rec && this.meetOn };
+    if (NEW_AS[t.type] && !this.prep(t)) t.type = pick(tasksFor(item, rec, this.reading));
+    return t;
+  }
+  // Förbereder en ny ordövning: vad som ska räknas, vilket ord Page säger, vilket ord som hörs bredvid. false = går inte nu.
+  prep(t) {
+    const it = t.item, E = K.ex;
+    if (t.type === 'count_pick' || t.type === 'count_word') {
+      const n = numOf(it); if (n < E.count.min || n > E.count.max) return false;
+      const objs = this.reach.filter((i) => this.book[i.id] && i.pic && i.pos === 'noun' && !numOf(i) && /^[a-z]+$/.test(i.en) && !MASS.has(i.en));
+      if (!objs.length) return false;
+      const strong = objs.filter((i) => tierOf(this.book[i.id]) >= 1), obj = pick(strong.length ? strong : objs);
+      if (!this.numFoils(it, 1).length) return false;
+      t.count = { obj, n }; return true;
+    }
+    if (t.type === 'picword_sv' || t.type === 'picword_hear') { if (!it.pic) return false; t.alt = this.foils(it, 1, false)[0]; return !!t.alt; }
+    if (t.type === 'fix_page') {
+      if (!it.pic || it.pos !== 'noun') return false;
+      const cl = this.foils(it, 3, false).find((o) => o.pos === 'noun'); if (!cl) return false;
+      t.claim = Math.random() < E.fix.wrong ? cl : it; t.alt = cl; return true;
+    }
+    return true;
+  }
+  // Andra tal att välja mellan i räkneövningen: mötta tal först, sedan andra tal i världen, aldrig 'one'.
+  numFoils(it, n) {
+    const E = K.ex.count, ok = (i) => i !== it && numOf(i) >= E.min && numOf(i) <= E.max && numOf(i) !== numOf(it);
+    const met = shuffle(this.reach.filter((i) => ok(i) && this.book[i.id])), rest = shuffle(this.reach.filter((i) => ok(i) && !this.book[i.id]));
+    const seen = new Set(), out = [];
+    for (const i of [...met, ...rest]) if (!seen.has(numOf(i)) && out.length < n) { seen.add(numOf(i)); out.push(i); }
+    return out;
+  }
+  // Meningens innehållsord (uses, annars brickorna som finns som ord). Småorden (isolated: false) finns inte bland orden i spelet.
+  usesOf(s) {
+    if (s.uses && s.uses.length) return s.uses.filter((id) => this.byId[id]);
+    const en = new Map(this.items.map((i) => [String(i.en).toLowerCase(), i.id]));
+    return [...new Set((s.tiles || []).map((t) => en.get(String(t).toLowerCase().replace(/[^a-z' ]/g, ''))).filter(Boolean))];
+  }
+  ready(s) { return this.usesOf(s).every((id) => !!this.book[id]); }      // alla innehållsord är mötta
+  // Scene Hunt: meningen har en scen och felscener, och ingen av dem är en rörelse (verbens bilder ritas om).
+  huntable(s) { const all = [s.scene, ...(s.foils || [])]; return !!s.scene && (s.foils || []).length >= 2 && all.every((x) => x && !x.anim); }
+  canHunt(s) { return this.extra && this.huntable(s) && this.ready(s); }
+  canChant(s) { return this.extra && (s.tiles || []).length <= K.ex.chant.maxTiles && this.ready(s); }
+  sentenceType(s, F) {
+    if (F === 'scene_hunt' && this.canHunt(s)) return 'scene_hunt';
+    if (F === 'spell_chant' && this.canChant(s)) return 'spell_chant';
+    if (F === 'sentence_gap' && s.gap) return 'sentence_gap';
+    if (F === 'build_sentence') return 'build_sentence';
+    const r = Math.random(), E = K.ex;
+    if (this.extra && r < E.hunt.share && this.canHunt(s)) return 'scene_hunt';
+    if (this.extra && r >= E.hunt.share && r < E.hunt.share + E.chant.share && this.canChant(s)) return 'spell_chant';
+    return s.gap && Math.random() < 0.3 ? 'sentence_gap' : 'build_sentence';
+  }
+  // Antal val för ordet (K.choices): efter ordets nivå, två för svåra ord, och högst två skrivna för den som inte läser.
+  nOpts(it, written) {
+    const C = K.choices || { byTier: [4] }, by = C.byTier, rr = it && this.book[it.id], t = Math.max(0, tierOf(rr));
+    let n = by[Math.min(t, by.length - 1)];
+    if (rr && rr.w >= (this.pk.hardWrong || 99) && rr.w > rr.r) n = Math.min(n, C.hard || 2);
+    if (written && !this.reading) n = Math.min(n, C.written || 2);
+    return Math.max(2, n);
+  }
   // Orden som införs den här omgången, i den ordning de kommer: banans ej mötta ord upp till taket. Boksidan märker dem NEW.
   // Ett ord vars möt-kort är uppe men inte tryckt räknas fortfarande som nytt här.
   newNow() { let left = Math.max(0, this.newCap - this.newSeen); return this.own.filter((i) => !this.book[i.id] && (this.intro.has(i.id) || left-- > 0)); }
@@ -87,11 +191,13 @@ export class Quiz {
     if (task.item) {
       let up = null; const helped = !!task.helped && right;
       if (helped || (task.free && !right)) meet(this.book, task.item.id, this.day);
-      else up = record(this.book, task.item.id, right, task.type, this.day);
+      const as = NEW_AS[task.type]; if (as) task.ex = task.type;            // ny övning: eget namn i svarsloggen, äldre typ i ordboken
+      if (!(helped || (task.free && !right))) up = record(this.book, task.item.id, right, as || task.type, this.day);
       if (!right) { const n = this.miss[task.item.id] = (this.miss[task.item.id] || 0) + 1;
         if (this.meetOn && n === (this.pk.reteachAfter || 99)) this.requeue.push({ item: task.item, at: this.asked, gap: 1, reteach: true });      // missat två gånger: möt-kortet igen
         else this.requeue.push({ item: task.item, at: this.asked }); }
-      this.log.push(task.helped ? { id: task.item.id, type: task.type, right, free: !!task.free, helped: true } : { id: task.item.id, type: task.type, right, free: !!task.free });
+      const lt = as || task.type;
+      this.log.push(task.helped ? { id: task.item.id, type: lt, right, free: !!task.free, helped: true } : { id: task.item.id, type: lt, right, free: !!task.free });
       if (this.onAnswer) this.onAnswer(task, right, up);
     } else if (task.sentence && this.onAnswer) this.onAnswer(task, right, null);     // meningar sparas också i svarsloggen (inte i ordboken)
     this.save();
@@ -101,7 +207,7 @@ export class Quiz {
   // quizEl: panelen under scenen. wordEl: rutan i scenens nederkant. cb({ right, free }) när barnet har svarat.
   render(task, quizEl, wordEl, cb) {
     if (task.meet) return this.renderMeet(task, quizEl, wordEl, cb);
-    const it = task.item, s = task.sentence, P = this.play, T = task.type;
+    const it = task.item, s = task.sentence, P = (u) => this.play(u), T = task.type;
     const en = it ? `audio/${it.audio}.mp3` : `audio/${s.audio}.mp3`, slow = en.replace('.mp3', '.slow.mp3'), svA = `audio/sv/${(it || s).id}.mp3`;
     let promptAudio = en, locked = false;
     const t0 = Date.now();                                  // svarstid: från att uppgiften visas till svaret
@@ -116,33 +222,79 @@ export class Quiz {
     const newTag = task.free ? '<span class="new">NEW</span>' : '';
 
     // Flerval: ett kort är rätt. Vid fel visas rätt kort och ordet läses långsamt.
-    const choice = (opts, txt) => {
-      task.shown = opts.length; let fixing = false; const fixOn = !!this.pk.fixTap && !task.free;
-      frame(`<div class="cards n${opts.length}"></div>`, promptAudio !== null);
+    // x.seq: ljud som spelas i tur och ordning, ett per kort (kortet lyser medan dess ord hörs). o.next: rätt kort leder till
+    // ett andra steg i samma uppgift (rätta Page) i stället för att uppgiften är klar.
+    const choice = (opts, txt, x = {}) => {
+      task.shown = opts.length; let fixing = false, stepped = false; const fixOn = !!this.pk.fixTap && !task.free;
+      frame(`<div class="cards n${opts.length}"></div>`, promptAudio !== null || !!x.seq);
       const box = quizEl.querySelector('.cards');
+      const runSeq = (urls) => { const cs = [...box.children]; let p = Promise.resolve();
+        urls.forEach((u, i) => { p = p.then(() => { cs.forEach((c) => c.classList.remove('playing')); if (cs[i]) cs[i].classList.add('playing'); return P(u); }); });
+        p.then(() => cs.forEach((c) => c.classList.remove('playing'))); };
       for (const o of opts) {
         const b = document.createElement('button'); b.className = 'card' + (txt ? ' txt' : '') + (o.cls ? ' ' + o.cls : ''); b.innerHTML = o.html;
-        b.onclick = () => { if (locked) return;
+        b.onclick = () => { if (locked || stepped) return;
           if (fixing) { if (o.ok) { b.classList.remove('tapme'); P(en); fixing = false; finish(false); } return; }      // efter fel svar: barnet trycker på rätt kort, och hör ordet, innan striden går vidare
+          if (o.ok && o.next) { stepped = true; b.classList.add('right'); return o.next(); }
           if (o.ok) { b.classList.add('right'); if (promptAudio !== en) P(en); } else { b.classList.add('wrong'); [...box.children].forEach((c, i) => opts[i].ok && c.classList.add('right')); P(slow); task.chosen = (b.textContent.trim() || ((b.querySelector('img') || { getAttribute: () => '' }).getAttribute('src') || '').split('/').pop().replace('.png', '')).slice(0, 64);
             if (fixOn) { fixing = true; [...box.children].forEach((x, i) => opts[i].ok && x.classList.add('tapme')); return; } }
           finish(!!o.ok); };
         box.appendChild(b); if (o.ok) this._auto = () => b.click();          // används av testkörningar
       }
-      if (promptAudio) P(promptAudio);
+      if (x.seq) { quizEl.querySelector('.again').onclick = () => runSeq(x.seq); quizEl.querySelector('.slow').onclick = () => runSeq(x.seq.map((u) => u.replace('.mp3', '.slow.mp3'))); runSeq(x.seq); }
+      else if (promptAudio) P(promptAudio);
     };
+    // Ljudkort: ett nummer i en färgad ring och en högtalare. Orden hörs i kortens ordning (x.seq).
+    const soundCards = (list) => list.map((o, i) => ({ html: `<span class="qsnd"><b class="q${i}">${i + 1}</b>🔊</span>`, ok: o === it }));
     const withFoils = (n, needPic, html) => shuffle([it, ...this.foils(it, n, needPic)]).map((o) => ({ html: html(o), ok: o === it }));
     const nFirst = Math.max(1, this.firstOptions - 1);                   // riskfri första fråga (bara när möt-korten är av): firstOptions kort (balance.js)
     const rr = it && this.book[it.id], hard = !!rr && rr.w >= (this.pk.hardWrong || 99) && rr.w > rr.r;      // svårt ord: fler fel än rätt. Då bara två val.
-    const nOpt = task.free ? nFirst : hard ? 1 : 3;                       // bildkort
-    const nTxt = !this.reading || hard ? 1 : task.free ? nFirst : 3;      // skrivna alternativ: alltid två val för den som inte läser än
+    // Antal felalternativ efter ordets nivå (K.choices, v18): två kort på Wood, tre på Iron, fyra från Steel.
+    const nOpt = task.free ? nFirst : this.nOpts(it, false) - 1;                                  // bildkort
+    const nTxt = !this.reading || hard ? 1 : task.free ? nFirst : this.nOpts(it, true) - 1;       // skrivna alternativ: alltid två val för den som inte läser än
 
     if (T === 'listen_pick_picture') { word(esc(it.en) + newTag); return choice(withFoils(nOpt, true, (o) => pic(o))); }
-    if (T === 'read_pick_picture') { promptAudio = null; word(esc(it.en)); return choice(withFoils(hard ? 1 : 3, true, (o) => pic(o))); }
+    if (T === 'read_pick_picture') { promptAudio = null; word(esc(it.en)); return choice(withFoils(nOpt, true, (o) => pic(o))); }
     if (T === 'picture_pick_word') { promptAudio = null; word(`<span class="pic">${pic(it)}</span>`); return choice(withFoils(nTxt, false, (o) => esc(o.en)), true); }
-    if (T === 'listen_pick_word') { word('🔊 ?'); return choice(withFoils(hard ? 1 : 3, false, (o) => esc(o.en)), true); }
+    if (T === 'listen_pick_word') { word('🔊 ?'); return choice(withFoils(nTxt, false, (o) => esc(o.en)), true); }
     if (T === 'en_to_sv') { word(esc(it.en) + newTag); return choice(withFoils(nTxt, false, (o) => esc(o.sv)), true); }
-    if (T === 'sv_to_en') { promptAudio = svA; word(`<small>SV</small> ${esc(it.sv)}`, 'sv'); return choice(withFoils(3, false, (o) => esc(o.en)), true); }
+    if (T === 'sv_to_en') { promptAudio = svA; word(`<small>SV</small> ${esc(it.sv)}`, 'sv'); return choice(withFoils(nTxt, false, (o) => esc(o.en)), true); }
+    // ----- nya övningar (v18) -----
+    // Räkna: n bilder av ett mött ord, barnet väljer talet. Siffror (och talet hörs vid svaret) eller skrivna tal (läsare från Steel).
+    if (T === 'count_pick' || T === 'count_word') {
+      const { obj, n } = task.count, wr = T === 'count_word', many = Array.from({ length: n }, () => pic(obj));
+      promptAudio = `audio/${obj.audio}.mp3`;
+      word(`<span class="qcount">${many.slice(0, 5).join('')}${n > 5 ? `<br>${many.slice(5).join('')}` : ''}</span><span class="qask">How many ${esc(plural(obj.en))}?<small class="below">Hur många?</small></span>`, 'long qcw');
+      const opts = shuffle([it, ...this.numFoils(it, this.nOpts(it, wr) - 1)]);
+      return choice(opts.map((o) => ({ html: wr ? esc(o.en) : `<span class="qdig">${numOf(o)}</span>`, ok: o === it })), wr);
+    }
+    // Bild och skrivet ord tillsammans: läsaren väljer svenskan, den som inte läser hör två ord och väljer det som hör till bilden.
+    if (T === 'picword_sv') { word(`<span class="pic">${pic(it)}</span> ${esc(it.en)}`); return choice(withFoils(this.nOpts(it, true) - 1, false, (o) => esc(o.sv)), true); }
+    if (T === 'picword_hear') {
+      const two = shuffle([it, task.alt]); promptAudio = null;
+      word(`<span class="pic">${pic(it)}</span> ${esc(it.en)}`);
+      return choice(soundCards(two), false, { seq: two.map((o) => `audio/${o.audio}.mp3`) });
+    }
+    // Rätta Page: Page säger ett ord under bilden (ljudklippet för ordet). Rätt eller fel? Har Page fel väljer barnet sedan rätt ord.
+    if (T === 'fix_page') {
+      const cl = task.claim, wrongClaim = cl !== it;
+      promptAudio = `audio/${cl.audio}.mp3`;
+      word(`<span class="pic">${pic(it)}</span><span class="qsay"><i class="qpgi">${pageIcon()}</i>${esc(cl.en.charAt(0).toUpperCase() + cl.en.slice(1))}!</span><small class="below">Is Page right? (Har Page rätt?)</small>`, 'long qfix');
+      const step2 = () => {
+        word(`<span class="pic">${pic(it)}</span><span class="qsay"><i class="qpgi">${pageIcon()}</i>Oops! What is it?</span><small class="below">Vad är det?</small>`, 'long qfix');
+        if (this.reading) { promptAudio = null; const rest = this.foils(it, 6, false).filter((o) => o !== cl && o.en !== cl.en).slice(0, Math.max(0, this.nOpts(it, true) - 2)); return choice(shuffle([it, cl, ...rest]).map((o) => ({ html: esc(o.en), ok: o === it })), true); }
+        const two = shuffle([it, cl]); promptAudio = null;
+        return choice(soundCards(two), false, { seq: two.map((o) => `audio/${o.audio}.mp3`) });
+      };
+      return choice([{ html: '👍 Right', ok: !wrongClaim }, { html: '👎 Wrong', ok: wrongClaim, next: wrongClaim ? step2 : null }], true);
+    }
+    // Hör meningen och välj scenen (meningens scen och felscener ur innehållet, ritade med ordens bilder).
+    if (T === 'scene_hunt') {
+      const C = K.ex.hunt.cards, n = Math.min(1 + s.foils.length, this.reading ? C.read : C.noread);
+      word('🔊 ?');
+      const opts = [{ html: this.sceneHTML(s.scene), ok: true }, ...shuffle(s.foils).slice(0, n - 1).map((f) => ({ html: this.sceneHTML(f) }))];
+      return choice(shuffle(opts).map((o) => ({ ...o, cls: 'qscn' })));
+    }
     if (T === 'true_false') {
       const truth = Math.random() < 0.5, shown = truth ? it : this.foils(it, 1, true)[0] || it;
       promptAudio = `audio/${shown.audio}.mp3`; word(`<span class="pic">${pic(it)}</span> ${esc(shown.en)}?`);
@@ -160,15 +312,17 @@ export class Quiz {
       return choice(shuffle(s.gap.options.map((o) => ({ html: esc(o), ok: o.toLowerCase() === ans.toLowerCase() }))), true);
     }
     // Brickor i rätt ordning: bokstäver (stava) eller ord (bygg mening). Första felet räknas som fel svar.
-    const pieces = T === 'build_sentence' ? s.tiles : it.en.split('');
-    if (T === 'build_sentence') word(`<small>SV</small> ${esc(s.sv)}`, 'sv long'); else word(it.pic ? `<span class="pic">${pic(it)}</span>` : `<small>SV</small> ${esc(it.sv)}`, it.pic ? '' : 'sv');
+    // spell_chant (v18): samma brickor som build_sentence, men bara ljudet. Ingen svensk mening. Varje rätt bricka gnistrar.
+    const chant = T === 'spell_chant', sent = T === 'build_sentence' || chant, pieces = sent ? s.tiles : it.en.split('');
+    if (chant) word('🪄 🔊 <small class="below">Listen and build the spell!</small>', 'long qchant');
+    else if (T === 'build_sentence') word(`<small>SV</small> ${esc(s.sv)}`, 'sv long'); else word(it.pic ? `<span class="pic">${pic(it)}</span>` : `<small>SV</small> ${esc(it.sv)}`, it.pic ? '' : 'sv');
     frame(`<div class="tilebox"><div class="slots">${pieces.map(() => '<i></i>').join('')}</div><div class="tiles"></div></div>`);
     const slots = [...quizEl.querySelectorAll('.slots i')], tiles = quizEl.querySelector('.tiles'); let at = 0;
     for (const p of shuffle(pieces.map((p, i) => ({ p, i })))) {
       const b = document.createElement('button'); b.className = 'tile'; b.textContent = p.p;
       b.onclick = () => { if (locked || b.disabled) return;
-        if (p.p.toLowerCase() === pieces[at].toLowerCase()) { slots[at].textContent = pieces[at]; slots[at].classList.add('ok'); b.disabled = true; b.classList.remove('hint'); at++; if (at === pieces.length) { P(en); finish(true); } }
-        else if (T === 'build_sentence' && this.onSlip) {                       // fel ord i meningen: fienden slår (onSlip), men barnet får fortsätta bygga
+        if (p.p.toLowerCase() === pieces[at].toLowerCase()) { slots[at].textContent = pieces[at]; slots[at].classList.add('ok'); if (chant) slots[at].classList.add('zap'); b.disabled = true; b.classList.remove('hint'); at++; if (at === pieces.length) { P(en); finish(true); } }
+        else if (sent && this.onSlip) {                       // fel ord i meningen: fienden slår (onSlip), men barnet får fortsätta bygga
           task.slips = (task.slips || 0) + 1; b.classList.add('wrong'); setTimeout(() => b.classList.remove('wrong'), 650); if (this.sfx) this.sfx('wrong'); this.onSlip(task);
           if (task.slips >= 2) { const next = [...tiles.children].find((x) => !x.disabled && x.textContent.toLowerCase() === pieces[at].toLowerCase()); if (next) next.classList.add('hint'); }   // efter två fel visas nästa ord
           if (task.slips === 1 || task.slips === 3) P(slow); }
@@ -176,7 +330,17 @@ export class Quiz {
       tiles.appendChild(b);
     }
     this._auto = () => { const b = [...tiles.children].find((x) => !x.disabled && x.textContent.toLowerCase() === pieces[at].toLowerCase()); if (b) b.click(); };
-    P(T === 'build_sentence' ? en : it.pic ? en : svA);
+    P(sent ? en : it.pic ? en : svA);
+  }
+
+  // En scen ur innehållet: {pic, n, size, color, mood, speed} eller {pics: [..]}. Emojin byts mot ordets bild när ett ord har den.
+  sceneHTML(sc) {
+    if (!this.byPic) { this.byPic = {}; for (const i of this.items) if (i.pic && !this.byPic[i.pic]) this.byPic[i.pic] = i; }
+    const one = (e) => (this.byPic[e] ? pic(this.byPic[e]) : `<span class="qemo">${esc(e)}</span>`);
+    const list = sc.pics ? sc.pics : Array.from({ length: Math.max(1, Math.min(sc.n || 1, 10)) }, () => sc.pic);
+    const badge = sc.mood === 'happy' ? '😊' : sc.mood === 'sad' ? '😢' : sc.speed === 'fast' ? '💨' : sc.speed === 'slow' ? '🐌' : '';
+    const col = sc.color ? ` style="--qc:${COL[sc.color] || '#888'}"` : '';
+    return `<span class="qsc${sc.size ? ' ' + sc.size : ''}${sc.color ? ' col' : ''} k${list.length}"${col}>${list.map(one).join('')}${badge ? `<i class="qbadge">${badge}</i>` : ''}</span>`;
   }
 
   // Möt-kortet: ett nytt ord visas som ett kort med bild, ord och ljud (svenskan som text för den som läser, annars på

@@ -1,9 +1,12 @@
-// Ansiktslyftet 2026-11-16: åtta vanliga fiender som var en rund klump med två ögon eller en omfärgad kopia av en annan
-// fiende, omritade som egna figurer. Samma id, värld, typ och antal som förut (h och w följer det som ritas).
+// Ansiktslyftet 2026-11-16, omgjort efter förälderns besked samma vecka: de gamla bilderna är tillbaka på sina id, och sju
+// av de nya figurerna är egna fiender (VARIANTER) med eget id och namn, i samma värld och typ som originalet. Plop är
+// borta härifrån (den gamla paddan var bättre). Stilen är dragen mot de gamla bilderna: ljusare och klarare färger, en
+// tydlig kroppsform, färre tunna streck och småsaker. Några har fått en överdriven pryl eller attack (se ROSTER_VARIANTS).
+// h och w följer det som ritas.
 // Samma format som game/enemies.js: draw(g, t, pose), motorn har gjort g.push(x, y) så att (0, 0) är marken mitt under
 // varelsen, varelsen tittar åt VÄNSTER, uppåt är negativt y, pose = { attack: 0..1, hurt: 0..1 }.
-// Extra fält i pose som bara minibossfilmerna skickar (game/miniboss.js): out (Scorch: lågorna slocknar, 0..1).
-// Läggs in i ROSTER längst ner i game/enemies.js med samma mönster som blobs.js. Ta bort den raden så är de gamla tillbaka.
+// Extra fält i pose: out (Blazetail: lågorna slocknar, 0..1). Ingen film skickar det längre (minibossen Scorch är vargen igen).
+// Läggs till i ROSTER längst ner i game/enemies.js, direkt efter sitt original. Ta bort den raden så finns de inte.
 import { ramp as R } from './pixel.js';
 
 const C = {
@@ -55,55 +58,12 @@ function spray(g, x, y, u, n, rp, o = {}) {
 function puff(g, x, y, u, r = 2.5) { if (u <= 0 || u >= 1) return; const k = 0.6 + u; g.ell(x - u * 2, y - u * 8, r * k, r * k * 0.8, C.smoke, false, null, u < 0.5 ? 4 : 3); g.ell(x + 2 + u, y - 2 - u * 10, r * k * 0.6, r * k * 0.5, C.smoke, false, null, 5); }
 
 // ====================================================================================================
-// PLOP: en tjock blå padda med en näckrosblad som hatt (och en liten blomma på brättet).
-// Vana: blåser upp strupsäcken till en stor ballong, kväker så att hatten hoppar, och säcken sjunker ihop.
-// Attack: kryper ihop, skjuter ut en lång klibbig tunga och rullar in den igen.
-// Träff: plattas till en pannkaka, ögonen poppar upp på skaft, hatten far upp och en fluga rymmer ur munnen.
-// ====================================================================================================
-const TOAD = R('#5b9bd5'), TOADB = R('#f2e2a0'), PAD = R('#4caa52'), SPOT = R('#2f5f9a');
-function plop(g, t, pose, o) {
-  const { a, hu } = P(pose), A = act(a), hr = rec(hu), k = o.k || 1, shut = blinkAt(t, 5);
-  const cr = a <= 0 && hu <= 0 ? habit(t, 5.2, 1.4, 1.2) : 0, sac = cr ? (cr < 0.55 ? eOut(cr / 0.55) : cr < 0.7 ? 1 : 1 - eIO((cr - 0.7) / 0.3)) : A.w * 0.4;
-  const pan = clamp(hu * 1.6), sq = A.w * 1.6 - A.h * 0.8 + pan * 3.2, br = step(t, 2.2);
-  const hop = cr > 0.6 && cr < 0.8 ? bump((cr - 0.6) / 0.2) * 3 : 0, hatUp = pan * 9 + hop + A.h * 2, hatA = -0.15 + pan * 1.1 + A.q * 0.2;
-  g.push(hu * 2, 0, hr * 0.08, k);
-  g.begin();                                             // bakben, kropp, framfötter
-  g.ell(9, -4.5 + sq * 0.3, 6 + pan, 4.5 - sq * 0.25, TOAD); g.poly([[5, -1], [15, -1], [17, 0], [4, 0]], TOAD, 2);
-  g.ell(1, -8 + sq * 0.6, 11 + sq * 0.5, 7.5 - sq * 0.6 + br * 0.3, TOAD);
-  for (const [x, y] of [[4, -12], [9, -9], [6, -6], [12, -6]]) g.ell(x, y + sq * 0.6, 1.4, 1.1, SPOT, false, null, 3);   // prickar
-  g.ell(-4, -4.5 + sq * 0.3, 6.5, 3.5 - sq * 0.2, TOADB, false, null, 4);
-  g.rect(-9, -1, 5, 1, TOAD, 3); g.dot(-10, -1, TOAD, 5); g.rect(-3, -1, 4, 1, TOAD, 2);
-  g.end();
-  if (sac > 0.02) { g.begin(); const r = 1.5 + sac * 4.5; g.ell(-8, -4 + sq * 0.3 - r * 0.3, r, r * 0.85, TOADB); g.dot(-9 - r * 0.4, -6 - r * 0.5, C.white, 5); g.end(); }
-  g.begin();                                             // ögonkupor och ansikte
-  const ey = -14.5 + sq * 0.8 - pan * 4, E = rnd(ey - 2);
-  if (pan > 0.3) { g.thick(-5.5, -10 + sq * 0.6, -5.5, ey, 1.6, TOAD, 2); g.thick(2, -10 + sq * 0.6, 2, ey, 1.6, TOAD, 2); }
-  g.ell(-5.5, ey, 3.5, 3.4, TOAD); g.ell(2, ey - 0.5, 3.5, 3.4, TOAD);
-  if (hu > 0.25) { wince(g, -7, E, false); wince(g, 1, E, true); }
-  else { eye(g, -8, E, 4, 4, { shut, pw: 2, ph: 2, dy: cr > 0 ? 0 : 2 }); eye(g, 0, E, 4, 4, { shut, pw: 2, ph: 2, dy: cr > 0 ? 0 : 2 }); }
-  const my = rnd(-9 + sq * 0.6);
-  if (a > 0.3 || pan > 0.2) g.poly([[-11, my - 1], [-2, my - 1], [-3, my + 2], [-10, my + 2]], C.dark, 0);
-  else { g.rect(-11, my, 10, 1, SPOT, 1); g.dot(-1, my - 1, SPOT, 1); g.dot(-11, my - 1, SPOT, 1); }                                   // brett nöjt flin
-  g.end();
-  g.begin();                                             // näckrosbladet som hatt, med ett hack och en blomma
-  g.push(-2, -20 + sq * 0.8 - hatUp - pan * 3, hatA + (pan > 0 ? sin(t * 9) * 0.3 * pan : 0));
-  g.ell(0, 0, 8, 2.2, PAD, true, (dx, dy) => !(dx > 0.35 && dy > -0.1 && dy < dx * 0.9));
-  g.line(-6, 0, 2, 0, PAD, 5); g.ell(4, -2, 1.6, 1.4, C.pink, false, null, 4); g.dot(4, -3, C.white, 5); g.dot(3, -2, C.fire2, 5);
-  g.pop();
-  g.end();
-  if (A.h > 0.02) { g.begin(); const L = A.h * 30; g.thick(-8, my + 1, -8 - L, my - A.h * 4, 2, C.pink, 3); g.ell(-9 - L, my - A.h * 4, 2.8, 2.6, C.pink); g.dot(-10 - L, my - 1 - A.h * 4, C.white, 5); g.end(); }
-  if (pan > 0.15) { g.begin(); const u = 1 - hu, fx = -10 - u * 14 + sin(t * 40) * 1.5, fy = -12 - u * 16; g.rect(rnd(fx), rnd(fy), 2, 1, C.dark, 0); g.dot(rnd(fx) + step(t, 50), rnd(fy) - 1, C.white, 5); g.end({ outline: false, edge: false }); }   // flugan rymmer
-  if (cr > 0.6 && cr < 0.95) { g.begin(); const u = (cr - 0.6) / 0.35; g.rect(-16 - u * 4, -16 - u * 6, 1, 4, C.white, 5); g.rect(-17 - u * 4, -13 - u * 6, 2, 2, C.white, 5); g.rect(-16 - u * 4, -16 - u * 6, 3, 1, C.white, 5); g.end({ outline: false, edge: false }); }   // en not
-  g.pop();
-}
-
-// ====================================================================================================
-// GLIMMER: en tjock lysmask med en stor lykta till bakdel, små surrande vingar och lockiga antenner. Lyser upp träsket.
+// GLOWBUG (variant av Glimmer): en tjock lysmask med en stor lykta till bakdel, små surrande vingar och lockiga antenner. Lyser upp träsket.
 // Vana: lyktan fladdrar och slocknar, den knackar på den med ett ben, och den tänds igen med ett glitter.
 // Attack: drar sig bakåt medan lyktan laddas, rusar fram och blixtrar till i en ring.
 // Träff: lyktan slocknar med ett pff, antennerna hänger, den snurrar runt med yra ögon.
 // ====================================================================================================
-const BUG = R('#4a3a78'), LAMP = R('#d6f25a'), WING = R('#cfe8ff');
+const BUG = R('#7b5cc4'), LAMP = R('#d6f25a'), WING = R('#cfe8ff');
 function glimmer(g, t, pose, o) {
   const { a, hu } = P(pose), A = act(a), hr = rec(hu), k = o.k || 1, shut = blinkAt(t, 2);
   const fl = a <= 0 && hu <= 0 ? habit(t, 6.4, 1.8, 2) : 0;
@@ -123,7 +83,7 @@ function glimmer(g, t, pose, o) {
   g.ell(8, -6, 8 + A.w, 7 + A.w, L, true); if (!off) g.ell(6, -8, 4, 3.5, LAMP, false, null, 5);
   for (const x of [4, 8, 12]) g.line(x, -12 + (x === 8 ? -1 : 0), x - 1, -1, off ? C.smoke : LAMP, 2);
   g.ell(-3, -9, 5.5, 5, BUG);
-  for (let i = 0; i < 3; i++) g.line(-5 + i * 3, -5, -6 + i * 3 + (i === 2 ? tap * 4 : 0), -1 - (i === 2 ? tap * 6 : 0) + sin(t * 6 + i) * 0.6, BUG, 2);   // ben som dinglar (det bakre knackar på lyktan)
+  for (let i = 1; i < 3; i++) g.line(-5 + i * 3, -5, -6 + i * 3 + (i === 2 ? tap * 4 : 0), -1 - (i === 2 ? tap * 6 : 0) + sin(t * 6 + i) * 0.6, BUG, 2);   // ben som dinglar (det bakre knackar på lyktan)
   g.end();
   g.begin();                                             // huvud, ögon och lockiga antenner
   const hx = -10, hy = -12 + (hu > 0.2 ? 2 : 0), ad = hu > 0.2 ? 5 : 0;
@@ -142,12 +102,12 @@ function glimmer(g, t, pose, o) {
 }
 
 // ====================================================================================================
-// GRUMBLE: ett åskmoln med platt städtopp, korslagda puffiga armar, en blixt till lugg och ett eget litet regn.
+// THUNDERPUFF (variant av Grumble): ett stort åskmoln med platt städtopp, korslagda puffiga armar, en blixt till lugg och ett eget litet regn.
 // Vana: blåser upp kinderna, fnyser ut en liten molntuss åt sidan och regnet tar paus.
-// Attack: stiger och mörknar med armarna uppe, slår ner en blixt framför sig.
+// Attack: stiger och mörknar med armarna uppe, och skickar iväg en pytteliten blixt (stort moln, liten blixt).
 // Träff: trycks ihop och gråter ett skyfall med darrande mun.
 // ====================================================================================================
-const CLOUD = R('#a9b1c8'), STORM = R('#6f7794');
+const CLOUD = R('#c3cadf'), STORM = R('#8a91ae');
 function grumble(g, t, pose, o) {
   const { a, hu } = P(pose), A = act(a), hr = rec(hu), k = o.k || 1, shut = blinkAt(t, 6);
   const hf = a <= 0 && hu <= 0 ? habit(t, 5.6, 1.2, 0.5) : 0, cheek = hf ? (hf < 0.5 ? eOut(hf / 0.5) : hf < 0.6 ? 1 : 0) : 0, blow = hf >= 0.6 ? (hf - 0.6) / 0.4 : 0;
@@ -157,10 +117,11 @@ function grumble(g, t, pose, o) {
   g.begin();                                             // regnet under (skyfall vid träff, paus när den fnyser)
   if (!(hf > 0.5)) { const n = cry ? 9 : 4; for (let i = 0; i < n; i++) { const q = (t * (cry ? 2.6 : 1.4) + i * 0.37) % 1; g.rect(-10 + i * (cry ? 2.6 : 5.5), 5 + q * q * (hov - 4), 1, 2, C.glass, 4); } }
   g.end({ outline: false, edge: false });
-  if (a > 0.42 && a < 0.82 && (a < 0.62 || step(t, 40))) {      // blixten slår ner framför
-    g.begin(); const x0 = -14, d = hov;
-    g.poly([[x0 + 2, 2], [x0 + 6, 2], [x0 + 1, d * 0.4], [x0 + 5, d * 0.4], [x0 - 6, d + 1], [x0 - 2, d * 0.55], [x0 - 5, d * 0.55]], C.fire2, 4);
+  if (a > 0.42 && a < 0.82) {                           // ett stort moln och en pytteliten blixt som piper iväg framåt
+    g.begin(); const u = eOut((a - 0.42) / 0.3), bx = rnd(-15 - u * 26), by = rnd(2 + u * (hov - 8) * 0.6);
+    g.poly([[bx + 1, by - 4], [bx + 4, by - 4], [bx + 1, by - 1], [bx + 3, by - 1], [bx - 2, by + 4], [bx - 1, by + 1], [bx - 3, by + 1]], C.fire2, 5);
     g.end();
+    if (u > 0.85) { g.begin(); for (let i = 0; i < 4; i++) g.dot(bx - 2 + [0, 4, 0, -4][i] * 0.6, by + 1 + [-3, 0, 3, 0][i] * 0.6, C.white, 5); g.end({ outline: false, edge: false }); }
   }
   g.begin();                                             // molnkroppen med städtopp
   g.ell(9, -4 + sq * 0.5, 9, 6 - sq * 0.3, m); g.ell(-9, -4 + sq * 0.5, 8.5, 6 - sq * 0.3, m); g.ell(0, -8 + sq, 11 + sq, 9 - sq * 0.5, m);
@@ -183,19 +144,18 @@ function grumble(g, t, pose, o) {
   g.begin();                                             // korslagda armar (lyfts i attacken)
   const ay = -2 + sq * 0.6 - armUp * 10;
   g.ell(-4 - armUp * 4, ay, 6, 2.6, m); g.ell(5 + armUp * 3, ay + 1 - armUp * 2, 6, 2.6, m);
-  g.ell(-9 - armUp * 6, ay, 2.4, 2.4, m); g.ell(10 + armUp * 4, ay + 1 - armUp * 2, 2.4, 2.4, m);
   g.end();
   g.pop();
   if (blow > 0) { g.begin(); const u = blow; g.ell(-20 - u * 12, -hov - 8 - u * 2, 2 + u * 2.5, 1.6 + u * 1.6, CLOUD, false, null, u < 0.6 ? 5 : 4); g.end(); }
 }
 
 // ====================================================================================================
-// ICEFANG: en knubbig sabeltandad snöunge med två långa istappar till huggtänder, tofsöron och en kort svans med tofs.
+// FROSTCUB (variant av Icefang): en knubbig sabeltandad snöunge med två långa istappar till huggtänder, tofsöron och en kort svans med tofs.
 // Vana: en snöflinga landar på nosen, ögonen går i kors och den nyser så att hela kroppen hoppar.
 // Attack: hukar och vickar på baken, slår en kullerbytta framåt i ett hopp och slår med tassen.
 // Träff: pälsen puffar ut åt alla håll, tänderna dallrar som stämgafflar.
 // ====================================================================================================
-const CUB = R('#e3eef8'), STRIPE = R('#93a8c4'), NOSE = R('#ee8fa8');
+const CUB = R('#e3eef8'), STRIPE = R('#9cc0e6'), NOSE = R('#ee8fa8');
 function icefang(g, t, pose, o) {
   const { a, hu } = P(pose), A = act(a), hr = rec(hu), k = o.k || 1, shut = blinkAt(t, 4);
   const sn = a <= 0 && hu <= 0 ? habit(t, 6, 2, 3) : 0, cross = sn > 0.35 && sn < 0.7, sneeze = sn >= 0.7 && sn < 0.85 ? bump((sn - 0.7) / 0.15) : 0;
@@ -209,7 +169,7 @@ function icefang(g, t, pose, o) {
   g.end();
   g.begin();                                             // kropp med ränder och närmre ben
   g.ell(5 + wig * 0.5, -10 + crouch + br * 0.3, 10.5 + poof * 2, 7 - crouch * 0.2 + poof * 2, CUB);
-  for (const x of [6, 10, 14]) g.line(x + wig * 0.5, -16 + crouch, x - 1 + wig * 0.5, -12 + crouch, STRIPE, 2);
+  for (const x of [7, 12]) g.line(x + wig * 0.5, -16 + crouch, x - 1 + wig * 0.5, -12 + crouch, STRIPE, 2);
   if (poof) for (let i = 0; i < 10; i++) { const an = i * 0.63 + 0.3, r = 12 + poof * 3; g.poly([[4 + cos(an) * (r - 3), -10 + sin(an) * (r - 4) * 0.6], [4 + cos(an + 0.15) * r, -10 + sin(an + 0.15) * r * 0.6], [4 + cos(an + 0.3) * (r - 3), -10 + sin(an + 0.3) * (r - 4) * 0.6]], CUB, 5); }
   const paw = A.h > 0 ? -A.h * 5 : 0;
   g.thick(-3, -6 + crouch, -4 + paw, -1 + paw * 0.6, 3.2, CUB, 3); g.rect(-7 + paw, -1 + paw * 0.6, 5, 1, CUB, 4);
@@ -218,10 +178,8 @@ function icefang(g, t, pose, o) {
   g.begin();                                             // huvudet: runt med kindtofsar, tofsöron och istapptänder
   const hx = -9, hy = -15 + crouch * 0.7, vib = hu > 0.1 ? sin(t * 70) * hu * 1.5 : 0;
   g.poly([[hx - 7, hy - 3], [hx - 7, hy - 10], [hx - 2, hy - 7]], CUB, 4); g.poly([[hx + 3, hy - 7], [hx + 7, hy - 10], [hx + 7, hy - 3]], CUB, 3);
-  g.dot(hx - 7, hy - 12, STRIPE, 3); g.dot(hx + 6, hy - 13, STRIPE, 3);
   g.ell(hx, hy, 8.5 + poof, 7.5 + poof, CUB);
   g.poly([[hx - 8, hy + 1], [hx - 11, hy + 3], [hx - 8, hy + 4]], CUB, 4); g.poly([[hx + 7, hy + 1], [hx + 10, hy + 4], [hx + 7, hy + 5]], CUB, 2);
-  g.line(hx - 1, hy - 7, hx, hy - 4, STRIPE, 2); g.line(hx + 2, hy - 7, hx + 2, hy - 4, STRIPE, 2);
   g.ell(hx - 4, hy + 3, 3.5, 2.6, C.white, false, null, 5);
   g.rect(hx - 6, hy + 1, 2, 2, NOSE, 3);
   const ey = rnd(hy - 3);
@@ -241,13 +199,13 @@ function icefang(g, t, pose, o) {
 }
 
 // ====================================================================================================
-// SCORCH: en lång eldsalamander som kryper lågt, med en kam av lågor längs ryggen och en ringlad svans med låga i spetsen.
+// BLAZETAIL (variant av Scorch): en lång eldsalamander som kryper lågt, med en kam av lågor längs ryggen och en ringlad svans med låga i spetsen.
 // Vana: slickar sitt eget öga med en lång tunga, som en gecko.
 // Attack: reser huvudet bakåt medan magen glöder, sprutar sedan en eldstråle framåt.
 // Träff: lågorna krymper till rök, den magplaskar platt och hostar en rökring.
-// pose.out (0..1, bara i minibossens nederlag): lågorna slocknar helt och färgen grånar.
+// pose.out (0..1, valfritt): lågorna slocknar helt och färgen grånar.
 // ====================================================================================================
-const SALA = R('#8a3b3f'), SALAB = R('#f08a2a'), ASH = R('#7d7480');
+const SALA = R('#c4503a'), SALAB = R('#ffb04a'), ASH = R('#7d7480');
 function scorch(g, t, pose, o) {
   const { a, hu } = P(pose), A = act(a), hr = rec(hu), k = o.k || 1, shut = blinkAt(t, 1);
   const out = clamp((pose && pose.out) || 0), m = out > 0.6 ? ASH : SALA, flame = clamp(1 - out - hu * 0.8) * (1 + A.w * 0.4);
@@ -265,7 +223,6 @@ function scorch(g, t, pose, o) {
   g.end();
   g.begin();                                             // kroppen, prickar och närmre ben
   g.ell(1, -7 + flat * 0.6 + crawl * 0.3, 15, 5 - flat * 0.3, m); g.ell(-1, -4 + flat * 0.4, 12, 2.2, out > 0.6 ? ASH : SALAB, false, null, 4);
-  for (const [x, y] of [[-6, -9], [1, -10], [7, -8], [12, -9]]) if (!out) g.ell(x, y + flat * 0.6, 1.5, 1, C.fire2, false, null, 5);
   g.thick(-7, -4 + flat, -11 - crawl, -1, 2.8, m, 3); g.rect(-14 - crawl, -1, 4, 1, m, 4); g.dot(-14 - crawl, -2, m, 4);
   g.thick(10, -4 + flat, 13 + crawl, -1, 2.8, m, 3); g.rect(12 + crawl, -1, 4, 1, m, 4); g.dot(16 + crawl, -2, m, 4);
   g.end();
@@ -284,9 +241,9 @@ function scorch(g, t, pose, o) {
   g.pop();
   g.end();
   if (a > 0.45 && a < 0.85 && flame > 0.05) {          // eldstrålen
-    g.begin(); const u = eOut((a - 0.45) / 0.3) * (a < 0.75 ? 1 : 1 - (a - 0.75) / 0.1), fx = hx - 8, fy = hy + 1, L = 8 + u * 26;
-    g.poly([[fx, fy - 2], [fx - L * 0.5, fy - 5 - u * 2], [fx - L, fy - 2 + fl(3)], [fx - L * 0.8, fy + 1], [fx - L, fy + 4 + fl(4)], [fx - L * 0.5, fy + 5], [fx, fy + 2]], C.fire, 4);
-    g.poly([[fx, fy - 1], [fx - L * 0.6, fy - 2], [fx - L * 0.7, fy + 1], [fx - L * 0.5, fy + 2], [fx, fy + 1]], C.fire2, 5);
+    g.begin(); const u = eOut((a - 0.45) / 0.3) * (a < 0.75 ? 1 : 1 - (a - 0.75) / 0.1), fx = hx - 8, fy = hy + 1, L = 10 + u * 50, W = 1 + u * 1.4;     // överdriven: längre än hela salamandern
+    g.poly([[fx, fy - 2], [fx - L * 0.5, fy - (5 + u * 2) * W], [fx - L, fy - 3 * W + fl(3)], [fx - L * 0.8, fy + 1], [fx - L, fy + 5 * W + fl(4)], [fx - L * 0.5, fy + 5 * W], [fx, fy + 2]], C.fire, 4);
+    g.poly([[fx, fy - 1], [fx - L * 0.6, fy - 2 * W], [fx - L * 0.7, fy + 1], [fx - L * 0.5, fy + 2 * W], [fx, fy + 1]], C.fire2, 5);
     g.end();
   }
   if (hu > 0.15 || out > 0.2) { g.begin(); puff(g, -2, -14, ((t * 0.9) % 1)); if (hu > 0.3) puff(g, hx - 6, hy - 2, 1 - hu, 1.6); g.end({ outline: false, edge: false }); }
@@ -294,12 +251,12 @@ function scorch(g, t, pose, o) {
 }
 
 // ====================================================================================================
-// EMBER BAT: små fladdermöss med jättestora öron som var och en bär en tänd tändsticka som en fackla.
+// MATCHBAT (variant av Ember Bat): pyttesmå fladdermöss med jättestora öron som var och en släpar på en jättelik tänd tändsticka.
 // Vana: lågan fräser ner till nästan ingenting, fladdermusen blåser på den med runda kinder och den flammar upp igen.
 // Attack: drar tändstickan bakåt, dyker framåt och petar med lågan i ett regn av gnistor.
 // Träff: tändstickan slocknar med en rökslinga, öronen viker sig och den snurrar ett varv.
 // ====================================================================================================
-const BAT = R('#5a3048'), EAR = R('#f2a0b0'), MATCH = R('#e8c48a');
+const BAT = R('#b8445a'), EAR = R('#f2a0b0'), MATCH = R('#e8c48a'), ML = 20;
 function emberbat(g, t, pose, o) {
   const { a, hu } = P(pose), A = act(a), hr = rec(hu), k = o.k || 1, shut = blinkAt(t, 3);
   const sp = a <= 0 && hu <= 0 ? habit(t, 4.6, 1.4, 1) : 0, low = sp > 0 && sp < 0.6, blow = sp > 0.35 && sp < 0.7;
@@ -321,10 +278,10 @@ function emberbat(g, t, pose, o) {
   g.thick(-1, 3, -2, 6, 1.2, BAT, 2); g.thick(2, 3, 2, 6, 1.2, BAT, 2);
   g.end();
   g.begin();                                             // tändstickan i fötterna, framåt riktad
-  const ang = -0.35 - A.w * 0.9 + A.h * 0.7, tx = 1 - cos(ang) * 10, ty = 7 - sin(ang) * 10;
-  g.thick(1, 7, tx, ty, 1.4, MATCH, 4); g.ell(tx, ty, 1.4, 1.4, hu > 0.2 ? C.smoke : C.red);
+  const ang = -0.35 - A.w * 0.9 + A.h * 0.7, tx = 1 - cos(ang) * ML, ty = 7 - sin(ang) * ML;          // en jättestor tändsticka, längre än fladdermusen
+  g.thick(1, 7, tx, ty, 2.6, MATCH, 4); g.ell(tx, ty, 3.2, 3, hu > 0.2 ? C.smoke : C.red);
   g.end();
-  if (fz > 0) { g.begin(); const fy = ty - 1, h = 6 * fz + sin(t * 18) * 0.8; g.poly([[tx - 2.5, fy + 1], [tx - 1, fy - h], [tx + 0.5, fy - h * 0.55], [tx + 2.5, fy + 1]], C.fire, 4); g.dot(rnd(tx - 0.5), rnd(fy - 1), C.fire2, 5); g.end(); }
+  if (fz > 0) { g.begin(); const fy = ty - 2, h = 9 * fz + sin(t * 18) * 1.2; g.poly([[tx - 3.5, fy + 1], [tx - 1.5, fy - h], [tx + 0.5, fy - h * 0.55], [tx + 3.5, fy + 1]], C.fire, 4); g.dot(rnd(tx - 0.5), rnd(fy - 1), C.fire2, 5); g.end(); }
   if (blow) { g.begin(); g.dot(-8, 1, C.white, 5); g.dot(-10, 0, C.white, 4); g.end({ outline: false, edge: false }); }
   if (hu > 0.2) { g.begin(); puff(g, tx, ty - 2, 1 - hu, 1.4); g.end({ outline: false, edge: false }); }
   g.pop();
@@ -332,12 +289,12 @@ function emberbat(g, t, pose, o) {
 }
 
 // ====================================================================================================
-// SNAP: en blå träskkräfta med EN jättestor klo och en pytteliten, ögon på skaft, långa antenner och en svans som fläkt.
+// CLACKER (variant av Snap): en blå träskkräfta med EN jättestor klo och en pytteliten, ögon på skaft, långa antenner och en svans som fläkt.
 // Vana: klickar två gånger med den stora klon och putsar den sedan noga med den lilla.
 // Attack: höjer den stora klon högt bakåt och klipper till framför sig med ett SNAP (stjärna och streck).
 // Träff: den stora klon är för tung och dunsar i marken, ögonen dras in på sina skaft.
 // ====================================================================================================
-const CRAY = R('#4e7fa0'), JOINT = R('#f08a2a');
+const CRAY = R('#5b9fd0'), JOINT = R('#f08a2a'), BIGCLAW = 1.35;
 function snap(g, t, pose, o) {
   const { a, hu } = P(pose), A = act(a), hr = rec(hu), k = o.k || 1, shut = blinkAt(t, 6);
   const cl = a <= 0 && hu <= 0 ? habit(t, 5, 2, 0.7) : 0, clack = cl > 0 && cl < 0.4 ? (floor(cl * 20) % 4 < 2 ? 1 : 0) : 0, polish = cl >= 0.45 && cl < 0.95;
@@ -348,10 +305,10 @@ function snap(g, t, pose, o) {
   g.poly([[25, -6], [30, -10 + sin(t * 3)], [31, -5], [30, 0 - sin(t * 3)], [25, -4]], CRAY, 4);
   for (let i = 0; i < 3; i++) g.thick(-2 + i * 4, -5, -4 + i * 4 + sin(t * 9 + i) * 0.5 * (a > 0 ? 3 : 1), -1, 1.2, CRAY, 2), g.dot(-5 + i * 4, -1, CRAY, 2);
   const aw = wave(t * 1.3) * 2;
-  g.line(-8, -12, 6, -22 + aw, CRAY, 3); g.line(6, -22 + aw, 20, -18 + aw, CRAY, 4); g.line(-7, -11, 10, -19 - aw, CRAY, 2); g.line(10, -19 - aw, 24, -14 - aw, CRAY, 3);
+  g.line(-7, -12, 4, -21 + aw, CRAY, 3); g.line(4, -21 + aw, 14, -19 + aw, CRAY, 4);       // ett par antenner (förut två)
   g.end();
   g.begin();                                             // kroppen, ögonskaft och den lilla klon
-  g.ell(1, -9 + br * 0.3, 10, 6, CRAY); for (const x of [-2, 3, 8]) g.line(x, -14, x - 1, -10, CRAY, 2);
+  g.ell(1, -9 + br * 0.3, 10, 6, CRAY);
   g.thick(-5, -12, -6, -12 - stalk, 1.4, CRAY, 2); g.thick(-1, -13, -1, -13 - stalk, 1.4, CRAY, 2);
   if (hu > 0.25) { wince(g, -8, -15 - stalk, false); wince(g, -2, -15 - stalk, true); }
   else { eye(g, -8, rnd(-14 - stalk), 3, 3, { shut, pw: 2, ph: 2, dx: polish ? 1 : 0, dy: polish ? 1 : 0 }); eye(g, -2, rnd(-14 - stalk), 3, 3, { shut, pw: 2, ph: 2, dx: polish ? 1 : 0, dy: polish ? 1 : 0 }); }
@@ -362,7 +319,7 @@ function snap(g, t, pose, o) {
   g.begin();                                             // den stora klon på en böjd arm
   const ang = flop ? -0.5 - flop * 0.4 : 0.3 + A.w * 0.9 - A.h * 0.9 + A.q * 0.3 + (polish ? 0.2 : 0), ex = -5 + cos(PI + ang) * 7, ey = -10 + sin(PI + ang) * 7 + flop * 5;
   g.thick(-2, -9, ex, ey, 2.6, CRAY, 3); g.ell(ex, ey, 1.8, 1.8, JOINT, false, null, 4);
-  g.push(ex, ey, ang);
+  g.push(ex, ey, ang, BIGCLAW);                          // klon är större än hela kroppen
   const op = a > 0 ? (a < 0.42 ? 3.5 * A.w : a < 0.52 ? 0 : 1) : clack ? 0 : polish ? 1 : 2;
   g.ell(-6, 0, 7.5, 5, CRAY); g.ell(-7, 2, 4.5, 1.8, JOINT, false, null, 4);
   g.poly([[-12, -4], [-21, -5 - op], [-19, -1 - op * 0.5], [-12, 0]], CRAY, 4);
@@ -371,21 +328,21 @@ function snap(g, t, pose, o) {
   g.pop();
   g.end();
   if ((a > 0.48 && a < 0.7) || (clack && floor(cl * 20) % 4 === 0)) {     // SNAP: en stjärna där klon slår ihop
-    g.begin(); const big = a > 0, sx = rnd(ex - 22 * cos(ang)), sy = rnd(ey - 22 * sin(ang)), r = big ? 5 : 2.5;
+    g.begin(); const big = a > 0, sx = rnd(ex - 22 * BIGCLAW * cos(ang)), sy = rnd(ey - 22 * BIGCLAW * sin(ang)), r = big ? 7 : 3;
     for (let i = 0; i < 8; i++) { const an = i * PI / 4, L = i % 2 ? r * 0.5 : r; g.line(sx, sy, rnd(sx + cos(an) * L), rnd(sy + sin(an) * L), i % 2 ? C.white : C.fire2, 5); }
     g.end({ outline: false, edge: false });
   }
-  if (polish && step(t, 9)) { g.begin(); g.dot(rnd(ex - 9), rnd(ey - 5), C.white, 5); g.end({ outline: false, edge: false }); }
+  if (polish && step(t, 9)) { g.begin(); g.dot(rnd(ex - 9 * BIGCLAW), rnd(ey - 5 * BIGCLAW), C.white, 5); g.end({ outline: false, edge: false }); }
   g.pop();
 }
 
 // ====================================================================================================
-// PEEPER: en liten uggla med tofsar som flyger runt med en kikare i mässing och skriver ner allt i luften.
+// LOOKOUT (variant av Peeper): en liten uggla med tofsar som flyger runt med en jättestor kikare i mässing och skriver ner allt i luften.
 // Vana: drar ut kikaren i tre led, spanar så att linsen blänker och skjuter ihop den igen.
 // Attack: lyfter kikaren som en klubba bakåt och bonkar till framåt i en dykning.
 // Träff: huvudet snurrar ett halvt varv (baksidan syns, bara fjädrar), fjädrar yr och kikaren skjuts ihop.
 // ====================================================================================================
-const OWL = R('#a3825c'), BELLY = R('#f2e2c0'), DISC = R('#e8d6b0');
+const OWL = R('#c99a62'), BELLY = R('#f2e2c0'), DISC = R('#e8d6b0');
 function peeper(g, t, pose, o) {
   const { a, hu } = P(pose), A = act(a), hr = rec(hu), k = o.k || 1, shut = blinkAt(t, 7);
   const sc = a <= 0 && hu <= 0 ? habit(t, 5.4, 2.2, 1.8) : 0, ext = sc ? (sc < 0.25 ? eOut(sc / 0.25) : sc < 0.8 ? 1 : 1 - eIO((sc - 0.8) / 0.2)) : 0;
@@ -399,7 +356,6 @@ function peeper(g, t, pose, o) {
   g.end();
   g.begin();                                             // kropp och huvud med ansiktsskiva och tofsar
   g.ell(0, 0, 7, 7.5, OWL); g.ell(-1, 2, 4.5, 5, BELLY, false, null, 4);
-  for (const [x, y] of [[-3, 0], [0, 2], [-2, 4], [1, 5]]) g.dot(x, y, OWL, 2);
   g.poly([[-7, -12], [-9, -19], [-4, -14]], OWL, 4); g.poly([[3, -14], [6, -19], [6, -12]], OWL, 3);
   g.ell(-1, -10, 7.5, 6, OWL);
   if (back) { for (const [x, y] of [[-4, -12], [0, -9], [-3, -7], [2, -12]]) g.line(x, y, x + 2, y + 1, OWL, 2); }   // bakhuvudet: bara fjädrar
@@ -414,33 +370,35 @@ function peeper(g, t, pose, o) {
   if (back) {} else if (ext > 0 || a <= 0) {
     const ex2 = ext * 7, x0 = ext > 0 ? 1 : 6, y0 = ext > 0 ? -9.5 : -1;
     if (ext > 0) { g.rect(x0 - 4 - ex2, y0 - 1.5, 4 + ex2 * 0.3, 3, C.brass, 4); g.rect(x0 - 2 - ex2 * 0.6, y0 - 2, 3, 4, C.brass, 3); g.rect(x0 - 5 - ex2, y0 - 2, 2, 4, C.brass, 2); if (glint) g.dot(x0 - 5 - ex2, y0 - 1, C.white, 5); else g.dot(x0 - 5 - ex2, y0, C.glass, 5); }
-    else { g.thick(4, -2, 9, 3, 2.6, C.brass, 3); g.dot(9, 3, C.glass, 5); }
+    else { g.thick(3, -3, 15, 7, 4.4, C.brass, 3); g.ell(16, 8, 3, 3, C.brass, false, null, 4); g.ell(16, 8, 1.5, 1.5, C.glass, false, null, 5); }   // kikaren är större än ugglan
   } else {
     const ang = -1.4 - A.w * 0.9 + A.h * 2.6, cx = 3, cy = -3;
-    g.push(cx, cy, ang); g.rect(0, -1.5, 11, 3, C.brass, 3); g.rect(8, -2, 3, 4, C.brass, 4); g.pop();
+    g.push(cx, cy, ang); g.rect(0, -2, 17, 4, C.brass, 3); g.rect(14, -3, 5, 6, C.brass, 4); g.pop();
   }
   g.end();
   g.pop();
-  if (A.h > 0.3 && a < 0.62) { g.begin(); const sx = -12 + dx, sy = -hov - 4; for (let i = 0; i < 6; i++) { const an = i * 1.05; g.line(sx, sy, rnd(sx + cos(an) * 4), rnd(sy + sin(an) * 4), C.white, 5); } g.end({ outline: false, edge: false }); }
+  if (A.h > 0.3 && a < 0.62) { g.begin(); const sx = -17 + dx, sy = -hov - 2; for (let i = 0; i < 6; i++) { const an = i * 1.05; g.line(sx, sy, rnd(sx + cos(an) * 4), rnd(sy + sin(an) * 4), C.white, 5); } g.end({ outline: false, edge: false }); }
   if (hu > 0.2) { g.begin(); for (let i = 0; i < 3; i++) { const u = 1 - hu, x = rnd(-4 + i * 5 + sin(t * 4 + i) * 3 + u * (i - 1) * 8), y = rnd(-hov - 6 + u * 18 + i * 2); g.line(x, y, x + 2, y + 1, OWL, 4); } g.end({ outline: false, edge: false }); }
 }
 
 // ====================================================================================================
-// ROSTER_FACELIFT: samma fält som ROSTER i game/enemies.js. Läggs in i ROSTER längst ner i enemies.js:
-//   for (const b of ROSTER_FACELIFT) { const old = ROSTER.find((e) => e.id === b.id); if (old) Object.assign(old, { draw: b.draw, h: b.h, w: b.w }); }
-// Namnen, världarna, typerna och antalen är desamma som förut (testas i game/balance.test.mjs).
+// ROSTER_VARIANTS: egna fiender med samma fält som ROSTER i game/enemies.js, och of = originalets id (samma värld, typ och
+// antal som originalet, så att striden blir lika svår). enemies.js lägger in var och en direkt efter sitt original.
+// Originalen har kvar sina id, namn och bilder. h och w är uppmätta på det som ritas (vila, alla bildrutor i en vanecykel).
+// Pryl och storlek: Matchbat är mindre än Ember Bat men bär en tändsticka längre än sig själv, Lookout har en kikare större
+// än ugglan, Clacker en klo större än kroppen, Thunderpuff är ett stort moln med en pytteliten blixt, Blazetail sprutar en
+// eldstråle längre än hela salamandern.
 // ====================================================================================================
-const E = (id, name, world, tier, h, w, draw, extra = {}) => ({ id, name, world, tier, h, w, count: 1, fly: false, draw, ...extra });
+const E = (id, name, of, world, tier, h, w, draw, extra = {}) => ({ id, name, of, world, tier, h, w, count: 1, fly: false, draw, ...extra });
 
-export const ROSTER_FACELIFT = [
-  E('plask', 'Plop', 2, 1, 24, 30, (g, t, p) => plop(g, t, p, {})),
-  E('klo', 'Snap', 2, 2, 30, 60, (g, t, p) => snap(g, t, p, {})),
-  E('irrbloss', 'Glimmer', 2, 3, 44, 42, (g, t, p) => glimmer(g, t, p, { k: 1.25 }), { fly: true }),
-  E('istand', 'Icefang', 3, 2, 33, 46, (g, t, p) => icefang(g, t, p, { k: 1.15 })),
-  E('glodfladdror', 'Ember Bat', 4, 1, 28, 28, (g, t, p) => emberbat(g, t, p, {}), { count: 4, fly: true }),
-  E('glodhund', 'Scorch', 4, 3, 32, 80, (g, t, p) => scorch(g, t, p, { k: 1.3 })),
-  E('surmoln', 'Grumble', 5, 1, 46, 48, (g, t, p) => grumble(g, t, p, {}), { fly: true }),
-  E('kikaroga', 'Peeper', 5, 2, 38, 30, (g, t, p) => peeper(g, t, p, { k: 1.1 }), { fly: true }),
+export const ROSTER_VARIANTS = [
+  E('kraftan', 'Clacker', 'klo', 2, 2, 30, 72, (g, t, p) => snap(g, t, p, {})),
+  E('lysmask', 'Glowbug', 'irrbloss', 2, 3, 47, 44, (g, t, p) => glimmer(g, t, p, { k: 1.25 }), { fly: true }),
+  E('snounge', 'Frostcub', 'istand', 3, 2, 30, 51, (g, t, p) => icefang(g, t, p, { k: 1.15 })),
+  E('tandsticka', 'Matchbat', 'glodfladdror', 4, 1, 24, 30, (g, t, p) => emberbat(g, t, p, { k: 0.8 }), { count: 4, fly: true }),
+  E('salamander', 'Blazetail', 'glodhund', 4, 3, 31, 81, (g, t, p) => scorch(g, t, p, { k: 1.3 })),
+  E('askmoln', 'Thunderpuff', 'surmoln', 5, 1, 70, 63, (g, t, p) => grumble(g, t, p, { k: 1.7 }), { fly: true }),
+  E('uggla', 'Lookout', 'kikaroga', 5, 2, 38, 36, (g, t, p) => peeper(g, t, p, { k: 1.1 }), { fly: true }),
 ];
-// Ritfunktionerna, för minibossfilmerna (Scorch) och granskningssidan.
-export const DRAW_FACELIFT = { plop, snap, glimmer, icefang, emberbat, scorch, grumble, peeper };
+// Ritfunktionerna, för granskningssidan.
+export const DRAW_VARIANTS = { snap, glimmer, icefang, emberbat, scorch, grumble, peeper };
