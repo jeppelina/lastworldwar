@@ -50,6 +50,7 @@ export function record(book, id, right, type, day, start = 0) {
   if (rec.mt === undefined) rec.mt = Math.max(0, before);    // bok från före balans v2: nivåer som redan nåtts räknas som nådda
   if (rec.last !== day) rec.td = 0;
   rec.last = day;
+  if (rec.qday !== day) { rec.qday = day; rec.qn = 0; rec.qw = 0; } rec.qn++; if (!right) rec.qw++;      // frågor och fel i dag (för urvalet i quiz.js)
   if (right) {
     let gain = WEIGHT[type] || 1;
     if (rec.ld !== day) { if (rec.ld >= 0 && day - rec.ld >= INTERVAL[before]) gain *= 2; rec.d++; rec.ld = day; }   // ny dag, och extra om det gått lagom lång tid

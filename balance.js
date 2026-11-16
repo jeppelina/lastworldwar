@@ -77,7 +77,10 @@
 //                   svaret dubbelt. Ordbokens poäng påverkas inte av det. Bokknappen mitt i en fråga på ett av sidans ord
 //                   (K.page.peek 'helped'): svaret spelas som vanligt i striden men ger ordet inga poäng den gången.
 //                   Simulering: node game/sim/learn.mjs --exp R (se PLAN.md, tillägget 2026-11-13, för hur talen rörde sig).
-export const version = 13;
+//   v16  2026-11-16  Ordurvalet (K.pick, quiz.js), publicerat före v14 och v15 (fiender och kartan byggs fortfarande):
+//                   högst 3 frågor per ord och strid, 12 per dag, möt-kort igen efter två missar, tryck på rätt kort efter fel,
+//                   två val för svåra ord. Bilder till känslor, verb och tal. Underlag: docs/research/ovningar2.md.
+export const version = 16;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -107,6 +110,7 @@ export const K = {
   stars: [0.66, 0.33], // andel liv kvar som ger tre respektive två stjärnor
   newPerRun: 5,        // högst så här många nya ord per omgång på en bana (ung-läge: newPerRunYoung). Resten kommer vid omspel.
   newPerRunYoung: 3,
+  pick: { perBattle: 3, perDay: 12, reteachAfter: 2, hardWrong: 2, fixTap: true },   // ordurvalet i quiz.js (v16)
   requeueGap: 2,       // ett missat ord kommer tillbaka tidigast efter så här många frågor (världar utan innehållsfil)
   options: 4,          // antal svarskort (världar utan innehållsfil)
 

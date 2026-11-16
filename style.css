@@ -410,3 +410,4 @@ button.teach.meet b { font-size:clamp(26px, 5vmin, 44px); } button.teach.meet sp
 button.teach.meet.noread span { display:none; }
 .quiz .speak .svq { font-size:26px; }
 #who-list button.demo { position:relative; border-style:dashed; opacity:.85; } #who-list button.demo .lock { position:absolute; top:8px; right:10px; font-style:normal; font-size:22px; }
+.card.tapme { animation:tapme 0.9s ease-in-out infinite; } @keyframes tapme { 50% { transform:scale(1.07); box-shadow:0 0 0 7px #b9ffd6, 0 6px 0 #12924a; } }

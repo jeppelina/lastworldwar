@@ -34,27 +34,32 @@ export class Quiz {
     }
     this.newCap = o.newCap || K.newPerRun || 99; this.newSeen = 0; this.intro = new Set();      // tak för nya ord per omgång, och de nya ord som redan har kommit upp
     this.asked = 0; this.lastNew = -9; this.requeue = []; this.last = null; this.log = [];
+    this.pk = K.pick || {}; this.cnt = {}; this.miss = {};                    // frågor och fel per ord i den här striden
   }
 
   // ----- vilket ord och vilken övning -----
+  // Får ordet frågas igen? Högst pick.perBattle gånger i den här striden och pick.perDay gånger i dag.
+  room(i) { const r = this.book[i.id], pb = this.pk.perBattle || 99, pd = this.pk.perDay || 999; return (this.cnt[i.id] || 0) < pb && !(r && r.qday === this.day && r.qn >= pd); }
   next() {
     this.asked++;
-    if (this.requeue.length && this.asked - this.requeue[0].at >= (this.requeue[0].gap || 2)) return this.task(this.requeue.shift().item);
+    while (this.requeue.length && !this.requeue[0].reteach && !this.room(this.requeue[0].item)) this.requeue.shift();      // ord som har frågats nog i dag kommer inte tillbaka
+    if (this.requeue.length && this.asked - this.requeue[0].at >= (this.requeue[0].gap || 2)) { const q = this.requeue.shift(); if (q.reteach) { this.last = q.item; return { item: q.item, type: 'meet', meet: true, reteach: true }; } return this.task(q.item); }
     if (this.sentences.length && this.asked > 2 && Math.random() < 0.45) { const s = pick(this.sentences.filter((x) => x !== this.lastSentence).length ? this.sentences.filter((x) => x !== this.lastSentence) : this.sentences); this.lastSentence = s; return { sentence: s, type: s.gap && Math.random() < 0.3 ? 'sentence_gap' : 'build_sentence' }; }
     const met = (i) => !!this.book[i.id], fresh = this.own.filter((i) => !met(i)), known = this.own.filter(met);
     if (fresh.length && (this.newSeen < this.newCap || !known.length) && (this.asked - this.lastNew >= 2 || !known.length)) { this.lastNew = this.asked; this.newSeen++; this.intro.add(fresh[0].id); return this.task(fresh[0]); }   // nya ord ett i taget, med gamla emellan
-    const due = this.earlier.filter((i) => isDue(this.book[i.id], this.day) && i !== this.last);
+    const due = this.earlier.filter((i) => isDue(this.book[i.id], this.day) && i !== this.last && this.room(i));
     if (due.length && Math.random() < 0.4) return this.task(pick(due));                                                             // gamla ord som vill repeteras
-    const pool = known.filter((i) => i !== this.last);
-    if (pool.length) { const weak = pool.slice().sort((a, b) => this.book[a.id].s - this.book[b.id].s), low = weak.filter((i) => tierOf(this.book[i.id]) < 2);
+    const pool = known.filter((i) => i !== this.last && this.room(i));
+    // Svagast först, men ord som redan frågats i den här striden hamnar längre bak, så att ett missat ord inte tar över.
+    if (pool.length) { const weak = pool.slice().sort((a, b) => ((this.cnt[a.id] || 0) - (this.cnt[b.id] || 0)) * 4 + (this.book[a.id].s - this.book[b.id].s) / 3), low = weak.filter((i) => tierOf(this.book[i.id]) < 2);
       if (low.length && Math.random() < 0.85) return this.task(low[Math.floor(Math.random() * Math.min(low.length, 4))]);          // ord under Steel först, de svagaste fyra
       return this.task(Math.random() < 0.6 ? weak[Math.floor(Math.random() * Math.ceil(weak.length / 2))] : pick(pool)); }
-    const any = this.reach.filter((i) => met(i) && i !== this.last);
+    const any0 = this.reach.filter((i) => met(i) && i !== this.last), any1 = any0.filter((i) => this.room(i)), any = any1.length ? any1 : any0;
     if (!any.length && fresh.length) { this.lastNew = this.asked; this.newSeen++; this.intro.add(fresh[0].id); }      // inget annat att fråga på: nästa nya ord, och det räknas mot taket
     return this.task(any.length ? pick(any) : fresh[0] || this.own[0]);
   }
   // Första mötet: ett möt-kort (meet), eller med K.meet.on av en riskfri första fråga (free).
-  task(item) { const rec = this.book[item.id]; this.last = item; return { item, type: pick(tasksFor(item, rec, this.reading)), free: !rec && !this.meetOn, meet: !rec && this.meetOn }; }
+  task(item) { const rec = this.book[item.id]; this.last = item; this.cnt[item.id] = (this.cnt[item.id] || 0) + 1; return { item, type: pick(tasksFor(item, rec, this.reading)), free: !rec && !this.meetOn, meet: !rec && this.meetOn }; }
   // Orden som införs den här omgången, i den ordning de kommer: banans ej mötta ord upp till taket. Boksidan märker dem NEW.
   // Ett ord vars möt-kort är uppe men inte tryckt räknas fortfarande som nytt här.
   newNow() { let left = Math.max(0, this.newCap - this.newSeen); return this.own.filter((i) => !this.book[i.id] && (this.intro.has(i.id) || left-- > 0)); }
@@ -83,7 +88,9 @@ export class Quiz {
       let up = null; const helped = !!task.helped && right;
       if (helped || (task.free && !right)) meet(this.book, task.item.id, this.day);
       else up = record(this.book, task.item.id, right, task.type, this.day);
-      if (!right) this.requeue.push({ item: task.item, at: this.asked });
+      if (!right) { const n = this.miss[task.item.id] = (this.miss[task.item.id] || 0) + 1;
+        if (this.meetOn && n === (this.pk.reteachAfter || 99)) this.requeue.push({ item: task.item, at: this.asked, gap: 1, reteach: true });      // missat två gånger: möt-kortet igen
+        else this.requeue.push({ item: task.item, at: this.asked }); }
       this.log.push(task.helped ? { id: task.item.id, type: task.type, right, free: !!task.free, helped: true } : { id: task.item.id, type: task.type, right, free: !!task.free });
       if (this.onAnswer) this.onAnswer(task, right, up);
     } else if (task.sentence && this.onAnswer) this.onAnswer(task, right, null);     // meningar sparas också i svarsloggen (inte i ordboken)
@@ -110,25 +117,30 @@ export class Quiz {
 
     // Flerval: ett kort är rätt. Vid fel visas rätt kort och ordet läses långsamt.
     const choice = (opts, txt) => {
-      task.shown = opts.length;
+      task.shown = opts.length; let fixing = false; const fixOn = !!this.pk.fixTap && !task.free;
       frame(`<div class="cards n${opts.length}"></div>`, promptAudio !== null);
       const box = quizEl.querySelector('.cards');
       for (const o of opts) {
         const b = document.createElement('button'); b.className = 'card' + (txt ? ' txt' : '') + (o.cls ? ' ' + o.cls : ''); b.innerHTML = o.html;
-        b.onclick = () => { if (locked) return; if (o.ok) { b.classList.add('right'); if (promptAudio !== en) P(en); } else { b.classList.add('wrong'); [...box.children].forEach((c, i) => opts[i].ok && c.classList.add('right')); P(slow); task.chosen = (b.textContent.trim() || ((b.querySelector('img') || { getAttribute: () => '' }).getAttribute('src') || '').split('/').pop().replace('.png', '')).slice(0, 64); } finish(!!o.ok); };
+        b.onclick = () => { if (locked) return;
+          if (fixing) { if (o.ok) { b.classList.remove('tapme'); P(en); fixing = false; finish(false); } return; }      // efter fel svar: barnet trycker på rätt kort, och hör ordet, innan striden går vidare
+          if (o.ok) { b.classList.add('right'); if (promptAudio !== en) P(en); } else { b.classList.add('wrong'); [...box.children].forEach((c, i) => opts[i].ok && c.classList.add('right')); P(slow); task.chosen = (b.textContent.trim() || ((b.querySelector('img') || { getAttribute: () => '' }).getAttribute('src') || '').split('/').pop().replace('.png', '')).slice(0, 64);
+            if (fixOn) { fixing = true; [...box.children].forEach((x, i) => opts[i].ok && x.classList.add('tapme')); return; } }
+          finish(!!o.ok); };
         box.appendChild(b); if (o.ok) this._auto = () => b.click();          // används av testkörningar
       }
       if (promptAudio) P(promptAudio);
     };
     const withFoils = (n, needPic, html) => shuffle([it, ...this.foils(it, n, needPic)]).map((o) => ({ html: html(o), ok: o === it }));
     const nFirst = Math.max(1, this.firstOptions - 1);                   // riskfri första fråga (bara när möt-korten är av): firstOptions kort (balance.js)
-    const nOpt = task.free ? nFirst : 3;                                  // bildkort
-    const nTxt = !this.reading ? 1 : task.free ? nFirst : 3;              // skrivna alternativ: alltid två val för den som inte läser än
+    const rr = it && this.book[it.id], hard = !!rr && rr.w >= (this.pk.hardWrong || 99) && rr.w > rr.r;      // svårt ord: fler fel än rätt. Då bara två val.
+    const nOpt = task.free ? nFirst : hard ? 1 : 3;                       // bildkort
+    const nTxt = !this.reading || hard ? 1 : task.free ? nFirst : 3;      // skrivna alternativ: alltid två val för den som inte läser än
 
     if (T === 'listen_pick_picture') { word(esc(it.en) + newTag); return choice(withFoils(nOpt, true, (o) => pic(o))); }
-    if (T === 'read_pick_picture') { promptAudio = null; word(esc(it.en)); return choice(withFoils(3, true, (o) => pic(o))); }
+    if (T === 'read_pick_picture') { promptAudio = null; word(esc(it.en)); return choice(withFoils(hard ? 1 : 3, true, (o) => pic(o))); }
     if (T === 'picture_pick_word') { promptAudio = null; word(`<span class="pic">${pic(it)}</span>`); return choice(withFoils(nTxt, false, (o) => esc(o.en)), true); }
-    if (T === 'listen_pick_word') { word('🔊 ?'); return choice(withFoils(3, false, (o) => esc(o.en)), true); }
+    if (T === 'listen_pick_word') { word('🔊 ?'); return choice(withFoils(hard ? 1 : 3, false, (o) => esc(o.en)), true); }
     if (T === 'en_to_sv') { word(esc(it.en) + newTag); return choice(withFoils(nTxt, false, (o) => esc(o.sv)), true); }
     if (T === 'sv_to_en') { promptAudio = svA; word(`<small>SV</small> ${esc(it.sv)}`, 'sv'); return choice(withFoils(3, false, (o) => esc(o.en)), true); }
     if (T === 'true_false') {
