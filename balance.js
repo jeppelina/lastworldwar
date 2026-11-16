@@ -154,7 +154,8 @@
 //                   Materialet för en sort på hyllan slumpas nu (K.shop.roll): oftast taket eller strax under, och med chansen
 //                   up[0] ett steg över sortens tak och up[1] två steg (ett sällsynt fynd, inte över världens fyndgräns). Förut
 //                   visades alltid det högsta tillåtna materialet. Inte simulerat.
-export const version = 25;
+//   v26  2026-11-17  Luvan (helmet.hood) säljs inte längre (förälderns önskemål). Den som äger en kan bära den som förut.
+export const version = 26;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -238,11 +239,12 @@ export const K = {
     fade: { start: [0, 1, 2], early: [0, 0, 2], mid: [0, 0, 2], late: [1, 0, 2], top: [1, 0, 2], swamp: [1, 0, 2.5, 2], frost: [1, 0, 2, 3], bigw: [1, 0, 2, 3], volcano: [1, 0, 2, 4], sky: [5, 9, 0, 5] },   // v25: allt utom sky senast i Solöknen
     // Materialet för en sort på hyllan (v25): vikter för taket, ett under och två under, och chansen för ett och två steg över taket.
     roll: { at: [0.5, 0.3, 0.2], up: [0.04, 0.01] },
+    retired: ['helmet.hood'],      // sorter som inte säljs längre (v26) men går att bära om de ägs
     // Varje sort och dess grupp. Berlockerna har ett tal: världen där de börjar säljas (de finns i ett enda material).
     // En sort som saknas här säljs inte (men går alltid att bära om den ägs).
     kinds: {
       weapon: { dagger: 'start', club: 'start', sword: 'start', bow: 'start', axe: 'early', spear: 'early', knives: 'early', hammer: 'mid', staff: 'mid', orb: 'late', great: 'top', stars: 'swamp', katana: 'bigw', greataxe: 'bigw', javelin: 'bigw', crossbow: 'volcano', bomb: 'volcano', halberd: 'volcano', giantblade: 'sky', gianthammer: 'sky' },
-      helmet: { cap: 'start', hood: 'start', helm: 'early', phones: 'mid', horned: 'mid', wizard: 'mid', great: 'mid', crown: 'top', bandana: 'swamp', kabuto: 'frost', goggles: 'volcano', circlet: 'sky' },
+      helmet: { cap: 'start', helm: 'early', phones: 'mid', horned: 'mid', wizard: 'mid', great: 'mid', crown: 'top', bandana: 'swamp', kabuto: 'frost', goggles: 'volcano', circlet: 'sky' },
       armor: { tunic: 'start', vest: 'start', chain: 'early', robe: 'mid', plate: 'mid', coat: 'swamp', furvest: 'frost', lamellar: 'frost', overalls: 'volcano', skyplate: 'sky' },
       shield: { round: 'start', quiver: 'start', kite: 'early', tower: 'mid', parry: 'swamp', book: 'swamp', fan: 'frost', cog: 'volcano', sunshield: 'sky' },
       back: { cape: 'start', leafcloak: 'start', wings: 'early', dragonwings: 'late', jetpack: 'top', tattered: 'swamp', mantle: 'swamp', furcloak: 'frost', banner: 'frost', halo: 'sky' },
