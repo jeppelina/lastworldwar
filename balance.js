@@ -149,7 +149,12 @@
 //                   K.ex.count: group 0,25 från första mötet, house 0,25 från Iron (houseFrom), förut 0,4 för count_pick och
 //                   count_word. Svaret bokförs på talet under en äldre typ med samma vikt (NEW_AS), så gamla loggar och äldre
 //                   klienter räknar som förut. Ljud: game/audio/count/ (prototypes/audio/gen_count.py). Inte simulerat.
-export const version = 24;
+//   v25  2026-11-17  Sakerna kommer tidigare (förälderns önskemål): alla sorter utom Molnslottets egna finns senast i Solöknen
+//                   (i Wooden), enkla sorter i bättre material tidigt, och från Svampträsket kan många sorter komma i bra material.
+//                   Materialet för en sort på hyllan slumpas nu (K.shop.roll): oftast taket eller strax under, och med chansen
+//                   up[0] ett steg över sortens tak och up[1] två steg (ett sällsynt fynd, inte över världens fyndgräns). Förut
+//                   visades alltid det högsta tillåtna materialet. Inte simulerat.
+export const version = 25;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -230,7 +235,9 @@ export const K = {
     //   bigw   (v22) katana, stridsyxa, kastspjut: Wooden i Solöknen, Steel i Svampträsket, hela spannet från Frostbergen
     //   volcano (v22) Engineer, armborst, bomb, hillebard: som frost men hemma i Meningsvulkanen
     //   sky    (v23) Celestial och jättevapnen: bara i Molnslottet, i hela spannet Fire till Star
-    fade: { start: [0, 1, 2], early: [0, 0, 2], mid: [1, 0, 2.5], late: [2, 0, 3], top: [3, 0, 4.5], swamp: [1, 0, 2.5, 2], frost: [2, 0, 3, 3], bigw: [1, 0, 2.5, 3], volcano: [2, 0, 3, 4], sky: [5, 9, 0, 5] },
+    fade: { start: [0, 1, 2], early: [0, 0, 2], mid: [0, 0, 2], late: [1, 0, 2], top: [1, 0, 2], swamp: [1, 0, 2.5, 2], frost: [1, 0, 2, 3], bigw: [1, 0, 2, 3], volcano: [1, 0, 2, 4], sky: [5, 9, 0, 5] },   // v25: allt utom sky senast i Solöknen
+    // Materialet för en sort på hyllan (v25): vikter för taket, ett under och två under, och chansen för ett och två steg över taket.
+    roll: { at: [0.5, 0.3, 0.2], up: [0.04, 0.01] },
     // Varje sort och dess grupp. Berlockerna har ett tal: världen där de börjar säljas (de finns i ett enda material).
     // En sort som saknas här säljs inte (men går alltid att bära om den ägs).
     kinds: {

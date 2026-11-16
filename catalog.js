@@ -212,8 +212,10 @@ export function makeCatalog(T = TUNE, shopRules = BK.shop) {
     const kinds = [];
     for (const key in KIND) {
       const its = KIND[key].filter((i) => !owned.has(i.id) && inSpan(i) && i.level <= L && (minP === Infinity || i.price >= minP)).reverse(); if (!its.length) continue;
+      const sp0 = kindSpan(its[0].slot, its[0].type, k), capT = Array.isArray(sp0) ? sp0[1] : its[0].tier;
+      const over = its[0].tier < capT ? [] : KIND[key].filter((i) => !owned.has(i.id) && i.tier > capT && i.tier <= W.hi && i.level <= L + reach);      // sällsynta slag över sortens tak (v25), inom världens spann (över det gäller fynden up1, up2)
       const age = k - homeOf(its[0]);
-      kinds.push({ key, slot: its[0].slot, its, w: age < 0 ? (shopRules.preview != null ? shopRules.preview : wt[Math.min(1, wt.length - 1)]) : wt[Math.min(wt.length - 1, age)] });
+      kinds.push({ key, slot: its[0].slot, its, over, w: age < 0 ? (shopRules.preview != null ? shopRules.preview : wt[Math.min(1, wt.length - 1)]) : wt[Math.min(wt.length - 1, age)] });
     }
     const picks = [], used = new Set(), per = {};
     const room = (slot) => (per[slot] || 0) < (slot === 'charm' ? 1 : perSlot);
@@ -238,8 +240,16 @@ export function makeCatalog(T = TUNE, shopRules = BK.shop) {
       const left = kinds.filter((x) => !used.has(x.key) && (spread ? room(x.slot) : x.slot !== 'charm' || room('charm'))); if (!left.length) return false;
       let sum = 0; for (const x of left) sum += x.w; let u = r() * sum, x = left[left.length - 1];
       for (const y of left) { u -= y.w; if (u <= 0) { x = y; break; } }
-      put(x.its[0]); return true;
+      put(rollMat(x)); return true;
     };
+    // Materialet för sorten (v25): oftast taket eller strax under (roll.at), ibland ett eller två steg över (roll.up).
+    function rollMat(x) {
+      const R2 = shopRules.roll; if (!R2) return x.its[0];
+      const u = r(), up = R2.up || [0, 0];
+      if (x.over && x.over.length && u < up[0] + up[1]) { const step = u < up[1] ? 2 : 1, want = x.its[0].tier + step; const c = x.over.filter((i) => i.tier <= want).sort((a, b) => b.tier - a.tier)[0]; if (c) return c; }
+      const at = R2.at || [1], ws = x.its.slice(0, at.length).map((_, j) => at[j]); let s2 = 0; for (const w of ws) s2 += w; let v2 = r() * s2;
+      for (let j = 0; j < ws.length; j++) { v2 -= ws[j]; if (v2 <= 0) return x.its[j]; } return x.its[0];
+    }
     const sc = (SHOP_SIZE - 1) / Math.max(1, SHOP_SIZE - 1 - picks.length);    // byggets plats drar inget fynd: samma väntade antal fynd per hylla som förut
     while (picks.length < SHOP_SIZE - 1) {
       const u = r(), src = u < up2 * sc ? lucky(2) : u < (up1 + up2) * sc ? lucky(1) : null;
