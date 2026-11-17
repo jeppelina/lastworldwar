@@ -43,11 +43,11 @@ canvas, img { image-rendering:pixelated; }
 .hud .hp { display:flex; align-items:center; gap:6px; background:#0f1120cc; border-radius:10px; padding:5px 9px; min-width:30%; }
 .hud .hp .bar { flex:1; height:9px; } .hud .me b { color:#ff6b6b; font-size:16px; } .hud .me .bar i { background:linear-gradient(90deg, #e2473d, #ff8f6b); }
 .hud .foe .bar i { background:linear-gradient(90deg, #b06bff, #ff7ad8); } .hud .foe .name { max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.hud .cd { letter-spacing:1px; color:#ffb23e; } .hud .cd.now { color:#ff5a5a; animation:pulse .5s infinite alternate; }
-@keyframes pulse { to { transform:scale(1.25); } }
+.hud .cd { letter-spacing:1px; color:#ffb23e; } .hud .cd.now { color:#ff5a5a; animation:pulse 1.2s infinite alternate; }
+@keyframes pulse { to { transform:scale(1.1); } }
 .hud .mid { display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--dim); font-size:12px; }
 .streak { display:flex; gap:3px; } .streak i { width:10px; height:10px; border-radius:50%; background:#0f1120; border:2px solid #555c80; } .streak i.on { background:#ffe14d; border-color:#fff; }
-.streak.full i { animation:pulse .4s infinite alternate; }
+.streak.full i { animation:pulse 1.2s infinite alternate; }
 .flee { position:absolute; left:8px; bottom:8px; background:#0f1120cc; border-radius:10px; padding:5px 10px; font-size:12px; color:var(--dim); }
 .word { position:absolute; left:50%; bottom:6px; transform:translateX(-50%); background:#fffdf4; color:#1d1b2e; border-radius:12px; padding:2px 18px; font-size:clamp(22px, 5vw, 40px); font-weight:800; letter-spacing:1px; box-shadow:0 3px 0 #8f8266; }
 .word:empty { display:none; }
@@ -261,9 +261,9 @@ header .back, #parent-back { min-height:46px; min-width:96px; padding:10px 18px;
 /* Flyttat ur prototypes/skilltree/skilltree.css. Allt som hör till fliken gäller bara när #gear har klassen powers. */
 .spark { display:inline-block; width:18px; height:18px; background:linear-gradient(135deg, #fff8c0, #ffc83d 55%, #f08a20); clip-path:polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
 .sparks { display:flex; align-items:center; gap:6px; min-height:38px; padding:0 12px; border-radius:14px; background:#12142499; border:2px solid #6b5a2a; color:var(--gold); font-size:20px; }
-.sparks.has { border-color:var(--gold); animation:sparkglow 1.2s infinite alternate; }
+.sparks.has { border-color:var(--gold); animation:sparkglow 2.4s ease-in-out infinite alternate; }
 @keyframes sparkglow { to { box-shadow:0 0 14px #ffc83daa; } }
-#gear-dot { position:absolute; top:-6px; right:-6px; width:18px; height:18px; background:linear-gradient(135deg, #fff8c0, #ffc83d 55%, #f08a20); clip-path:polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation:pulse .6s infinite alternate; }
+#gear-dot { position:absolute; top:-6px; right:-6px; width:18px; height:18px; background:linear-gradient(135deg, #fff8c0, #ffc83d 55%, #f08a20); clip-path:polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation:pulse 1.6s ease-in-out infinite alternate; }
 #gear-dot[hidden] { display:none; }
 #me-title, #g-title { font-style:normal; color:var(--pc, var(--gold)); font-size:12px; } #me-title:empty, #g-title:empty { display:none; }
 #g-title { font-size:14px; }
@@ -300,7 +300,7 @@ header .back, #parent-back { min-height:46px; min-width:96px; padding:10px 18px;
 .node img { width:44px; height:44px; }
 .node.lock img { filter:grayscale(1) brightness(.7); } .node.lock { border-style:dashed; }
 .node.need img { filter:grayscale(.5) brightness(.85); }
-.node.open { border-color:var(--gold); border-style:dashed; animation:nodeglow .9s infinite alternate; }
+.node.open { border-color:var(--gold); border-style:dashed; animation:nodeglow 2s ease-in-out infinite alternate; }
 @keyframes nodeglow { to { box-shadow:0 0 0 3px #ffc83d66, 0 3px 0 #0b0c16; } }
 /* upplåst men av: färgad ram, nedtonad bild. På: fylld i vägens färg, vit ram, lyser. */
 .node.got { border-color:color-mix(in srgb, var(--pc) 60%, #171a2d); } .node.got img { filter:saturate(.55) brightness(.75); }
@@ -492,3 +492,7 @@ button.teach.meet.noread span { display:none; }
 
 /* Föräldraskärmen: senaste köp som kan ångras */
 #names details.buys { margin-top:6px; } #names .buy { display:flex; gap:8px; align-items:center; justify-content:space-between; margin:4px 0; font-size:14px; } #names .buy .btn { flex:none; }
+
+/* Lugnare (2026-11-17): rätt kort och svarsmärket poppar mjukare, ingen överskjutning. */
+.card.right { animation:calmpop .3s ease-out; } .quiz.ok::after, .quiz.bad::after { animation:calmpop .25s ease-out; }
+@keyframes calmpop { from { transform:scale(.85); opacity:.4; } }

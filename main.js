@@ -155,10 +155,11 @@ function sfx(kind) {
   try {
     unlock(); const t = actx.currentTime, tone = (f0, f1, at, dur, type, vol) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t + at); o.frequency.exponentialRampToValueAtTime(f1, t + at + dur);
       g.gain.setValueAtTime(0.0001, t + at); g.gain.exponentialRampToValueAtTime(vol, t + at + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + at + dur); o.connect(g); g.connect(actx.destination); o.start(t + at); o.stop(t + at + dur + 0.02); };
-    if (kind === 'right') { [1047, 1319, 1568].forEach((f, i) => tone(f, f, i * 0.09, i === 2 ? 0.34 : 0.1, 'triangle', 0.3)); tone(2093, 2093, 0.18, 0.3, 'sine', 0.12); }      // ljus, stigande treklang
-    else if (kind === 'level') { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, f, i * 0.11, i === 4 ? 0.5 : 0.14, 'triangle', 0.24)); tone(262, 262, 0.44, 0.5, 'sine', 0.2); }
-    else if (kind === 'wrong') { tone(233, 220, 0, 0.2, 'square', 0.16); tone(165, 139, 0.2, 0.36, 'square', 0.16); tone(110, 70, 0, 0.56, 'sine', 0.3); }   // mörkt, fallande tvåtonsljud
-    else if (BLIP[kind]) for (const [f, at, len] of BLIP[kind]) tone(f, f, at, len + 0.02, 'triangle', 0.13);
+    // Lugnare ljud sedan 2026-11-17: ett mjukt pling för rätt, ett lågt mjukt ljud för fel, fanfaren bara vid ny nivå och boss.
+    if (kind === 'right') { tone(784, 784, 0, 0.32, 'sine', 0.13); tone(1175, 1175, 0.08, 0.36, 'sine', 0.06); }
+    else if (kind === 'level') { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, f, i * 0.12, i === 4 ? 0.5 : 0.14, 'triangle', 0.15)); tone(262, 262, 0.48, 0.5, 'sine', 0.12); }
+    else if (kind === 'wrong') { tone(220, 175, 0, 0.36, 'sine', 0.16); tone(110, 98, 0, 0.4, 'sine', 0.1); }
+    else if (BLIP[kind]) for (const [f, at, len] of BLIP[kind]) tone(f, f, at, len + 0.02, 'triangle', 0.08);
   } catch (e) {}
 }
 
@@ -421,7 +422,7 @@ function wordUp(item, up) {
   }
   if (!got) return;
   run.words++; run.wordXp += got; run.wordGold = (run.wordGold || 0) + gotGold;
-  if (battle && battle.note) battle.note(`${TIERS[up.after].name}!  +${got} XP` + (gotGold ? `  +${gotGold} gold` : ''), TIERS[up.after].color);
+  if (battle && battle.note) battle.note(`${item.en}: ${TIERS[up.after].name}!`, TIERS[up.after].color);      // xp och guld visas på slutskärmen (lugnare, 2026-11-17)
 }
 const LOSSES = {};      // förluster i rad per bana (bara i minnet): efter två pekar resultatskärmen tydligt mot att träna ord
 function endBattle(r, k, i, node, w) {
@@ -447,8 +448,8 @@ function endBattle(r, k, i, node, w) {
     `<span class="bquote">"${esc(bs.lose[0])}"<small>${esc(bs.lose[1])}</small></span>${stoneRow}You lit ${bs.lit} of ${bs.stones} stones.` + (bs.keep ? ` <b>${bs.keep} ${bs.keep === 1 ? 'stays' : 'stay'} lit</b> for next time.` : '') + '\n';
   const missed = bs && !r.win ? bs.missed || [] : [];
   el.querySelector('.lines').innerHTML = (bs ? bossTop : r.win ? `You won at ${node.name}.\n` + (nW ? `<b class="grow">${nW - unlearned(k, i)} of ${nW} words here are strong.</b>` + (ws < 3 ? ' Play again for more stars.' : '') + '\n' : '') : `You reached fight ${Math.min(r.kills + 1, r.fights)} of ${r.fights}.\n`) +
-    `<b>+${fmt(rw.gold)} gold</b>   <b>+${fmt(rw.xp)} XP</b>` +
-    (st.words ? `\n<b class="grow">${st.words} ${st.words === 1 ? 'word' : 'words'} got stronger</b>   <b>+${fmt(st.wordXp)} XP</b>` + (st.wordGold ? `   <b>+${fmt(st.wordGold)} gold</b>` : '') : '') +
+    `<b>+${fmt(rw.gold + (st.words ? st.wordGold || 0 : 0))} gold</b>   <b>+${fmt(rw.xp + (st.words ? st.wordXp || 0 : 0))} XP</b>` +      // en rad med summan (lugnare skärm, 2026-11-17)
+    (st.words ? `\n<b class="grow">${st.words} ${st.words === 1 ? 'word' : 'words'} got stronger</b>` : '') +
     (rw.factor < 1 ? '\nToo easy now: small reward.' : '') +
     (r.mini ? `\n<b style="color:#ffd84a">★ Mini-boss defeated!</b> ${esc(r.mini.name)} dropped <b>+${fmt(Math.round(r.mini.gold * rw.factor))} bonus gold</b>.` : '') +      // minibossens extra guld (ingår i summan ovan)
     (ups ? `\n<b>Level ${P.level}!</b> You are stronger now.` : '') +

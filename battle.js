@@ -9,6 +9,8 @@ import { pic } from './pics.js';
 import { looks } from './skills.js';
 import * as SFX from './skillfx.js';
 import * as MB from './miniboss.js';
+// Skärmskakningen är dämpad sedan 2026-11-17 (spelet kändes för intensivt): 0.4 av vapnets eget värde.
+const CALM_SHAKE = 0.4;
 
 const BIOMES = ['forest', 'desert', 'swamp', 'ice', 'volcano', 'cloud'];
 const SHADOW = ramp('#1d1b2e'), WHITE = ramp('#ffffff'), DUST = ramp('#cdbb9a'), SPARK = ramp('#ffd84a'), RED = ramp('#e2473d');
@@ -335,7 +337,7 @@ export class Battle {
     // Miniboss: entrén och namnskylten i stället för den vanliga skylten, och första frågan när filmen är slut eller överhoppad.
     if (this.mb) { this.introAt = -99; return this.startCine('enter', en.members[0], () => { if (!this.over) this.ask(); }); }
     this.banner(f.tier === 'boss' ? `BOSS: ${d.name}` : n > 1 ? `${n} × ${d.name}` : d.name, f.tier === 'boss');
-    this.later(() => { if (!this.over) this.ask(); }, f.tier === 'boss' ? 1500 : 900);
+    this.later(() => { if (!this.over) this.ask(); }, f.tier === 'boss' ? 1800 : 1200);
   }
   // ----- minibossens filmer (miniboss.js): kind 'enter' eller 'defeat', m = medlemmen som filmen gäller, done = det som kommer sedan -----
   startCine(kind, m, done) {
@@ -502,7 +504,7 @@ export class Battle {
       this.later(go, 900);
       return;
     }
-    if (next === 'enemy') this.enemyAttack(); else { this.hud(); this.phase = 'wait'; this.askSoon(free ? 900 : 2000); }
+    if (next === 'enemy') this.enemyAttack(); else { this.hud(); this.phase = 'wait'; this.askSoon(free ? 1100 : 2500); }
   }
   // kind: vilken av bossens två attacker som spelas (bara bossar med egen mekanik skickar med den).
   enemyAttack(kind) { R.resetCountdown(this.run); this.anim = { who: 'enemy', t0: this.now(), dur: this.bf ? 1.05 : 0.85, fired: new Set(), kind: kind || 0, guard: this.guardFor() }; }
@@ -552,7 +554,7 @@ export class Battle {
     this.anim = { who: 'enemy', t0: this.now(), dur: 0.7, fired: new Set(), kind: 0, slip: true, guard: this.guardFor() };
   }
   afterSlip() { if (R.defeated(this.run)) { this.phase = 'anim'; this.hero.deadAt = this.now(); this.later(() => this.finish(false), 900); } else this.hud(); }
-  afterEnemy() { if (this.bf) return this.bf.afterEnemy(); if (R.defeated(this.run)) { this.hero.deadAt = this.now(); this.later(() => this.finish(false), 900); } else { this.hud(); this.phase = 'wait'; this.askSoon(3200); } }
+  afterEnemy() { if (this.bf) return this.bf.afterEnemy(); if (R.defeated(this.run)) { this.hero.deadAt = this.now(); this.later(() => this.finish(false), 900); } else { this.hud(); this.phase = 'wait'; this.askSoon(3500); } }
   finish(win) {
     if (this.over) return; this.over = true; this.phase = 'over';
     const res = R.result(this.run, win); if (this.gaveUp) res.gaveUp = true;
@@ -567,7 +569,7 @@ export class Battle {
     g.clear();
     const cn = this.cine, cp = cn ? Math.min(1, (now - cn.t0) / cn.spec.dur) : 0;      // minibossens film och hur långt den har kommit
     if (cn && cn.spec.shake) this.shake = Math.max(this.shake, cn.spec.shake(cp) || 0);
-    const sh = this.shake > 0.3 ? Math.round((Math.random() - 0.5) * this.shake) : 0; this.shake *= 0.8;
+    const sh = this.shake > 0.7 ? Math.round((Math.random() - 0.5) * this.shake * CALM_SHAKE) : 0; this.shake *= 0.8;
     if (BD && BD.drawAmbient) { try { BD.drawAmbient(g, BIOMES[this.worldIdx] || 'forest', W, H, groundY, now); } catch (e) {} }
     // hjältens läge
     const lk = this.lk;

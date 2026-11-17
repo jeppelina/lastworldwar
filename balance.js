@@ -167,7 +167,9 @@
 //   v29  2026-11-17  Fix Page avstängd (K.ex.fix.share 0): för lik ja/nej-frågan, och yngsta barnet gissade (50 %).
 //                   Yngre-lägets xp per starkare ord sänkt från 3 till 1.25 gånger (K.young.learnMult): han nöter lika mycket
 //                   som de äldre och steg åtta nivåer på en kväll. Gäller bara nya ordnivåer; given xp ligger kvar.
-export const version = 29;
+//   v30  2026-11-17  Lugnare spel: inget tvingat tryck på rätt kort efter fel (K.pick.fixTap av), rätt kort och ordet
+//                    långsamt visas och striden går vidare själv. Kartans små händelser glesare (happen.ambient).
+export const version = 30;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -197,7 +199,7 @@ export const K = {
   stars: [0.66, 0.33], // andel liv kvar som ger tre respektive två stjärnor
   newPerRun: 5,        // högst så här många nya ord per omgång på en bana (ung-läge: newPerRunYoung). Resten kommer vid omspel.
   newPerRunYoung: 3,
-  pick: { perBattle: 3, perDay: 12, reteachAfter: 2, hardWrong: 2, fixTap: true, ringDone: 6 },   // ordurvalet i quiz.js, se ändringsloggen v16 (ringDone: v27)
+  pick: { perBattle: 3, perDay: 12, reteachAfter: 2, hardWrong: 2, fixTap: false, ringDone: 6 },   // ordurvalet i quiz.js, se ändringsloggen v16 (ringDone: v27)
   score: { fadeFrom: 2, softBelow: 3 },   // ordpoängen i words.js, se v27
   // Antal val per fråga efter ordets nivå (v18). byTier[nivå] (0 Wood, 1 Iron, 2 Steel, sista talet gäller uppåt) för bildkort
   // och skrivna kort. written: högsta antalet skrivna val för den som inte läser. hard: svåra ord (K.pick.hardWrong).
@@ -349,7 +351,7 @@ export const K = {
   //   chestLevels    och minst så många klarade banor i världen
   //   statueDays     speldagar efter dagen då bossen slogs innan statyn av hjälten står där ("byggd över natten")
   //   bloomEvery     en blomma per så många starka ord (Steel eller bättre), i världen där barnet är. bloomMax = högst så många
-  happen: { ambient: { first: 8, pause: [18, 40], dur: [7, 11] }, chestDays: 3, chestLevels: 3, statueDays: 1, bloomEvery: 10, bloomMax: 8 },
+  happen: { ambient: { first: 20, pause: [45, 90], dur: [7, 11] }, chestDays: 3, chestLevels: 3, statueDays: 1, bloomEvery: 10, bloomMax: 8 },
   // Ung-läge (bocken "Yngre barn" per barn på föräldraskärmen). bossStones: antal ordstenar i en bossfight.
   young: { thin: 0.5, bossShare: 0.35, learnMult: 1.25, bossStones: 6 },   // learnMult 3 till 1.25 i v29
   // Skillträdet (game/skills.js): sparks låser upp steg som ändrar hur hjälten ser ut. Antalet sparks sparas aldrig, det
