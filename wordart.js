@@ -739,3 +739,12 @@ export function warmArt(ids = Object.keys(ART)) {
   const later = (fn) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(fn, { timeout: 500 }) : setTimeout(fn, 30));
   later(step);
 }
+
+// ---------- omritningar i egna filer ----------
+// wordart-more.js laddar filer som ritar om ord (granskningen 2026-11-17). redo() byter bilden och sparar den gamla i OLD,
+// så att granskningssidan kan visa före och efter. H ger de filerna samma verktyg och färger som bilderna här.
+export const OLD = {};
+export function redo(id, n, dur, draw) { if (ART[id] && !OLD[id]) OLD[id] = ART[id]; ART[id] = { n, dur, draw }; }
+export const H = { sin, cos, PI, TAU, abs, max, min, floor, round, clamp, lerp, ease, fract, C, CLOSE, FRIEND, REF, standLegs, sitLegs,
+  part, blit, hpx, hero, heroFlip, drawFace, tears, leg, gait, shadow, ground, ball, apple, star4, sparkle, cloudBlob, sunDisc, bubble, digit,
+  dog, cat, tortoise, box, plate, glass, bed, chair, arrow, recolor, gift, heart, zz, openBook, paperSheet, pencil, crayon, note, clockFace, plush, shoe, drawAnimal };
