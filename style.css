@@ -314,6 +314,7 @@ header .back, #parent-back { min-height:46px; min-width:96px; padding:10px 18px;
 #pw-info img { width:48px; height:48px; flex:none; } #pw-info .txt { flex:1; min-width:0; } #pw-info b { font-size:16px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } #pw-info small { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; color:var(--dim); font-weight:500; font-size:13px; line-height:1.25; }
 #pw-info .chip2 { display:inline-block; white-space:nowrap; margin-top:2px; padding:0 8px; border-radius:999px; background:#2f2a14; border:1px solid var(--gold); color:var(--gold); font-size:12px; }
 #pw-info .btn { min-height:56px; min-width:92px; padding:8px 14px; white-space:nowrap; flex:none; }
+#pw-info .btn.restart.small { min-width:52px; padding:8px 10px; font-size:22px; }
 #pw-info .hint { color:var(--dim); font-weight:500; } #pw-info .btn .spark { vertical-align:-3px; margin-left:4px; background:#3a2500; } #pw-info .btn:disabled .spark { background:#8087a8; margin:0 4px 0 0; }
 
 /* Ny spark i resultatrutan, på Level up och första gången trädet visas för ett barn som redan har sparks */

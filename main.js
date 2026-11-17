@@ -736,11 +736,14 @@ function renderPowers() {
     info.appendChild(b);
   } else {
     info.innerHTML = `<div class="txt hint">${fr > 0 ? `You have ${fr} ${fr === 1 ? 'spark' : 'sparks'}. Tap a power to try it.` : SK.spent(st) ? 'Tap your powers to turn them on and off.' : 'Tap a power to try it.'}</div>`;
-    if (SK.spent(st)) {      // börja om: två tryck, alla sparks kommer tillbaka
-      const b = document.createElement('button'); b.className = 'btn alt'; b.textContent = pConfirm ? 'Sure?' : 'Start over';
-      b.onclick = () => { if (!pConfirm) { pConfirm = true; renderGear(); return; } pConfirm = false; pSel = null; rec('skill', { op: 'respec' }); renderGear(); renderBar(); toast('All sparks are back.'); };
-      info.appendChild(b);
-    }
+  }
+  // Börja om: två tryck, alla sparks kommer tillbaka. Knappen finns alltid när något är valt, också när ett steg är markerat
+  // (förut syntes den bara utan markering, och ett tryck på ett eget steg markerar det, så den gick nästan aldrig att hitta).
+  if (SK.spent(st)) {
+    const b = document.createElement('button'); b.className = 'btn alt restart' + (pSel ? ' small' : ''); b.setAttribute('aria-label', 'Start over');
+    b.textContent = pConfirm ? 'Sure?' : pSel ? '↺' : '↺ Start over';
+    b.onclick = () => { if (!pConfirm) { pConfirm = true; renderGear(); return; } pConfirm = false; pSel = null; rec('skill', { op: 'respec' }); renderGear(); renderBar(); toast('All sparks are back.'); };
+    info.appendChild(b);
   }
 }
 // Ett tryck på ett steg man har slår av eller på det direkt. Ett tryck på ett steg man inte har provar det på hjälten.
