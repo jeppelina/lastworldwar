@@ -155,7 +155,12 @@
 //                   up[0] ett steg över sortens tak och up[1] två steg (ett sällsynt fynd, inte över världens fyndgräns). Förut
 //                   visades alltid det högsta tillåtna materialet. Inte simulerat.
 //   v26  2026-11-17  Luvan (helmet.hood) säljs inte längre (förälderns önskemål). Den som äger en kan bära den som förut.
-export const version = 26;
+//   v27  2026-11-17  Ord blir starka fortare (yngsta barnet nötte samma bana sex gånger utan att få fler stjärnor):
+//                   K.score.fadeFrom = 2: rätt svar samma dag tappar inte värde förrän ordet nått Steel, så fem rätt ger Steel.
+//                   K.score.softBelow = 3: ett fel på ett ord under Gold drar bara 1 poäng (förut tre fjärdedelar minus 1).
+//                   Gäller också gamla svar, eftersom ordboken räknas om ur loggen. K.pick.ringDone = 6: guldringen hoppar
+//                   över en bana vars svaga ord redan frågats så många gånger i dag. Simulerat med sim/learn.mjs.
+export const version = 27;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -185,7 +190,8 @@ export const K = {
   stars: [0.66, 0.33], // andel liv kvar som ger tre respektive två stjärnor
   newPerRun: 5,        // högst så här många nya ord per omgång på en bana (ung-läge: newPerRunYoung). Resten kommer vid omspel.
   newPerRunYoung: 3,
-  pick: { perBattle: 3, perDay: 12, reteachAfter: 2, hardWrong: 2, fixTap: true },   // ordurvalet i quiz.js, se ändringsloggen v16
+  pick: { perBattle: 3, perDay: 12, reteachAfter: 2, hardWrong: 2, fixTap: true, ringDone: 6 },   // ordurvalet i quiz.js, se ändringsloggen v16 (ringDone: v27)
+  score: { fadeFrom: 2, softBelow: 3 },   // ordpoängen i words.js, se v27
   // Antal val per fråga efter ordets nivå (v18). byTier[nivå] (0 Wood, 1 Iron, 2 Steel, sista talet gäller uppåt) för bildkort
   // och skrivna kort. written: högsta antalet skrivna val för den som inte läser. hard: svåra ord (K.pick.hardWrong).
   // Gäller inte ja eller nej (alltid två), saknad bokstav (fyra) och meningens lucka (valen står i innehållet).

@@ -254,7 +254,10 @@ const wordStars = (k, i, fallback, p = P) => { const n = nodeWords(k, i, p).leng
 function starDone() { const out = {}; MAP.worlds.forEach((w, k) => { const arr = (P.done || {})[w.id]; if (arr) out[w.id] = arr.map((v, i) => (v && w.nodes[i] && w.nodes[i].type === 'level' ? wordStars(k, i, v) : v)); }); for (const key of Object.keys(P.done || {})) if (!(key in out)) out[key] = P.done[key]; return out; }
 const isDone = (k, i, p = P) => !!((p.done || {})[R.WORLD_IDS[k]] || [])[i];
 // Den klarade banan i världen med flest ord som inte är inlärda (under Steel). -1 om ingen finns.
-function practiceNode(k, p = P) { const c = contentFor(k, p); let best = -1, bn = 0; if (c) c.nodes.forEach((nd, i) => { if (nd.type !== 'level' || !isDone(k, i, p)) return; const u = unlearned(k, i, p); if (u > bn) { bn = u; best = i; } }); return best; }
+// En bana är klar för i dag när alla dess svaga ord redan frågats minst K.pick.ringDone gånger i dag (balans v27):
+// fler varv samma dag ger då lite, så ringen pekar vidare i stället för på samma bana om och om igen.
+const doneToday = (k, i, p = P) => { const n = K.pick && K.pick.ringDone, d = dayNum(); if (!n) return false; const weak = nodeWords(k, i, p).filter((it) => tierOf((p.words || {})[it.id]) < STEEL); return weak.length > 0 && weak.every((it) => { const r = (p.words || {})[it.id]; return r && r.qday === d && r.qn >= n; }); };
+function practiceNode(k, p = P) { const c = contentFor(k, p); let best = -1, bn = 0; if (c) c.nodes.forEach((nd, i) => { if (nd.type !== 'level' || !isDone(k, i, p) || doneToday(k, i, p)) return; const u = unlearned(k, i, p); if (u > bn) { bn = u; best = i; } }); return best; }
 // Samma sak, men letar bakåt i tidigare världar om den här inte har någon. Returnerar [värld, nod] eller null.
 function practiceTarget(k, p = P) { for (let j = k; j >= 0; j--) { const i = practiceNode(j, p); if (i >= 0) return [j, i]; } return null; }
 // Bossens ordmätare för värld k. null = världen har ingen mätare (ingen innehållsfil, eller mätaren är avstängd i balance.js).

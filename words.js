@@ -69,10 +69,10 @@ export function record(book, id, right, type, day, start = 0) {
   if (right) {
     let gain = WEIGHT[type] || 1;
     if (rec.ld !== day) { if (rec.ld >= 0 && day - rec.ld >= INTERVAL[before]) gain *= 2; rec.d++; rec.ld = day; }   // ny dag, och extra om det gått lagom lång tid
-    gain /= 1 + 0.25 * rec.td;                                  // avtagande samma dag: första rätta svaret är värt mest
+    if (before >= (K.score ? K.score.fadeFrom : 0)) gain /= 1 + 0.25 * rec.td;   // avtagande samma dag, men först från Steel (balans v27): fem rätt räcker till Steel
     rec.s += gain; rec.td++; rec.r++;
     if (first && start > 0) rec.s = Math.max(rec.s, start);
-  } else { rec.s = Math.max(0, rec.s * 0.75 - 1); rec.w++; }
+  } else { rec.s = Math.max(0, before < (K.score ? K.score.softBelow : 0) ? rec.s - 1 : rec.s * 0.75 - 1); rec.w++; }   // fel: under Gold bara minus 1 (balans v27)
   const after = tierOf(rec), top = rec.mt;
   if (after > top) rec.mt = after;
   return { before, after, top, up: after > top };
