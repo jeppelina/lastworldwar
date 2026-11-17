@@ -78,7 +78,20 @@ export const sparkSrc = (p) => ({ level: p.level || 1,
   bosses: WORLD_IDS.filter((id, k) => ((p.done || {})[id] || [])[nodeCount(k) - 1] > 0).length,
   bookWords: Object.values(p.words || {}).filter((r) => Math.max(r.mt || 0, tierOf(r)) >= POINTS.bookTier).length });
 // Var sparksen kommer ifrån, för skärmen och testerna.
-export const pointsBreakdown = (src = {}) => ({ level: pointsFromLevel(src.level || 1), bosses: (src.bosses || 0) * POINTS.perBoss, book: pointsFromBook(src.bookWords), earned: pointsEarned(src) });
+// floor (balans v28): sparks som barnet redan hade tjänat när reglerna blev långsammare. De tas aldrig bort, men nya
+// kommer först när de nya reglerna har hunnit ikapp. earned = det största av reglerna och golvet.
+export const pointsBreakdown = (src = {}) => ({ level: pointsFromLevel(src.level || 1), bosses: (src.bosses || 0) * POINTS.perBoss, book: pointsFromBook(src.bookWords), floor: src.floor || 0, earned: Math.min(TOTAL, Math.max(pointsEarned(src), src.floor || 0)) });
+// Reglerna före balans v28 (en spark på nivå 4 och sedan var tredje, en per 20 ord på Steel, högst fyra). Används bara en
+// gång per barn, för att räkna fram golvet ovan ur hur långt barnet hade kommit.
+const OLD_RULE = { levelFirst: 4, levelEvery: 3, perBoss: 1, bookStep: 20, bookTier: 2, bookMax: 4 };
+export function pointsEarnedOld(p) {
+  const R = OLD_RULE, lv = p.level || 1, lvl = lv < R.levelFirst ? 0 : 1 + Math.floor((lv - R.levelFirst) / R.levelEvery);
+  const bosses = WORLD_IDS.filter((id, k) => ((p.done || {})[id] || [])[nodeCount(k) - 1] > 0).length;
+  const steel = Object.values(p.words || {}).filter((r) => Math.max(r.mt || 0, tierOf(r)) >= R.bookTier).length;
+  return Math.min(TOTAL, lvl + bosses * R.perBoss + Math.min(R.bookMax, Math.floor(steel / R.bookStep)));
+}
+// Golvet ur loggen: det största talet i händelser { op: 'floor', n } (två enheter kan ha skrivit var sitt).
+export const floorOf = (events) => events.reduce((m, e) => (e.type === 'skill' && e.payload && e.payload.op === 'floor' ? Math.max(m, +e.payload.n || 0) : m), -1);
 
 // ---------- Tillstånd ----------
 // got: upplåsta steg i den ordning de togs. worn: nivå (1 till 6) -> stegets id, bara för nivåer där något är på.
@@ -160,6 +173,7 @@ export function title(st) {
 //   { op: 'unwear', level }  stäng av nivån
 //   { op: 'unpick', node }   lämna tillbaka vägens översta steg
 //   { op: 'respec' }         lämna tillbaka allt
+//   { op: 'floor', n }       sparks som redan var tjänade när reglerna blev långsammare (v28); påverkar inte stegen
 // Samma regel som fold() i sync.js: spela upp i ordningen (ts, id), hoppa över det som inte går.
 // Antalet sparks kontrolleras mot vad barnet har tjänat NU (talet minskar aldrig, så det är aldrig strängare än
 // kontrollen i stunden). Väljer två enheter var sitt steg för samma spark vinner den tidigaste, den andra hamnar i

@@ -160,7 +160,11 @@
 //                   K.score.softBelow = 3: ett fel på ett ord under Gold drar bara 1 poäng (förut tre fjärdedelar minus 1).
 //                   Gäller också gamla svar, eftersom ordboken räknas om ur loggen. K.pick.ringDone = 6: guldringen hoppar
 //                   över en bana vars svaga ord redan frågats så många gånger i dag. Simulerat med sim/learn.mjs.
-export const version = 27;
+//   v28  2026-11-17  Långsammare sparks (förälderns önskemål: barnen fyllde en hel väg redan i första världen, särskilt
+//                   sedan Steel blev lätt i v27). K.skill: nivå 5 och sedan var femte nivå, en per 30 ord på Gold (kräver
+//                   minst två dagar), högst tre från boken; bossarna som förut. Det barnet redan hade tjänat sparas en gång
+//                   som ett golv (skill-händelsen op 'floor', räknad med de gamla reglerna), så inget tas bort. Inte simulerat.
+export const version = 28;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -350,9 +354,9 @@ export const K = {
   // generösa hållet: blir en spark dyrare kan ett barn ha fler upplåsta steg än sparks, och då faller de senast
   // upplåsta stegen bort ur uppspelningen (foldSkills hoppar över dem) tills barnet har tjänat ikapp.
   skill: {
-    levelFirst: 4, levelEvery: 3,          // första sparken på hjältenivå 4, sedan var tredje nivå (7, 10, 13 ...)
+    levelFirst: 5, levelEvery: 5,          // första sparken på hjältenivå 5, sedan var femte nivå (10, 15, 20 ...). Före v28: 4 och var tredje
     perBoss: 1,                            // en spark första gången varje världs slutboss besegras
-    bookStep: 20, bookTier: 2, bookMax: 4, // en spark per 20 ord som nått Steel (2) eller bättre i boken, högst fyra sådana
+    bookStep: 30, bookTier: 3, bookMax: 3, // en spark per 30 ord som nått Gold (3) eller bättre i boken, högst tre. Före v28: 20 på Steel, högst fyra
     // FÖRMÅNERNA ÄR AVSTÄNGDA (on: false). De fyra stegen på nivå 4 (Champ Belt, Rune Ring, Smoke Step, Wolf Spirit) var
     // tänkta att ge en liten förmån var. Talen nedan är förslagen ur docs/research/skilltree.md avsnitt 3, mätta med
     // påhittade omgångar FÖRE balans v4 till v8 (xp-kurvan, guldet, bossfighterna med ordstenar, Steel samma dag). De

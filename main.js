@@ -89,7 +89,11 @@ const adopt = (p) => {
   if (look && look.skin) p.look = look; p.reading = prefs ? prefs.reading !== false : true;
   if (prefs && prefs.name) p.name = prefs.name;                 // namnet följer med mellan enheter (ligger i hushållets skyddade data, inte i koden)
   levelKeep(p, evs);
-  p.sparks = SK.pointsBreakdown(SK.sparkSrc(p)); p.skills = SK.foldSkills(evs, p.sparks.earned);      // efter levelKeep, som kan höja nivån
+  // Balans v28: långsammare sparks. Första gången räknas vad barnet hade tjänat med de gamla reglerna, och det sparas som
+  // ett golv (en händelse), så att inget barn förlorar en spark eller ett steg. Demospelaren har alltid alla.
+  let floor = SK.floorOf(evs);
+  if (floor < 0 && !p.demo) { floor = SK.pointsEarnedOld(p); sync.record(pid(p), 'skill', { op: 'floor', n: floor, bv: BV }); }
+  p.sparks = SK.pointsBreakdown({ ...SK.sparkSrc(p), floor: Math.max(0, floor) }); p.skills = SK.foldSkills(evs, p.sparks.earned);      // efter levelKeep, som kan höja nivån
   p.story = ST.foldStory(evs);
   if (p.demo) { demoFill(p); p.sparks = { ...p.sparks, earned: SK.TOTAL }; p.skills = SK.foldSkills(evs, SK.TOTAL); }
   save();
@@ -672,7 +676,9 @@ function renderGear() {
 let pSel = null, pConfirm = false, pStage = null, pFixed = null, pIconKey = '', P_ICON = {}, P_CREST = null, pBannerT = 0;
 const pClock = () => (pFixed !== null ? pFixed : performance.now() / 1000);      // går att frysa från testkroken, för skärmbilder
 const powersView = () => (pSel && P.skills && !SK.has(P.skills, pSel) ? SK.preview(P.skills, pSel) : P.skills || SK.fresh());   // ett steg man inte har provas på hjälten
-const nextSparkText = () => (P.sparks && P.sparks.earned >= SK.TOTAL ? 'You have every spark!' : `Next spark at Level ${SK.nextPointLevel(P.level)}`);
+// Nästa nivå som verkligen ger en spark: med golvet (v28) kan några nivåer gå innan reglerna hunnit ikapp.
+const nextSparkLevel = () => { const src = SK.sparkSrc(P), e = P.sparks ? P.sparks.earned : 0; for (let l = P.level + 1; l < P.level + 300; l++) if (SK.pointsEarned({ ...src, level: l }) > e) return l; return SK.nextPointLevel(P.level); };
+const nextSparkText = () => (P.sparks && P.sparks.earned >= SK.TOTAL ? 'You have every spark!' : `Next spark at Level ${nextSparkLevel()}`);
 function powersStage() {
   if (pStage) return pStage;
   pStage = new Stage($('pw-canvas'));
@@ -731,7 +737,7 @@ function renderPowers() {
     const b = document.createElement('button'); b.className = 'btn';
     if (got) { if (on) b.classList.add('alt'); b.textContent = on ? 'Take off' : 'Put on'; b.onclick = () => wearPower(n, !on); }
     else if (r.ok) { b.innerHTML = 'Pick <i class="spark"></i>'; b.onclick = () => pickPower(pSel); }
-    else if (r.why === 'points') { b.innerHTML = `<i class="spark"></i>Level ${SK.nextPointLevel(P.level)}`; b.disabled = true; b.setAttribute('aria-label', nextSparkText()); }
+    else if (r.why === 'points') { b.innerHTML = `<i class="spark"></i>Level ${nextSparkLevel()}`; b.disabled = true; b.setAttribute('aria-label', nextSparkText()); }
     else { b.textContent = '🔒'; b.disabled = true; b.setAttribute('aria-label', 'Locked'); }
     info.appendChild(b);
   } else {
@@ -1043,7 +1049,7 @@ function namesForm() {
       const k = curWorldIdx(p), g = bossGate(k, p), wid = R.WORLD_IDS[k], forced = !!(p.open && p.open[wid]), bossDone = isDone(k, R.nodeCount(k) - 1, p);
       const gate = !g || bossDone ? '' : `<small>${worldTitle(k)}: ${g.have} av ${g.n} ord är ${g.tier} eller bättre, bossen öppnar vid ${g.need}.</small><button type="button" class="btn alt big" data-o="${i}">${forced ? 'Bossen är öppnad för hand. Stäng igen' : 'Öppna bossen för hand'}</button>`;
       const sp = p.sparks || { earned: 0, level: 0, bosses: 0, book: 0 }, used = p.skills ? SK.spent(p.skills) : 0;
-      const powers = `<small>Krafter: ${sp.earned} sparks tjänade (nivå ${sp.level}, bossar ${sp.bosses}, boken ${sp.book}), ${used} använda, ${Object.keys((p.skills || {}).worn || {}).length} steg på.</small>` + (used ? `<button type="button" class="btn alt big" data-k="${i}">Nollställ krafter (alla sparks tillbaka)</button>` : '');
+      const powers = `<small>Krafter: ${sp.earned} sparks tjänade (nivå ${sp.level}, bossar ${sp.bosses}, boken ${sp.book}${sp.floor > sp.level + sp.bosses + sp.book ? `, ${sp.floor} sparade från de gamla reglerna` : ''}), ${used} använda, ${Object.keys((p.skills || {}).worn || {}).length} steg på.</small>` + (used ? `<button type="button" class="btn alt big" data-k="${i}">Nollställ krafter (alla sparks tillbaka)</button>` : '');
       // Berättelsen: vilka stunder barnet har sett. Ett tryck på en stund spelar upp den igen (utan att bokföra något).
       const sts = p.story || ST.fresh(), nSeen = ST.MOMENTS.filter((m) => sts.seen[m.id]).length, nBeat = ST.BEATS.filter((m) => sts.seen[m.id]).length;
       const mBtn = (m) => `<button type="button" class="btn alt${sts.seen[m.id] ? ' seen' : ''}" data-m="${i}:${m.id}" aria-label="Spela upp ${m.sv}${sts.seen[m.id] ? ' (sedd)' : ''}">${sts.seen[m.id] ? '✓' : '▶'} ${m.sv}</button>`;
