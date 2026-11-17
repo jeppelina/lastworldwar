@@ -496,3 +496,8 @@ button.teach.meet.noread span { display:none; }
 /* Lugnare (2026-11-17): rätt kort och svarsmärket poppar mjukare, ingen överskjutning. */
 .card.right { animation:calmpop .3s ease-out; } .quiz.ok::after, .quiz.bad::after { animation:calmpop .25s ease-out; }
 @keyframes calmpop { from { transform:scale(.85); opacity:.4; } }
+
+/* Färgton "Soft day" (vald 2026-11-17, prototypes/palettes): lite mindre färg och mjukare kontrast över hela spelet.
+   Läggs på varje skärm (de fyller fönstret), inte på html, så att fasta element inuti beter sig som förut. */
+:root { --grade: saturate(.78) contrast(.95); }
+.screen, #result, #toast, #rotate, #story, #story-tap, .qfly { filter:var(--grade); }
