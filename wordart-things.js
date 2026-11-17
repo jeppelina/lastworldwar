@@ -3,7 +3,7 @@
 import { redo, H } from './wordart.js';
 import { ramp as R } from './pixel.js';
 
-const { sin, cos, PI, TAU, abs, max, min, floor, round, lerp, fract, C, part, hero, shadow, apple, sparkle, digit, plush, standLegs, sitLegs, recolor } = H;
+const { sin, cos, PI, TAU, abs, max, min, floor, round, lerp, fract, C, part, hero, shadow, apple, sparkle, digit, plush, standLegs, sitLegs, recolor, ball, arrow } = H;
 
 // ---------- egna färger ----------
 const K = {
@@ -250,4 +250,19 @@ redo('bag', 1, 0, (g) => {
   part(g, () => g.poly([[13, 29], [51, 29], [48, 43], [16, 43]], K.bag, 3));                      // locket
   part(g, () => { g.rect(29, 39, 6, 6, C.gold, 4); g.dot(31, 41, C.dark, 1); }, true);           // spännet
   part(g, () => { g.line(10, 57, 54, 57, K.bag, 1); g.line(18, 32, 46, 32, K.bag, 5); }, true);
+});
+
+// ---------- big och small: stillbilder (Jesper 2026-11-17: "big did not look big") ----------
+// Förut växte och krympte bollen, så mitt i slingan var big-bollen mindre än small-bollen. Nu står bollen still bredvid
+// hjälten som måttstock, som big_dog och small_dog: en jätteboll som når över hjältens huvud, och en pytteboll med en pil.
+redo('big', 1, 0, (g) => {
+  const r = 23;
+  shadow(g, 40, 61, r * 0.95); ball(g, 40, 60 - r, r, C.red);
+  hero(g, 10, 60, 0.55, { legs: standLegs, handB: [24, 30], bendB: [1, -1], handF: [4, 30], bendF: [-1, -1] }, 'o');
+});
+redo('small', 1, 0, (g) => {
+  const r = 2.6;
+  shadow(g, 44, 61, 3); ball(g, 44, 60 - r, r, C.red);
+  hero(g, 20, 60, 0.6, { legs: standLegs, handB: [40, 49], bendB: [1, 0] }, 'smile');
+  arrow(g, 44, 46, 1);
 });
