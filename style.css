@@ -108,6 +108,8 @@ header h2 { flex:1; margin:0; font-size:18px; } header .back { background:var(--
 #shop-list { flex:1; overflow-y:auto; padding:10px; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; align-content:start; }
 .offer { border-radius:16px; background:#1a1d31; border:3px solid var(--rc); padding:10px; display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; position:relative; }
 .offer img { width:96px; height:96px; } .offer b { font-size:15px; } .offer small { color:var(--dim); font-weight:500; } .offer .btn { width:100%; padding:9px; font-size:15px; margin-top:4px; }
+.offer .btn.ask { background:#2fae62; color:#062a16; box-shadow:0 0 0 3px #f2b632; animation:askpulse 0.9s ease-in-out infinite alternate; }
+@keyframes askpulse { to { transform:scale(1.05); } }
 .offer.sel { box-shadow:0 0 0 3px #fff; } .offer .tag { position:absolute; top:-9px; left:50%; transform:translateX(-50%); background:#b77bff; color:#1a0d33; border-radius:8px; padding:1px 8px; font-size:11px; white-space:nowrap; }
 .offer.sold { opacity:.45; }
 #shop-world { display:block; font-size:13px; white-space:nowrap; font-weight:500; color:#ffffffc0; } .offer.lucky { box-shadow:0 0 0 3px #ffd84a; } .offer.lucky .tag { background:#ffd84a; color:#3a2500; } .offer.lucky.sel { box-shadow:0 0 0 3px #fff, 0 0 0 6px #ffd84a; }
@@ -487,3 +489,6 @@ button.teach.meet.noread span { display:none; }
   .qhouse { grid-template:"home done" minmax(100px, 40%) "yard yard" 1fr / 1fr auto; }
   .qthing { --t:48px; }
 }
+
+/* Föräldraskärmen: senaste köp som kan ångras */
+#names details.buys { margin-top:6px; } #names .buy { display:flex; gap:8px; align-items:center; justify-content:space-between; margin:4px 0; font-size:14px; } #names .buy .btn { flex:none; }

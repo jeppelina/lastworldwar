@@ -59,7 +59,7 @@ export function fold(events, opts = {}) {
   const xpToLevel = opts.xpToLevel || defaultXpToLevel, day = opts.day || dayKey();
   const evs = [...events].sort(order);
   let earned = 0, spent = 0, xpTotal = 0, runs = 0, defeats = 0, shop = null; const shops = {};
-  const owned = [], has = new Set(), eq = {}, done = {}, chests = new Set(), rejected = [], once = new Set(), mini = {};
+  const owned = [], has = new Set(), eq = {}, done = {}, chests = new Set(), rejected = [], once = new Set(), mini = {}, paid = {};
   for (const e of evs) {
     const p = e.payload || {};
     if (e.type === 'stage') {
@@ -79,8 +79,14 @@ export function fold(events, opts = {}) {
     } else if (e.type === 'buy') {
       const item = String(p.item || ''), price = Math.max(0, int(p.price));
       if (!item || has.has(item)) continue;                       // samma sak köpt två gånger: betalas en gång
-      if (earned - spent >= price) { spent += price; has.add(item); owned.push(item); }
+      if (earned - spent >= price) { spent += price; has.add(item); owned.push(item); paid[item] = price; }
       else rejected.push({ id: e.id, item, price });
+    } else if (e.type === 'refund') {
+      // Ett köp ångras (föräldern, eller ett köp av misstag): guldet tillbaka, saken försvinner och tas av. Kan köpas igen.
+      const item = String(p.item || '');
+      if (!has.has(item)) continue;
+      spent -= paid[item] || 0; delete paid[item]; has.delete(item); owned.splice(owned.indexOf(item), 1);
+      for (const k of Object.keys(eq)) if (eq[k] === item) delete eq[k];
     } else if (e.type === 'equip') {
       const slot = String(p.slot || '');
       if (!slot) continue;

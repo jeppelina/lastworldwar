@@ -951,7 +951,7 @@ function renderBook() {
 // Varje värld säljer sitt eget materialspann (K.shop.worlds), med en liten chans till ett fynd över spannet. Hyllan dras
 // per barn, värld och dag (worldShop i catalog.js) och bokförs som en 'shop'-händelse med världens id (sync.js, shops).
 // Butiken öppnar när världens första bana är klarad, och butikerna i tidigare världar är öppna för alltid.
-let sSel = null, sWorld = 0;
+let sSel = null, sWorld = 0, sAsk = null;      // sAsk: saken som väntar på andra trycket ("Buy?")
 const SHOP_TINT = ['#2f6b34', '#8a5a1e', '#3f5a3a', '#3a6a9a', '#8a2e1e', '#6a5aa8'];      // rubrikens färg per värld
 const shopAfter = (k) => { const sd = MAP && MAP.worlds[k] && (MAP.worlds[k].side || []).find((x) => x.type === 'shop'); return sd ? sd.after : 0; };
 const shopOpen = (k, p = P) => k >= 0 && k < R.WORLD_IDS.length && isDone(k, shopAfter(k), p);
@@ -968,7 +968,7 @@ function shopToday(k) {
 }
 function openShop(k) {
   if (typeof k !== 'number' || !(k >= 0)) k = curWorldIdx();
-  sSel = null; sWorld = k; show('shop'); renderShop();
+  sSel = null; sAsk = null; sWorld = k; show('shop'); renderShop();
   if (MAP) pushMapInfo();                                          // myntet över ståndet slocknar när hyllan är sedd
 }
 function renderShop() {
@@ -984,10 +984,14 @@ function renderShop() {
     const own = P.owned.includes(it.id), locked = it.level > P.level, poor = P.gold < it.price, lucky = isLucky(k, it);
     const c = document.createElement('div'); c.className = 'offer' + (sSel === it ? ' sel' : '') + (own ? ' sold' : '') + (lucky ? ' lucky' : ''); c.style.setProperty('--rc', RARITY[it.rarity].color);
     c.innerHTML = (lucky ? '<span class="tag">Lucky find!</span>' : locked ? '<span class="tag">Dream item</span>' : '') + `<img src="${icon(it.id)}" alt=""><b>${it.name}</b><small style="color:${RARITY[it.rarity].color}">${RARITY[it.rarity].name}</small><small class="statline">${statLine(it)}</small>`;
-    c.onclick = () => { sSel = sSel === it ? null : it; renderShop(); };
+    c.onclick = () => { sAsk = null; sSel = sSel === it ? null : it; renderShop(); };
     const b = document.createElement('button'); b.className = 'btn';
-    b.innerHTML = own ? 'Bought' : locked ? `Level ${it.level}` : `<span class="coin"></span>${fmt(it.price)}`; b.disabled = own || locked || poor;
-    b.onclick = (e) => { e.stopPropagation(); sync.record(pid(P), 'buy', { item: it.id, price: it.price }); rec('equip', { slot: it.slot, item: it.id }); sSel = null; toast(`${it.name} is yours!`); renderShop(); if (MAP) { MAP.state.gold = P.gold; MAP.updateHud(); } };
+    const asking = sAsk === it.id && !own && !locked && !poor;
+    b.innerHTML = own ? 'Bought' : locked ? `Level ${it.level}` : asking ? `Buy? <span class="coin"></span>${fmt(it.price)}` : `<span class="coin"></span>${fmt(it.price)}`; b.disabled = own || locked || poor;
+    if (asking) b.classList.add('ask');
+    // Två tryck (2026-11-17, köp av misstag): första trycket frågar "Buy?" och visar saken på hjälten, det andra köper.
+    b.onclick = (e) => { e.stopPropagation(); if (!asking) { sAsk = it.id; sSel = it; sfx('tap'); return renderShop(); }
+      sAsk = null; sync.record(pid(P), 'buy', { item: it.id, price: it.price }); rec('equip', { slot: it.slot, item: it.id }); sSel = null; toast(`${it.name} is yours!`); renderShop(); if (MAP) { MAP.state.gold = P.gold; MAP.updateHud(); } };
     c.appendChild(b); if (!own && !locked && poor) { const s = document.createElement('small'); s.textContent = `Need ${fmt(it.price - P.gold)} more`; c.appendChild(s); }
     list.appendChild(c);
   }
@@ -1048,7 +1052,11 @@ function namesForm() {
       const story = `<details class="story" data-s="${i}"${storyOpen.has(i) ? ' open' : ''}><summary>Berättelsen: ${nSeen} av ${ST.MOMENTS.length} stunder och ${nBeat} av ${ST.BEATS.length} små händelser sedda</summary>` +
         ST.MOMENTS.map(mBtn).join('') + '<small>Små händelser på kartan</small>' + ST.BEATS.map(mBtn).join('') + `<small>${traceTxt}</small>` +
         (sts.count ? `<button type="button" class="btn alt big" data-sr="${i}">Nollställ berättelsen</button>` : '') + '</details>';
-      return `<div class="kid"><input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}"><label class="chk"><input type="checkbox" data-r="${i}" ${p.reading !== false ? 'checked' : ''}> Läser</label><label class="chk"><input type="checkbox" data-y="${i}" ${p.young ? 'checked' : ''}> Yngre barn</label>${gate}${powers}${story}</div>`;
+      // Senaste köpen (2026-11-17): ett köp av misstag kan ångras, guldet kommer tillbaka (händelsen 'refund' i sync.js).
+      const own = new Set(p.owned || []), buys = sync.eventsFor(pid(p)).filter((e) => e.type === 'buy' && own.has(e.payload && e.payload.item)).sort((a, b) => b.ts - a.ts).slice(0, 5);
+      const when = (ts) => new Date(ts).toLocaleString('sv-SE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      const bought = buys.length ? `<details class="buys"><summary>Senaste köp (${buys.length})</summary>` + buys.map((e) => { const it = BY_ID[e.payload.item]; return `<div class="buy"><span>${it ? it.name : e.payload.item}, ${fmt(e.payload.price)} guld, ${when(e.ts)}</span><button type="button" class="btn alt" data-u="${i}:${e.payload.item}">Ångra köpet</button></div>`; }).join('') + '</details>' : '';
+      return `<div class="kid"><input data-i="${i}" maxlength="12" value="${p.name.replace(/"/g, '')}" aria-label="Namn ${i + 1}"><label class="chk"><input type="checkbox" data-r="${i}" ${p.reading !== false ? 'checked' : ''}> Läser</label><label class="chk"><input type="checkbox" data-y="${i}" ${p.young ? 'checked' : ''}> Yngre barn</label>${gate}${powers}${bought}${story}</div>`;
     }).join('') + `</div><p class="dim">Utan "Läser" får barnet nästan bara bilduppgifter, och högst två val när något ska läsas.</p>
     <p class="dim">"Yngre barn": ${pct(K.young.thin)} procent av orden på varje bana, bossen öppnar när ${pct(K.young.bossShare)} procent av världens ord är Steel (annars ${pct(K.gate.boss.share)}), och varje ord som blir starkare ger ${K.young.learnMult} gånger så mycket xp.</p>
     <p class="dim">"Öppna bossen för hand" släpper barnet förbi ordmätaren i den värld det står i. Använd den om barnet har fastnat.</p>
@@ -1061,6 +1069,8 @@ function bindNames() {
   document.querySelectorAll('#names details.story').forEach((el) => (el.ontoggle = () => { if (el.open) storyOpen.add(+el.dataset.s); else storyOpen.delete(+el.dataset.s); }));
   document.querySelectorAll('#names button[data-m]').forEach((el) => (el.onclick = () => { const at = el.dataset.m.indexOf(':'); unlock(); storyReplay(S.profiles[+el.dataset.m.slice(0, at)], el.dataset.m.slice(at + 1)); }));
   document.querySelectorAll('#names button[data-sr]').forEach((el) => (el.onclick = () => { const p = S.profiles[+el.dataset.sr]; if (!confirm(`Nollställa berättelsen för ${p.name}? Barnet får se stunderna igen, i takt med framstegen. Inget guld och inga ord påverkas.`)) return; sync.record(pid(p), 'story', { op: 'reset' }); adopt(p); sync.sync(); renderParent(); }));
+  // Ångra ett köp: guldet tillbaka, saken försvinner och tas av (händelsen 'refund').
+  document.querySelectorAll('#names button[data-u]').forEach((el) => (el.onclick = () => { const at = el.dataset.u.indexOf(':'), p = S.profiles[+el.dataset.u.slice(0, at)], item = el.dataset.u.slice(at + 1), it = BY_ID[item]; if (!confirm(`Ångra köpet av ${it ? it.name : item} för ${p.name}? Guldet kommer tillbaka.`)) return; sync.record(pid(p), 'refund', { item }); adopt(p); sync.sync(); renderParent(); if (P === p && MAP) { MAP.state.gold = P.gold; MAP.updateHud(); } }));
   // Nollställ ett barns krafter: alla valda steg tas bort och alla sparks kommer tillbaka. Synkas som en vanlig händelse.
   document.querySelectorAll('#names button[data-k]').forEach((el) => (el.onclick = () => { const p = S.profiles[+el.dataset.k]; if (!confirm(`Nollställa krafterna för ${p.name}? Alla sparks kommer tillbaka och barnet får välja om.`)) return; sync.record(pid(p), 'skill', { op: 'respec' }); adopt(p); sync.sync(); renderParent(); if (P) renderBar(); }));
   document.querySelectorAll('#names input[data-r]').forEach((el) => (el.onchange = () => { savePrefs(S.profiles[+el.dataset.r], { reading: el.checked }); renderParent(); }));
