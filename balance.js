@@ -164,7 +164,10 @@
 //                   sedan Steel blev lätt i v27). K.skill: nivå 5 och sedan var femte nivå, en per 30 ord på Gold (kräver
 //                   minst två dagar), högst tre från boken; bossarna som förut. Det barnet redan hade tjänat sparas en gång
 //                   som ett golv (skill-händelsen op 'floor', räknad med de gamla reglerna), så inget tas bort. Inte simulerat.
-export const version = 28;
+//   v29  2026-11-17  Fix Page avstängd (K.ex.fix.share 0): för lik ja/nej-frågan, och yngsta barnet gissade (50 %).
+//                   Yngre-lägets xp per starkare ord sänkt från 3 till 1.25 gånger (K.young.learnMult): han nöter lika mycket
+//                   som de äldre och steg åtta nivåer på en kväll. Gäller bara nya ordnivåer; given xp ligger kvar.
+export const version = 29;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -213,7 +216,7 @@ export const K = {
     on: true,
     count: { group: 0.25, house: 0.25, houseFrom: 1, min: 2, max: 10, readFrom: 2, extra: [2, 3], most: 13 },
     picword: { share: 0.25, from: 1, to: 2 },
-    fix: { share: 0.15, from: 1, wrong: 0.6 },
+    fix: { share: 0, from: 1, wrong: 0.6 },   // Fix Page avstängd i v29 (för lik ja/nej-frågan, och gissning för den som inte läser)
     hunt: { share: 0.3, noread: 0.2, cards: { read: 4, noread: 3 } },
     chant: { share: 0.3, maxTiles: 5 },
   },
@@ -348,7 +351,7 @@ export const K = {
   //   bloomEvery     en blomma per så många starka ord (Steel eller bättre), i världen där barnet är. bloomMax = högst så många
   happen: { ambient: { first: 8, pause: [18, 40], dur: [7, 11] }, chestDays: 3, chestLevels: 3, statueDays: 1, bloomEvery: 10, bloomMax: 8 },
   // Ung-läge (bocken "Yngre barn" per barn på föräldraskärmen). bossStones: antal ordstenar i en bossfight.
-  young: { thin: 0.5, bossShare: 0.35, learnMult: 3, bossStones: 6 },
+  young: { thin: 0.5, bossShare: 0.35, learnMult: 1.25, bossStones: 6 },   // learnMult 3 till 1.25 i v29
   // Skillträdet (game/skills.js): sparks låser upp steg som ändrar hur hjälten ser ut. Antalet sparks sparas aldrig, det
   // räknas fram ur nivån, klarade världsbossar och boken, minus de steg som är upplåsta. Talen får bara ändras åt det
   // generösa hållet: blir en spark dyrare kan ett barn ha fler upplåsta steg än sparks, och då faller de senast

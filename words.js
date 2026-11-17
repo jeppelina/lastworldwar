@@ -124,7 +124,7 @@ export function tasksFor(item, rec, reading = true, extra = false) {
   }
   else if (item.pic && item.pos !== 'phrase') {
     if (t >= E.picword.from && t <= E.picword.to) add.push([reading ? 'picword_sv' : 'picword_hear', E.picword.share]);
-    if (t >= E.fix.from && item.pos === 'noun') add.push(['fix_page', E.fix.share]);
+    if (E.fix.share > 0 && t >= E.fix.from && item.pos === 'noun') add.push(['fix_page', E.fix.share]);   // av sedan v29
   }
   if (!add.length) return base;
   const N = 60, out = [];
