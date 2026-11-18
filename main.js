@@ -84,7 +84,7 @@ const adopt = (p) => {
     else if (e.type === 'prefs') { prefs = pl; if (typeof pl.young === 'boolean') young = pl.young; }
     else if (e.type === 'unlock' && pl.world) open[pl.world] = pl.open !== false;
     else if (e.type === 'medal' && pl.key) medals[pl.key] = pl;
-    else if (e.type === 'lstory' && pl.world) { const kk = pl.world + ':' + pl.node, o = lstory[kk] || (lstory[kk] = { n: 0 }); o.n++; o.day = pl.day; }
+    else if (e.type === 'lstory' && pl.world) { const kk = pl.world + ':' + pl.node, o = lstory[kk] || (lstory[kk] = { n: 0, dn: 0 }); o.n++; o.dn = o.day === pl.day ? o.dn + 1 : 1; o.day = pl.day; }
   }
   // En ordnivå som redan har gett xp räknas som nådd, även om svaren som ledde dit aldrig sparades (strid som avbröts).
   for (const k of Object.keys(paid)) { const m = /^w:(.+):(\d+)$/.exec(k); if (m && book[m[1]]) book[m[1]].mt = Math.max(book[m[1]].mt || 0, +m[2]); }
@@ -472,7 +472,7 @@ function wordUp(item, up) {
 }
 const LOSSES = {};      // förluster i rad per bana (bara i minnet): efter två pekar resultatskärmen tydligt mot att träna ord
 // ---------- Listen to the story: en kort berättelse efter en vunnen strid (listen-story.js) ----------
-// Kommer en gång om dagen per stopp, och växlar mellan stoppets berättelser. Bara ord barnet har mött kan bli luckor. Första
+// Kommer efter varje vunnen strid, högst K.listen.perDay gånger per stopp och dag, och växlar mellan stoppets berättelser. Bara ord barnet har mött kan bli luckor. Första
 // försöket på en lucka räknas i ordboken som listen_pick_picture (raden läggs i stridens logg, så att ordningen i
 // händelseloggen blir densamma som här). Händelsen 'lstory' minns att berättelsen har spelats; en äldre klient hoppar över den.
 let LSD = null;
@@ -482,7 +482,7 @@ function maybeStory(r, k, i, node, w, then) {
   loadStories().then((data) => {
     const list = data ? data.stories.filter((s) => s.world === k + 1 && s.stop === i + 1) : [];
     const key = w.id + ':' + i, last = (P.lstory || {})[key];
-    if (!list.length || (last && last.day === today() && !r.force)) return then();
+    if (!list.length || (last && last.day === today() && last.dn >= (K.listen.perDay || 1) && !r.force)) return then();      // högst perDay berättelser per stopp och dag
     const story = list[(last ? last.n : 0) % list.length], items = {};
     for (let j = 0; j <= k; j++) { const c = contentFor(j); if (c) for (const it of c.items) items[it.id] = items[it.id] || it; }
     const book = P.words || (P.words = {}), met = (it) => !!book[it.id] && counts(it, P), log = battle && battle.quiz ? battle.quiz.log : null, day = dayNum();
@@ -500,7 +500,7 @@ function maybeStory(r, k, i, node, w, then) {
       },
       onDone: (res) => {
         sync.record(pid(P), 'lstory', { world: w.id, node: i, story: story.id, day: today(), right: res.right, n: res.n, bv: BV });
-        if (gold && sync.record(pid(P), 'grant', { gold, xp: 0, reason: 'story', bv: BV }, { once: 'ls:' + key + ':' + today() })) setTimeout(() => toast(`+${fmt(gold)} gold for the story`), 600);
+        if (gold && sync.record(pid(P), 'grant', { gold, xp: 0, reason: 'story', bv: BV }, { once: 'ls:' + key + ':' + today() + ':' + (last && last.day === today() ? last.dn : 0) })) setTimeout(() => toast(`+${fmt(gold)} gold for the story`), 600);
         then();
       },
     });

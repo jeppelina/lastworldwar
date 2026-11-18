@@ -171,7 +171,8 @@
 //                    långsamt visas och striden går vidare själv. Kartans små händelser glesare (happen.ambient).
 //   v31  2026-11-18  Gold håller: från Gold kostar dagens första fel 2 poäng men tar aldrig ordet under sin nivå
 //                    (K.score.keepFirst). Ett andra fel samma dag som förut. För gyllene stopp och medaljer.
-//                    Berättelsen efter striden (K.listen): första försöket räknas som listen_pick_picture, guld per rätt lucka.
+//                    Berättelsen efter striden (K.listen): första försöket räknas som listen_pick_picture, guld per rätt lucka,
+//                    högst tre berättelser per stopp och dag (perDay).
 export const version = 31;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
@@ -356,7 +357,7 @@ export const K = {
   //   bloomEvery     en blomma per så många starka ord (Steel eller bättre), i världen där barnet är. bloomMax = högst så många
   happen: { ambient: { first: 20, pause: [45, 90], dur: [7, 11] }, chestDays: 3, chestLevels: 3, statueDays: 1, bloomEvery: 10, bloomMax: 8 },
   // Ung-läge (bocken "Yngre barn" per barn på föräldraskärmen). bossStones: antal ordstenar i en bossfight.
-  listen: { on: true, gold: 0.3 },   // Listen to the story efter striden (listen-story.js): guld per rätt lucka på första försöket, i andelar av en fiendes guld (v31)
+  listen: { on: true, gold: 0.3, perDay: 3 },   // Listen to the story efter striden (listen-story.js): guld per rätt lucka på första försöket, i andelar av en fiendes guld (v31)
   young: { thin: 0.5, bossShare: 0.35, learnMult: 1.25, bossStones: 6 },   // learnMult 3 till 1.25 i v29
   // Skillträdet (game/skills.js): sparks låser upp steg som ändrar hur hjälten ser ut. Antalet sparks sparas aldrig, det
   // räknas fram ur nivån, klarade världsbossar och boken, minus de steg som är upplåsta. Talen får bara ändras åt det
