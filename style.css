@@ -229,7 +229,7 @@ header .back, #parent-back { min-height:46px; min-width:96px; padding:10px 18px;
 .fl.grow { animation-duration:1.5s; font-size:clamp(15px, 3vw, 24px); }
 .hud .hp > span { white-space:nowrap; } .hud .me > span { min-width:2ch; text-align:right; font-variant-numeric:tabular-nums; }
 #result .box { max-height:calc(100vh - 12px); max-height:calc(100dvh - 12px); overflow-y:auto; }
-#result .lines b.grow { color:#8dffb0; } #result .lines b.warn { color:#ffb23e; }
+#result .lines b.grow { color:#8dffb0; } #result .lines b.medal { color:#ffd84a; } #result .lines b.warn { color:#ffb23e; }
 .meter { height:10px; border-radius:999px; background:#0f1120; overflow:hidden; margin-top:6px; box-shadow:inset 0 0 0 1px #0008; }
 .meter i { display:block; height:100%; min-width:4px; border-radius:999px; background:linear-gradient(90deg, #8793a3, #c3d0de); }
 #book-meter { padding:6px 12px 9px; background:#2c2219; font-size:13px; font-weight:500; color:#e8dcc0; border-top:1px solid #0004; } #book-meter b { color:#fff; font-weight:700; margin-right:6px; }
@@ -501,3 +501,32 @@ button.teach.meet.noread span { display:none; }
    Läggs på varje skärm (de fyller fönstret), inte på html, så att fasta element inuti beter sig som förut. */
 :root { --grade: saturate(.78) contrast(.95); }
 .screen, #result, #toast, #rotate, #story, #story-tap, .qfly { filter:var(--grade); }
+
+/* ---------- Listen to the story (listen-story.js): berättelsen efter striden ---------- */
+#lstory { position:fixed; inset:0; z-index:25; background:#1d2033; color:#f4efe2; display:flex; flex-direction:column; filter:var(--grade); }
+#lstory .ls-bar { display:flex; align-items:center; gap:10px; padding:max(10px, env(safe-area-inset-top)) 16px 8px; }
+#lstory .ls-snd { border:0; border-radius:14px; width:58px; height:52px; font-size:26px; background:#5b4fd6; box-shadow:0 4px 0 #3a2f9c; color:#fff; }
+#lstory .ls-snd.slow { background:#3f4466; box-shadow:0 4px 0 #262a44; }
+#lstory .ls-snd:active { transform:translateY(3px); box-shadow:none; }
+#lstory .ls-title { flex:1; text-align:center; font-size:17px; color:#c9c3d8; }
+#lstory .ls-dots { display:flex; gap:6px; } #lstory .ls-dots i { width:14px; height:14px; border-radius:50%; background:#3f4466; }
+#lstory .ls-dots i.now { box-shadow:0 0 0 3px #f2c14e88; } #lstory .ls-dots i.done { background:#3fbf75; } #lstory .ls-dots i.miss { background:#f2c14e; }
+#lstory .ls-story { flex:1; overflow:auto; margin:0 16px; padding:14px 18px; background:#272b45; border-radius:18px; font-size:clamp(20px, 3.4vw, 30px); line-height:2.1; }
+#lstory .ls-ln { margin:0 0 6px; padding:0 6px; border-radius:10px; } #lstory .ls-ln.hidden { display:none; } #lstory .ls-ln.cur { background:#ffffff0a; }
+#lstory .w { color:#d9d3c4; transition:color .12s; } #lstory .w.lit { color:#fff; text-shadow:0 0 10px #fff6; }
+#lstory .gap, #lstory .cw.pw { display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; margin:0 4px; line-height:1; }
+#lstory .gap .box { width:clamp(54px, 9vw, 76px); height:clamp(54px, 9vw, 76px); border-radius:14px; border:3px dashed #8d88a8; display:grid; place-items:center; font-size:30px; color:#8d88a8; background:#ffffff08; }
+#lstory .gap.now .box { border-color:#f2c14e; color:#f2c14e; animation:lsbreathe 2.2s ease-in-out infinite; } #lstory .gap.hear .box { background:#f2c14e33; }
+#lstory .gap.full .box { border:3px solid #fff3; background:linear-gradient(#f3ecdc, #e0d5bb); animation:lsland .35s ease-out; }
+#lstory .gap small, #lstory .cw.pw small { font-size:clamp(12px, 1.9vw, 16px); margin-top:3px; color:#fff; min-height:1em; } #lstory .gap.lit small { color:#f2c14e; }
+#lstory .pbox { width:clamp(44px, 7vw, 60px); height:clamp(44px, 7vw, 60px); border-radius:12px; background:#ffffff14; display:grid; place-items:center; }
+#lstory .cw.lit .pbox { background:#ffffff33; box-shadow:0 0 0 3px #fff6; }
+#lstory .box .pimg, #lstory .pbox .pimg, #lstory .box img, #lstory .pbox img, #lstory .box canvas, #lstory .pbox canvas { width:86%; height:86%; object-fit:contain; image-rendering:pixelated; }
+#lstory .ls-cards { display:flex; gap:12px; justify-content:center; align-items:center; padding:14px 16px max(16px, env(safe-area-inset-bottom)); min-height:150px; }
+#lstory .ls-cards .card { width:clamp(84px, 20vw, 140px); height:clamp(84px, 20vw, 140px); min-height:0; padding:0; transition:opacity .3s, transform .2s; }
+#lstory .ls-cards .card .pimg { width:80%; height:80%; }
+#lstory .ls-cards .card.wrong { opacity:.35; filter:grayscale(1); pointer-events:none; animation:lsnudge .4s; background:linear-gradient(#f7f1e3, #e3d8bf); }
+#lstory .ls-cards .card.show { border-color:#3fbf75; box-shadow:0 0 0 5px #3fbf7566, 0 5px 0 #8f8266; }
+#lstory .ls-cards .card.gone { opacity:0; transform:translateY(-30px) scale(.8); }
+#lstory .ls-hint { color:#a7a3b8; } #lstory .ls-end { display:flex; gap:18px; align-items:center; } #lstory .ls-stars { font-size:40px; color:#f2c14e; letter-spacing:4px; }
+@keyframes lsbreathe { 50% { box-shadow:0 0 0 6px #f2c14e22; } } @keyframes lsland { from { transform:scale(.7); opacity:.3; } } @keyframes lsnudge { 25% { transform:translateX(-6px); } 75% { transform:translateX(6px); } }

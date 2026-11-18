@@ -169,7 +169,10 @@
 //                   som de äldre och steg åtta nivåer på en kväll. Gäller bara nya ordnivåer; given xp ligger kvar.
 //   v30  2026-11-17  Lugnare spel: inget tvingat tryck på rätt kort efter fel (K.pick.fixTap av), rätt kort och ordet
 //                    långsamt visas och striden går vidare själv. Kartans små händelser glesare (happen.ambient).
-export const version = 30;
+//   v31  2026-11-18  Gold håller: från Gold kostar dagens första fel 2 poäng men tar aldrig ordet under sin nivå
+//                    (K.score.keepFirst). Ett andra fel samma dag som förut. För gyllene stopp och medaljer.
+//                    Berättelsen efter striden (K.listen): första försöket räknas som listen_pick_picture, guld per rätt lucka.
+export const version = 31;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -200,7 +203,7 @@ export const K = {
   newPerRun: 5,        // högst så här många nya ord per omgång på en bana (ung-läge: newPerRunYoung). Resten kommer vid omspel.
   newPerRunYoung: 3,
   pick: { perBattle: 3, perDay: 12, reteachAfter: 2, hardWrong: 2, fixTap: false, ringDone: 6 },   // ordurvalet i quiz.js, se ändringsloggen v16 (ringDone: v27)
-  score: { fadeFrom: 2, softBelow: 3 },   // ordpoängen i words.js, se v27
+  score: { fadeFrom: 2, softBelow: 3, keepFirst: true },   // ordpoängen i words.js, se v27
   // Antal val per fråga efter ordets nivå (v18). byTier[nivå] (0 Wood, 1 Iron, 2 Steel, sista talet gäller uppåt) för bildkort
   // och skrivna kort. written: högsta antalet skrivna val för den som inte läser. hard: svåra ord (K.pick.hardWrong).
   // Gäller inte ja eller nej (alltid två), saknad bokstav (fyra) och meningens lucka (valen står i innehållet).
@@ -353,6 +356,7 @@ export const K = {
   //   bloomEvery     en blomma per så många starka ord (Steel eller bättre), i världen där barnet är. bloomMax = högst så många
   happen: { ambient: { first: 20, pause: [45, 90], dur: [7, 11] }, chestDays: 3, chestLevels: 3, statueDays: 1, bloomEvery: 10, bloomMax: 8 },
   // Ung-läge (bocken "Yngre barn" per barn på föräldraskärmen). bossStones: antal ordstenar i en bossfight.
+  listen: { on: true, gold: 0.3 },   // Listen to the story efter striden (listen-story.js): guld per rätt lucka på första försöket, i andelar av en fiendes guld (v31)
   young: { thin: 0.5, bossShare: 0.35, learnMult: 1.25, bossStones: 6 },   // learnMult 3 till 1.25 i v29
   // Skillträdet (game/skills.js): sparks låser upp steg som ändrar hur hjälten ser ut. Antalet sparks sparas aldrig, det
   // räknas fram ur nivån, klarade världsbossar och boken, minus de steg som är upplåsta. Talen får bara ändras åt det

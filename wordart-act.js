@@ -271,6 +271,18 @@ redo('under', 6, 1.4, (g, p) => {
   ball(g, bx, 54, 6, C.red);
 });
 
+// --- in: bollen faller hela vägen ner i en öppen låda och ligger kvar inne i den (granskning 2026-11-18: in och on var för
+// lika, bollen stack upp över kanten). Lådans framsida är bara en ram, så att bollen syns där inne. ---
+redo('in', 6, 1.4, (g, p) => {
+  const x = 17, y = 34, w = 30, h = 24, u = p === 0 ? 1 : ease(min(1, p * 1.4)), by = lerp(4, y + h - 8, u);
+  shadow(g, 32, 60, 16);
+  box(g, x, y, w, h, { open: true, front: false });
+  part(g, () => { g.rect(x + 1, y + 1, w - 2, h - 2, C.dirt, 1); g.rect(x + 2, y + h - 5, w - 4, 3, C.dirt, 2); });      // insidan, mörk
+  ball(g, 32, by, 6, C.red);
+  part(g, () => { g.rect(x, y, w, 3, C.card, 4); g.rect(x, y + h - 3, w, 3, C.card, 3); g.rect(x, y, 3, h, C.card, 3); g.rect(x + w - 3, y, 3, h, C.card, 3); });
+  if (u < 1) part(g, () => { g.line(32, by - 9, 32, by - 13, C.white, 4); }, true);
+});
+
 // --- arm: hjälten sträcker ut armen, armen lyser och en pil pekar på den ---
 // En arm för sig: ärmkanten vid axeln till vänster, överarm, en lätt böjd armbåge, underarm och en öppen hand
 // med fingrarna utsträckta åt höger. w = fingrarnas lilla vinkning (radianer).

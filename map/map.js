@@ -433,6 +433,15 @@
     ctx.fillStyle = '#1b1630'; rect(x + 4, y + 1, 1, 4);
   }
   // Minispelets tält. Ett öppet tält glittrar, ett som inte är nått än är mörkt.
+  // Medaljen: band och en guldskiva som blänker ibland. x, y = skivans mitt.
+  function medal(x, y, t) {
+    ctx.fillStyle = '#1b1630'; rect(x - 5, y - 11, 4, 7); rect(x + 1, y - 11, 4, 7);
+    ctx.fillStyle = '#3a6fd8'; rect(x - 4, y - 11, 3, 6); ctx.fillStyle = '#d8434a'; rect(x + 1, y - 11, 3, 6);
+    ctx.fillStyle = '#5a3604'; rect(x - 4, y - 5, 8, 9); rect(x - 5, y - 4, 10, 7);
+    ctx.fillStyle = '#e8a020'; rect(x - 3, y - 4, 6, 7); rect(x - 4, y - 3, 8, 5);
+    ctx.fillStyle = '#ffd84a'; rect(x - 2, y - 3, 4, 5); rect(x - 3, y - 2, 6, 3);
+    ctx.fillStyle = (t * 0.5) % 3 < 0.3 ? '#ffffff' : '#fff3a8'; rect(x - 2, y - 2, 2, 1); rect(x - 2, y - 1, 1, 1);
+  }
   function drawTent(p, dark, t, seed) {
     img(dark ? C.tentDark : C.tent, p.x, p.y);
     if (dark) return;
@@ -567,6 +576,7 @@
       img(b, PX.clamp(c.x - b.width / 2, 1, OV.W - b.width - 1), c.y - 4 - lm.h - b.height);
       if (!open) img(C.lock, c.x, c.y - 12);
       else if (worldDone(w)) img(C.flag[((t * 4) | 0) % 2], c.x + 13, c.y + 10);
+      if (open && worldInf(w) && worldInf(w).medal) medal(PX.clamp(c.x + b.width / 2 + 4, 6, OV.W - 6), c.y - 4 - lm.h - b.height + 6, t);      // världens medalj vid namnet
     });
     let hp = null;
     if (owalk) { const a = (t - owalk.t0) / owalk.dur; hp = along(OV.segs[owalk.from], a); if (a >= 1) owalk = null; }
@@ -595,6 +605,7 @@
     story('ground', t);
     w.side.forEach((sd, j) => (sd.type === 'shop' ? safeStall(m.sides[j], !done[sd.after], t, w.biome, !!((((worldInf(w) || {}).side || [])[j] || {}).shop || {}).fresh)
       : sd.mini && sd.mini.game === 'gym' ? drawArena(m.sides[j], !done[sd.after], t) : drawTent(m.sides[j], !done[sd.after], t, 5 + j)));
+    { const wi = worldInf(w), j = wi ? wi.gymRing : -1; if (j >= 0 && m.sides[j]) { const p = m.sides[j], ph = (t * 1.6) % 1; ring(p.x, p.y, 11 + ph * 4, 6 + ph * 2.5, '#ffd84a'); } }      // ringen pekar på ordgymmet (världen klar, alla ord Steel)
     const order = m.pts.map((p, i) => i).sort((a, b) => m.pts[a].y - m.pts[b].y);
     for (const i of order) {
       const p = m.pts[i], nd = w.nodes[i], st = done[i] ? 'done' : i === ci && !walking ? 'cur' : (i === ci && walking) ? 'lock' : 'lock';
@@ -607,7 +618,12 @@
         else if (st === 'lock') img(C.lock, p.x + 11, p.y + 1);
       } else if (nd.type === 'chest') img(st === 'done' ? C.chestOpen : st === 'lock' ? C.chestDark : C.chest, p.x, p.y - (st === 'cur' ? ((t * 3) | 0) % 2 : 0));
       else if (nd.type === 'mini') drawTent(p, st === 'lock', t, i);
-      else { img(st === 'done' ? C.nodeDone : st === 'cur' ? C.nodeCur : C.nodeLock, p.x, p.y); if (st === 'done') stars3(p.x, p.y - 20, done[i]); }
+      else {
+        const lvInf = st === 'done' ? nodeInf(w, i) : null;
+        const doneSpr = lvInf && lvInf.low != null && C.nodeTier ? C.nodeTier[Math.max(0, Math.min(C.nodeTier.length - 1, lvInf.low))] : C.nodeDone;      // stoppets färg: nivån på det svagaste ordet
+        img(st === 'done' ? doneSpr : st === 'cur' ? C.nodeCur : C.nodeLock, p.x, p.y); if (st === 'done') stars3(p.x, p.y - 20, done[i]);
+        if (lvInf && lvInf.medal) medal(p.x + 13, p.y - 6, t);
+      }
       // Rekommenderad nivå under banan, och på klarade banor hur många av banans ord som inte är inlärda än.
       const inf = nodeInf(w, i), wi = worldInf(w);
       if (inf && inf.rec != null) {
@@ -618,7 +634,7 @@
           const g = wi.gate, gt = PX.text(g.have + '/' + g.need, '#c3d0de', '#1b1630'), bx = p.x - ((gt.width + 9) >> 1);
           plate(bx - 2, ly + 11, gt.width + 12, 11); wordIcon(bx, ly + 13, false); img(gt, bx + 9, ly + 11);
         }
-        if (st === 'done' && inf.left > 0) {
+        if (st === 'done' && (inf.left > 0 || wi.best === i)) {
           const best = wi.best === i, bob = ((t * 3) | 0) % 2;
           if (best) { ring(p.x, p.y, 9 + ((t * 1.6) % 1) * 4, 5.5 + ((t * 1.6) % 1) * 2.5, '#ffd84a'); plate(p.x - 7, ly + 11 - bob, 14, 11, false, true); wordIcon(p.x - 4, ly + 13 - bob, true); }      // träna här: flest ord kvar att lära. Inga siffror på kartan, de står i rutan.
         }
@@ -717,6 +733,10 @@
       if (d && inf && inf.left > 0) { notes.push((inf.n != null ? (inf.n - inf.left) + ' of ' + inf.n + ' words here are strong.' : inf.left + ' words here are not strong yet.') + (wi && wi.best === i ? ' Best place to practise now!' : ' Play again to make them stronger.'));
         if (inf.weak && inf.weak.length) notes.push('Not strong yet: ' + inf.weak.join(', ') + (inf.left > inf.weak.length ? ' ...' : '')); }
       else if (d && !(inf && inf.f < 1)) notes.push(isStar(nd) && inf && inf.left === 0 ? 'Done. All words here are learned!' : 'Done. Play again for more stars and gold.');
+      if (d && inf && inf.lowName) {        // nästa mål efter tre stjärnor: alla ord Gold, då får stoppet en medalj
+        if (inf.medal) notes.push(inf.low >= 3 ? 'Gold medal! Every word here is Gold.' : 'Gold medal! (Some words need practice again: ' + inf.toGold.join(', ') + '.)');
+        else if (inf.left === 0) notes.push('Weakest word here: ' + inf.lowName + '. Make every word Gold for a medal!' + (inf.toGold.length ? ' Not Gold yet: ' + inf.toGold.join(', ') + '.' : ''));
+      }
       if (!d) notes.push(nd.type === 'boss' ? (gate ? gate.text + ' ' : '') + 'Beat the boss to open the next world.' : 'You are here.');
     }
     const note = el.querySelector('.note'); note.textContent = ''; notes.forEach((tx) => { const ln = document.createElement('div'); ln.textContent = tx; note.appendChild(ln); });

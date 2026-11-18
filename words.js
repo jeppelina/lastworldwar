@@ -72,7 +72,14 @@ export function record(book, id, right, type, day, start = 0) {
     if (before >= (K.score ? K.score.fadeFrom : 0)) gain /= 1 + 0.25 * rec.td;   // avtagande samma dag, men först från Steel (balans v27): fem rätt räcker till Steel
     rec.s += gain; rec.td++; rec.r++;
     if (first && start > 0) rec.s = Math.max(rec.s, start);
-  } else { rec.s = Math.max(0, before < (K.score ? K.score.softBelow : 0) ? rec.s - 1 : rec.s * 0.75 - 1); rec.w++; }   // fel: under Gold bara minus 1 (balans v27)
+  } else {
+    // Fel: under Gold bara minus 1 (balans v27). Från Gold (balans v31): dagens första fel kostar 2 poäng men tar aldrig ordet
+    // under sin nivå, så ett slarvtryck inte gör ett gyllene stopp grått. Ett andra fel samma dag räknas som förut.
+    const S = K.score || {};
+    if (S.keepFirst && before >= (S.softBelow || 3) && rec.qw === 1) rec.s = Math.max(NEED_SCORE[before], rec.s - 2);
+    else rec.s = Math.max(0, before < (S.softBelow || 0) ? rec.s - 1 : rec.s * 0.75 - 1);
+    rec.w++;
+  }
   const after = tierOf(rec), top = rec.mt;
   if (after > top) rec.mt = after;
   return { before, after, top, up: after > top };

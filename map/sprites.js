@@ -332,6 +332,9 @@
   PX.buildCommon = function () {
     const C = {};
     C.nodeDone = disc3(['#e09a20', '#f8c030', '#ffdc50', '#fff6b8'], '#9a5c14', '#fff3a8');
+    // Klarade stopp i färgen för stoppets svagaste ord (2026-11-18): Wood, Iron, Steel, Gold (samma som nodeDone), Emerald ...
+    const shade = (hex, f) => { const n = parseInt(hex.slice(1), 16), ch = [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f)); return '#' + ch.map((v) => v.toString(16).padStart(2, '0')).join(''); };
+    C.nodeTier = ['#a9743f', '#8793a3', '#c3d0de', null, '#2fbf71', '#ee7fd8', '#fff0a0', '#9fe8ff'].map((c) => (c ? disc3([shade(c, -0.25), c, shade(c, 0.2), shade(c, 0.55)], shade(c, -0.5), shade(c, 0.6)) : C.nodeDone));
     C.nodeCur = disc3(['#c02a20', '#e8412f', '#ff6a50', '#ffc2b0'], '#7e1410', '#ffffff');
     C.nodeLock = disc3(['#565668', '#6a6a82', '#80809a', '#9898b2'], '#3c3c4e', '#b0b0c8');
     C.skull = skull();
