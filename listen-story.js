@@ -93,7 +93,12 @@ export function playStory(o) {
     }
   }
   const dots = $('.ls-dots'); for (const L of LINES) for (const g of L.gaps) { const d = document.createElement('i'); g.dot = d; dots.append(d); }
-  const syncCw = () => el.querySelectorAll('.cw').forEach((c) => c.classList.toggle('lit', !!c.querySelector('.w.lit')));
+  // Texten följer rösten: raden med ordet som läses (eller luckan som väntar) hålls mitt i rutan.
+  let goal = null;
+  const follow = (e) => { if (!e) return; const r = e.getBoundingClientRect(), b = story.getBoundingClientRect();
+    const top = Math.max(0, Math.round(story.scrollTop + r.top + r.height / 2 - b.top - b.height / 2));
+    if (Math.abs(top - story.scrollTop) < 24 || top === goal) return; goal = top; story.scrollTo({ top, behavior: 'smooth' }); };
+  const syncCw = () => { el.querySelectorAll('.cw').forEach((c) => c.classList.toggle('lit', !!c.querySelector('.w.lit'))); follow(story.querySelector('.lit')); };
   const light = (els, wt) => (t) => { const on = new Set(); els.forEach((e, i) => { if (e && wt && wt[i] && t >= wt[i][1] - 0.02 && t < wt[i][2] + 0.04) on.add(e); }); for (const e of new Set(els)) if (e) e.classList.toggle('lit', on.has(e)); syncCw(); };
   const karaoke = (L) => (t) => { const on = (a, b) => t >= a - 0.02 && t < b + 0.06, W = L.tm.words;
     for (const part of L.parts) {
@@ -165,11 +170,11 @@ export function playStory(o) {
   (async () => {
     await sleep(300);
     for (const L of LINES) {
-      cur.L = L; L.el.classList.remove('hidden'); el.querySelectorAll('.ls-ln.cur').forEach((e) => e.classList.remove('cur')); L.el.classList.add('cur'); L.el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      cur.L = L; L.el.classList.remove('hidden'); el.querySelectorAll('.ls-ln.cur').forEach((e) => e.classList.remove('cur')); L.el.classList.add('cur'); follow(L.el);
       if (!L.pieces) { if (!(await play(L.key, false, karaoke(L)))) return; }
       for (const q of L.pieces || []) {
         if (q.kind === 'text') { if (!(await play(q.file, false, light(q.before, q.words)))) return; continue; }
-        q.g.el.classList.add('now'); q.g.dot.classList.add('now');
+        q.g.el.classList.add('now'); q.g.dot.classList.add('now'); follow(q.g.el);
         if (!(await upToGap(q, false))) return;
         if ((await ask(L, q)) === null) return;
       }

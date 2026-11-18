@@ -472,7 +472,7 @@ function wordUp(item, up) {
 }
 const LOSSES = {};      // förluster i rad per bana (bara i minnet): efter två pekar resultatskärmen tydligt mot att träna ord
 // ---------- Listen to the story: en kort berättelse efter en vunnen strid (listen-story.js) ----------
-// Kommer efter varje vunnen strid, högst K.listen.perDay gånger per stopp och dag, och växlar mellan stoppets berättelser. Bara ord barnet har mött kan bli luckor. Första
+// Kommer efter varje vunnen strid, högst K.listen.perDay gånger per stopp och dag, och växlar mellan stoppets berättelser. Bara ord barnet har mött, eller som hör till världens stopp fram till detta, kan bli luckor. Första
 // försöket på en lucka räknas i ordboken som listen_pick_picture (raden läggs i stridens logg, så att ordningen i
 // händelseloggen blir densamma som här). Händelsen 'lstory' minns att berättelsen har spelats; en äldre klient hoppar över den.
 let LSD = null;
@@ -485,7 +485,7 @@ function maybeStory(r, k, i, node, w, then) {
     if (!list.length || (last && last.day === today() && last.dn >= (K.listen.perDay || 1) && !r.force)) return then();      // högst perDay berättelser per stopp och dag
     const story = list[(last ? last.n : 0) % list.length], items = {};
     for (let j = 0; j <= k; j++) { const c = contentFor(j); if (c) for (const it of c.items) items[it.id] = items[it.id] || it; }
-    const book = P.words || (P.words = {}), met = (it) => !!book[it.id] && counts(it, P), log = battle && battle.quiz ? battle.quiz.log : null, day = dayNum();
+    const book = P.words || (P.words = {}), here = new Set((contentFor(k).nodes || []).slice(0, i + 1).flatMap((nd) => nd ? [...(nd.introduce || []), ...(nd.phrases || [])] : [])), met = (it) => (!!book[it.id] || here.has(it.id)) && counts(it, P), log = battle && battle.quiz ? battle.quiz.log : null, day = dayNum();
     let gold = 0;
     unlock();
     playStory({
