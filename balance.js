@@ -173,11 +173,12 @@
 //                    (K.score.keepFirst). Ett andra fel samma dag som förut. För gyllene stopp och medaljer.
 //                    Berättelsen efter striden (K.listen): första försöket räknas som listen_pick_picture, guld per rätt lucka,
 //                    högst tre berättelser per stopp och dag (perDay).
-//   v32  2026-11-21  Mindre guld: fiendeguld 2,6 -> 2,0, guld för Iron 2 -> 1 och Steel 4 -> 2 (Gold 8 kvar, så att Gold lönar
+//   v32  2026-11-21  Mindre guld: fiendeguld 2,6 -> 2,0, guld för Iron 2 -> 1 och Steel 4 -> 2, Gold 8 -> 5 (Gold går fort att nå i gymmet; ändå mest per ord, så att Gold lönar
 //                    sig), berättelsen 0,3 -> 0,2 per lucka. Barnen hade 800 till 2 600 guld och priserna 100 till 375.
 //                    Saldot sänktes en gång (grant med reason 'balance-v32'): vad de nya talen hade gett, men aldrig mer än
 //                    halva saldot. Bossens krav kan ha ord från tidigare världar (K.gate.boss.also): världsboss 2 vill ha
-//                    tio ord från värld 1 på Gold (sex i yngre läget). Ordgymmet tränar några ord tills de stiger (K.gym.focus).
+//                    tio ord från värld 1 på Gold (sex i yngre läget). Ordgymmet tränar sex ord tills de stiger (K.gym.focus),
+//                    18 frågor per pass: ungefär fem ord når Gold per pass. Saldot fick sedan ett tak på 500 ('balance-v32-cap').
 export const version = 32;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
@@ -296,13 +297,13 @@ export const K = {
   // Nivåerna: 0 Wood, 1 Iron, 2 Steel, 3 Gold, 4 Emerald, 5 Crystal, 6 Star, 7 Neutron Star.
   // kill: andel av fiendernas xp som finns kvar i världar som har innehållsfil (övriga världar ger full fiende-xp).
   learn: { share: [0, 0.01, 0.025, 0.035, 0.045, 0.05, 0.05, 0.05], mult: 1, kill: 0.2,
-    gold: [0, 1, 2, 8, 12, 16, 20, 25] },   // v32: Iron 2 -> 1, Steel 4 -> 2   // guld per ordnivå, räknat i fiendeguld på hjältens nivå (Iron 2, Steel 4 ...). 0 = inget guld för ord.
+    gold: [0, 1, 2, 5, 12, 16, 20, 25] },   // v32: Iron 2 -> 1, Steel 4 -> 2, Gold 8 -> 5 (Gold går nu fort att nå i gymmet)   // guld per ordnivå, räknat i fiendeguld på hjältens nivå (Iron 2, Steel 4 ...). 0 = inget guld för ord.
   // Ordmätare. boss: bossen går att utmana när `share` av världens ord har nått nivå `tier` (2 = Steel).
   // node: mätaren längs vägen (en ny bana öppnas när share av de tidigare banornas ord är Iron). INTE BYGGD i spelet:
   // föräldern har inte bett om den och ett lås på vanliga banor kan stänga in ett barn. `on` läses bara av simulatorn.
   // also (v32): per världsindex, krav på ord i tidigare världar (världsindex 0 = värld 1, tier 3 = Gold, n ord).
   gate: { boss: { share: 0.5, tier: 2, also: { 1: [{ world: 0, tier: 3, n: 10, young: 6 }] } }, node: { on: false, share: 0.6, tier: 1 } },
-  gym: { questions: 15, daily: 5, focus: 3, focusAsk: 4 },   // focus (v32): så många ord som kan stiga tränas upp till focusAsk gånger per pass   // ordgymmet: frågor per pass, och dagsbonus (fiendeguld på hjältens nivå) för första passet varje dag
+  gym: { questions: 18, daily: 5, focus: 6, focusAsk: 3, other: 6 },   // focus (v32): så många ord som kan stiga tränas upp till focusAsk gånger per pass; var other:e fråga är ett annat ord eller en mening   // ordgymmet: frågor per pass, och dagsbonus (fiendeguld på hjältens nivå) för första passet varje dag
   knownStart: 0,       // försprånget är borttaget (v13). Var 2,5 poäng för rätt svar vid första mötet. Gamla svar i loggen har sitt försprång sparat och spelas upp som förut.
   firstOptions: 4,     // antal kort vid en riskfri första fråga. Används bara när K.meet.on är false (annars möts nya ord som kort).
   // Banans boksida och det som hör till den (game/wordpage.js, quiz.js, battle.js, startBattle i main.js). Gäller vanliga banor.

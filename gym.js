@@ -22,7 +22,7 @@ class GymQuiz extends Quiz {
       this.focus = this.own.filter(ok).sort((a, b) => gap(a) - gap(b)).slice(0, F.focus).map((i) => ({ i, t: tierOf(r0(i)) }));
     }
     const fx = (this.focus || []).filter((f) => f.i !== this.last && tierOf(this.book[f.i.id]) === f.t && (this.cnt[f.i.id] || 0) < (F.focusAsk || 4));
-    if (fx.length && this.asked % 3 !== 0) { const f = fx.sort((a, b) => (this.cnt[a.i.id] || 0) - (this.cnt[b.i.id] || 0))[0]; this.seen.add(f.i.id); return this.task(f.i); }
+    if (fx.length && this.asked % (F.other || 3) !== 0) { const f = fx.sort((a, b) => (this.cnt[a.i.id] || 0) - (this.cnt[b.i.id] || 0))[0]; this.seen.add(f.i.id); return this.task(f.i); }
     if (this.sentences.length && this.asked > 2 && Math.random() < 0.3) {
       const s = pickOf(this.sentences.filter((x) => x !== this.lastSentence).length ? this.sentences.filter((x) => x !== this.lastSentence) : this.sentences);
       this.lastSentence = s; return { sentence: s, type: s.gap && Math.random() < 0.3 ? 'sentence_gap' : 'build_sentence' };
