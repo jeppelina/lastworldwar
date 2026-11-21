@@ -173,7 +173,7 @@
 //                    (K.score.keepFirst). Ett andra fel samma dag som förut. För gyllene stopp och medaljer.
 //                    Berättelsen efter striden (K.listen): första försöket räknas som listen_pick_picture, guld per rätt lucka,
 //                    högst tre berättelser per stopp och dag (perDay).
-//   v32  2026-11-21  Mindre guld: fiendeguld 2,6 -> 2,0, guld för Iron 2 -> 1 och Steel 4 -> 2, Gold 8 -> 5 (Gold går fort att nå i gymmet; ändå mest per ord, så att Gold lönar
+//   v32  2026-11-21  Mindre guld: fiendeguld 2,6 -> 2,0, guld för Iron 2 -> 1 och Steel 4 -> 2, Gold 8 -> 3 (Gold går fort att nå i gymmet; ändå mest per ord, så att Gold lönar
 //                    sig), berättelsen 0,3 -> 0,2 per lucka. Barnen hade 800 till 2 600 guld och priserna 100 till 375.
 //                    Saldot sänktes en gång (grant med reason 'balance-v32'): vad de nya talen hade gett, men aldrig mer än
 //                    halva saldot. Bossens krav kan ha ord från tidigare världar (K.gate.boss.also): världsboss 2 vill ha
@@ -297,7 +297,7 @@ export const K = {
   // Nivåerna: 0 Wood, 1 Iron, 2 Steel, 3 Gold, 4 Emerald, 5 Crystal, 6 Star, 7 Neutron Star.
   // kill: andel av fiendernas xp som finns kvar i världar som har innehållsfil (övriga världar ger full fiende-xp).
   learn: { share: [0, 0.01, 0.025, 0.035, 0.045, 0.05, 0.05, 0.05], mult: 1, kill: 0.2,
-    gold: [0, 1, 2, 5, 12, 16, 20, 25] },   // v32: Iron 2 -> 1, Steel 4 -> 2, Gold 8 -> 5 (Gold går nu fort att nå i gymmet)   // guld per ordnivå, räknat i fiendeguld på hjältens nivå (Iron 2, Steel 4 ...). 0 = inget guld för ord.
+    gold: [0, 1, 2, 3, 12, 16, 20, 25] },   // v32: Iron 2 -> 1, Steel 4 -> 2, Gold 8 -> 3 (Gold går nu fort att nå i gymmet)   // guld per ordnivå, räknat i fiendeguld på hjältens nivå (Iron 2, Steel 4 ...). 0 = inget guld för ord.
   // Ordmätare. boss: bossen går att utmana när `share` av världens ord har nått nivå `tier` (2 = Steel).
   // node: mätaren längs vägen (en ny bana öppnas när share av de tidigare banornas ord är Iron). INTE BYGGD i spelet:
   // föräldern har inte bett om den och ett lås på vanliga banor kan stänga in ett barn. `on` läses bara av simulatorn.
