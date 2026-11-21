@@ -212,11 +212,12 @@ window.GAME = {
     if (node.type === 'mini') return openMini(k, node.slot != null ? node.slot : i, node);      // i = nodindex, eller sidostoppets id
     if (node.type === 'chest') { if (done) return toast('The chest is empty.'); const gold = R.chestGold(R.nodeInfo(w.id, i).rec); rec('stage', { world: w.id, node: i, kind: 'chest', win: true, stars: 1, gold, xp: 0, bv: BV }); toast(`You found ${gold} gold!`); MAP.finish(k, i, 1); return afterMapChange(); }
     // Bossens ordmätare: bossen går att utmana först när tillräckligt många av världens ord är inlärda (eller föräldern har öppnat den).
-    if (node.type === 'boss' && !done) { const g = bossGate(k); if (g && !g.open) { toast(meterText(g)); return goPractice(k, g.best); } }
+    if (node.type === 'boss' && !done) { const g = bossGate(k); if (g && !g.open) { toast(meterText(g)); return goPractice(k, g.mainOk ? -1 : g.best); } }
     startBattle(k, i, node, w);
   },
   // Kartans knapp "Practice words": till banan där flest ord kan växa.
-  practice(k) { const t = practiceTarget(k); if (t) goPractice(t[0], t[1]); },
+  practice(k) { const g = bossGate(k); if (g && !g.open && g.mainOk && g.gym >= 0) return startGym(g.gym);      // bara ord från en tidigare värld fattas: den världens ordgym
+    const t = practiceTarget(k); if (t) goPractice(t[0], t[1]); },
 };
 function afterMapChange() { P.done = JSON.parse(JSON.stringify(MAP.state.done)); passMinis(); { const got = checkMedals(); if (got.length) toast(got.map((m) => '🏅 ' + (m.world ? 'World medal: ' : 'Gold medal: ') + m.name).join('  ')); } MAP.state.gold = P.gold; pushMapInfo(); MAP.updateHud(); save(); renderBar(); }
 // Barnets egen gubbe i sin utrustning som markör på kartan (halv storlek).
@@ -315,10 +316,22 @@ function bossGate(k, p = P) {
   const items = c.items.filter((it) => counts(it, p)), n = items.length, have = countAt(p.words || {}, items, G.tier);
   const need = Math.ceil((p.young ? K.young.bossShare : G.share) * n - 1e-9), forced = !!(p.open && p.open[R.WORLD_IDS[k]]), best = practiceNode(k, p);
   // Finns ingen bana att öva på hålls bossen öppen: mätaren får aldrig stänga in ett barn.
-  return { n, have, need, left: Math.max(0, need - have), tier: TIERS[G.tier].name, forced, best, open: have >= need || forced || best < 0 };
+  // Krav på ord från tidigare världar (K.gate.boss.also, v32), till exempel tio ord från värld 1 på Gold. De övas i den världens
+  // ordgym, som alltid finns, så de håller bossen stängd även när det inte finns någon bana att öva på här.
+  const reqs = [{ world: k + 1, tierI: G.tier, tier: TIERS[G.tier].name, color: TIERS[G.tier].color, have, need, ok: have >= need || best < 0, main: true }];
+  for (const a of (G.also || {})[k] || []) {
+    const ca = contentFor(a.world, p); if (!ca) continue;
+    const ia = ca.items.filter((it) => counts(it, p)), na = Math.min(ia.length, p.young && a.young != null ? a.young : a.n), ha = countAt(p.words || {}, ia, a.tier);
+    reqs.push({ world: a.world + 1, tierI: a.tier, tier: TIERS[a.tier].name, color: TIERS[a.tier].color, have: ha, need: na, ok: ha >= na, gymWorld: a.world });
+  }
+  const miss = reqs.find((r) => !r.ok && !r.main);
+  return { n, have, need, left: Math.max(0, need - have), tier: TIERS[G.tier].name, forced, best, reqs, mainOk: reqs[0].ok, gym: miss ? miss.gymWorld : -1, open: forced || reqs.every((r) => r.ok) };
 }
+// Kraven i ord, ett per rad: "World 1 Gold words: 4 of 10".
+const reqLine = (r) => `World ${r.world} ${r.tier} words: ${Math.min(r.have, r.need)} of ${r.need}` + (r.ok ? ' ✔' : '');
 const withText = (g) => (g ? { ...g, text: meterText(g) } : null);
-const meterText = (g) => `${g.have} of ${g.n} words are ${g.tier} or better. ` + (g.left > 0 ? `${g.left} to go.` : 'The boss is open!');
+const meterText = (g) => (g.reqs && g.reqs.length > 1 ? (g.open ? 'The boss is open! ' : 'To wake the boss: ') + g.reqs.map(reqLine).join('. ') + '.'
+  : `${g.have} of ${g.n} words are ${g.tier} or better. ` + (g.left > 0 ? `${g.left} to go.` : 'The boss is open!'));
 const meterHTML = (g) => `<div class="meter"><i style="width:${Math.min(100, Math.round(100 * g.have / Math.max(1, g.need)))}%"></i></div>`;
 // Världen barnet står i: den första som inte är helt klarad.
 function curWorldIdx(p = P) { const k = R.WORLD_IDS.findIndex((id, j) => { const d = (p.done || {})[id] || []; return !R.nodeCount(j) || d.length < R.nodeCount(j) || d.slice(0, R.nodeCount(j)).some((x) => !x); }); return k < 0 ? R.WORLD_IDS.length - 1 : k; }
@@ -1014,7 +1027,7 @@ function renderBook() {
   $('book-legend').innerHTML = TIERS.map((t, i) => { const n = all.filter((x) => tierOf(book[x.id]) === i).length; return `<span style="background:${t.color};color:${t.ink}" class="${n ? '' : 'none'}">${t.name}${n ? ' ' + n : ''}</span>`; }).join('');
   // Världens ordmätare överst: samma tal som bossen på kartan visar.
   const mk = curWorldIdx(), mg = bossGate(mk), mEl = $('book-meter'); mEl.hidden = !mg;
-  if (mg) mEl.innerHTML = `<b>${CONTENT[mk].title || 'This world'}</b> <span>${isDone(mk, R.nodeCount(mk) - 1) ? `${mg.have} of ${mg.n} words are ${mg.tier} or better.` : mg.forced && mg.left > 0 ? `${mg.have} of ${mg.n} words are ${mg.tier} or better. The boss is open.` : meterText(mg)}</span>${meterHTML(mg)}`;
+  if (mg) mEl.innerHTML = `<b>${CONTENT[mk].title || 'This world'}</b> <span>${!isDone(mk, R.nodeCount(mk) - 1) && mg.reqs && mg.reqs.length > 1 && !mg.forced ? meterText(mg) : isDone(mk, R.nodeCount(mk) - 1) ? `${mg.have} of ${mg.n} words are ${mg.tier} or better.` : mg.forced && mg.left > 0 ? `${mg.have} of ${mg.n} words are ${mg.tier} or better. The boss is open.` : meterText(mg)}</span>${meterHTML(mg)}`;
   const pages = $('book-pages'); pages.innerHTML = '';
   if (!all.length) pages.innerHTML = '<div class="emptybag"><p><b>Your book is empty.</b><br>Every word you meet in battle lands here.</p></div>';
   const groups = new Map();

@@ -3,6 +3,7 @@
 // plus en liten dagsbonus första passet varje dag (K.gym.daily). main.js står för bokföringen (startGym där).
 import { Quiz } from './quiz.js';
 import { tierOf, isDue, nextNeed, TIERS } from './words.js';
+import { K } from './balance.js';
 
 const pickOf = (a) => a[Math.floor(Math.random() * a.length)];
 
@@ -12,6 +13,16 @@ class GymQuiz extends Quiz {
   next() {
     this.asked++;
     if (this.requeue.length && this.asked - this.requeue[0].at >= 2) return this.task(this.requeue.shift().item);
+    // Fokus (K.gym.focus, v32): några ord som kan stiga i dag och har minst kvar tränas flera gånger i passet, ett i taget med
+    // andra emellan, tills de har stigit eller frågats focusAsk gånger. Ett svar per ord och pass räckte aldrig till Gold.
+    const F = K.gym || {};
+    if (F.focus && !this.focus) {
+      const r0 = (i) => this.book[i.id], gap = (i) => { const n = nextNeed(r0(i)); return n ? n.score : 99; };
+      const ok = (i) => { const r = r0(i), n = nextNeed(r); return r && n && tierOf(r) >= 1 && n.days - (r.ld !== this.day ? 1 : 0) <= 0; };
+      this.focus = this.own.filter(ok).sort((a, b) => gap(a) - gap(b)).slice(0, F.focus).map((i) => ({ i, t: tierOf(r0(i)) }));
+    }
+    const fx = (this.focus || []).filter((f) => f.i !== this.last && tierOf(this.book[f.i.id]) === f.t && (this.cnt[f.i.id] || 0) < (F.focusAsk || 4));
+    if (fx.length && this.asked % 3 !== 0) { const f = fx.sort((a, b) => (this.cnt[a.i.id] || 0) - (this.cnt[b.i.id] || 0))[0]; this.seen.add(f.i.id); return this.task(f.i); }
     if (this.sentences.length && this.asked > 2 && Math.random() < 0.3) {
       const s = pickOf(this.sentences.filter((x) => x !== this.lastSentence).length ? this.sentences.filter((x) => x !== this.lastSentence) : this.sentences);
       this.lastSentence = s; return { sentence: s, type: s.gap && Math.random() < 0.3 ? 'sentence_gap' : 'build_sentence' };

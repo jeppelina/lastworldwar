@@ -173,7 +173,12 @@
 //                    (K.score.keepFirst). Ett andra fel samma dag som förut. För gyllene stopp och medaljer.
 //                    Berättelsen efter striden (K.listen): första försöket räknas som listen_pick_picture, guld per rätt lucka,
 //                    högst tre berättelser per stopp och dag (perDay).
-export const version = 31;
+//   v32  2026-11-21  Mindre guld: fiendeguld 2,6 -> 2,0, guld för Iron 2 -> 1 och Steel 4 -> 2 (Gold 8 kvar, så att Gold lönar
+//                    sig), berättelsen 0,3 -> 0,2 per lucka. Barnen hade 800 till 2 600 guld och priserna 100 till 375.
+//                    Saldot sänktes en gång (grant med reason 'balance-v32'): vad de nya talen hade gett, men aldrig mer än
+//                    halva saldot. Bossens krav kan ha ord från tidigare världar (K.gate.boss.also): världsboss 2 vill ha
+//                    tio ord från värld 1 på Gold (sex i yngre läget). Ordgymmet tränar några ord tills de stiger (K.gym.focus).
+export const version = 32;
 
 // ---------- Striden och belöningarna (formlerna står i rules.js) ----------
 export const K = {
@@ -181,7 +186,7 @@ export const K = {
   // Fiendens värden räknas ur banans rekommenderade nivå (rek): tal * growth^(rek - 1) * banans lättnad * typfaktor.
   enemy: {
     hp: 60, atk: 4.4, growth: 1.10,     // liv och skada på rek 1, och tillväxten per rek-nivå (hör ihop med TUNE.heroGrowth)
-    gold: 2.6, goldGrowth: 1.065,         // guld per slagen fiende (hör ihop med TUNE.priceGrowth)
+    gold: 2.0, goldGrowth: 1.065,         // guld per slagen fiende (hör ihop med TUNE.priceGrowth)
     xp: 5, xpGrowth: 1.05,              // xp per slagen fiende (hör ihop med TUNE.xpGrowth)
   },
   // Fiendetyper: 1 = liten, 2 = mellan, 3 = stor, boss.
@@ -291,12 +296,13 @@ export const K = {
   // Nivåerna: 0 Wood, 1 Iron, 2 Steel, 3 Gold, 4 Emerald, 5 Crystal, 6 Star, 7 Neutron Star.
   // kill: andel av fiendernas xp som finns kvar i världar som har innehållsfil (övriga världar ger full fiende-xp).
   learn: { share: [0, 0.01, 0.025, 0.035, 0.045, 0.05, 0.05, 0.05], mult: 1, kill: 0.2,
-    gold: [0, 2, 4, 8, 12, 16, 20, 25] },   // guld per ordnivå, räknat i fiendeguld på hjältens nivå (Iron 2, Steel 4 ...). 0 = inget guld för ord.
+    gold: [0, 1, 2, 8, 12, 16, 20, 25] },   // v32: Iron 2 -> 1, Steel 4 -> 2   // guld per ordnivå, räknat i fiendeguld på hjältens nivå (Iron 2, Steel 4 ...). 0 = inget guld för ord.
   // Ordmätare. boss: bossen går att utmana när `share` av världens ord har nått nivå `tier` (2 = Steel).
   // node: mätaren längs vägen (en ny bana öppnas när share av de tidigare banornas ord är Iron). INTE BYGGD i spelet:
   // föräldern har inte bett om den och ett lås på vanliga banor kan stänga in ett barn. `on` läses bara av simulatorn.
-  gate: { boss: { share: 0.5, tier: 2 }, node: { on: false, share: 0.6, tier: 1 } },
-  gym: { questions: 15, daily: 5 },   // ordgymmet: frågor per pass, och dagsbonus (fiendeguld på hjältens nivå) för första passet varje dag
+  // also (v32): per världsindex, krav på ord i tidigare världar (världsindex 0 = värld 1, tier 3 = Gold, n ord).
+  gate: { boss: { share: 0.5, tier: 2, also: { 1: [{ world: 0, tier: 3, n: 10, young: 6 }] } }, node: { on: false, share: 0.6, tier: 1 } },
+  gym: { questions: 15, daily: 5, focus: 3, focusAsk: 4 },   // focus (v32): så många ord som kan stiga tränas upp till focusAsk gånger per pass   // ordgymmet: frågor per pass, och dagsbonus (fiendeguld på hjältens nivå) för första passet varje dag
   knownStart: 0,       // försprånget är borttaget (v13). Var 2,5 poäng för rätt svar vid första mötet. Gamla svar i loggen har sitt försprång sparat och spelas upp som förut.
   firstOptions: 4,     // antal kort vid en riskfri första fråga. Används bara när K.meet.on är false (annars möts nya ord som kort).
   // Banans boksida och det som hör till den (game/wordpage.js, quiz.js, battle.js, startBattle i main.js). Gäller vanliga banor.
@@ -357,7 +363,7 @@ export const K = {
   //   bloomEvery     en blomma per så många starka ord (Steel eller bättre), i världen där barnet är. bloomMax = högst så många
   happen: { ambient: { first: 20, pause: [45, 90], dur: [7, 11] }, chestDays: 3, chestLevels: 3, statueDays: 1, bloomEvery: 10, bloomMax: 8 },
   // Ung-läge (bocken "Yngre barn" per barn på föräldraskärmen). bossStones: antal ordstenar i en bossfight.
-  listen: { on: true, gold: 0.3, perDay: 3 },   // Listen to the story efter striden (listen-story.js): guld per rätt lucka på första försöket, i andelar av en fiendes guld (v31)
+  listen: { on: true, gold: 0.2, perDay: 3 },   // Listen to the story efter striden (listen-story.js): guld per rätt lucka på första försöket, i andelar av en fiendes guld (v31)
   young: { thin: 0.5, bossShare: 0.35, learnMult: 1.25, bossStones: 6 },   // learnMult 3 till 1.25 i v29
   // Skillträdet (game/skills.js): sparks låser upp steg som ändrar hur hjälten ser ut. Antalet sparks sparas aldrig, det
   // räknas fram ur nivån, klarade världsbossar och boken, minus de steg som är upplåsta. Talen får bara ändras åt det

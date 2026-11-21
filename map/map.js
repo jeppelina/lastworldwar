@@ -358,10 +358,41 @@
   const curMap = () => (view.mode === 'overview' ? OV : getWorld(view.world));
   function clampCam() { const m = curMap(); view.cam.x = PX.clamp(view.cam.x, 0, Math.max(0, m.W - vw)); view.cam.y = PX.clamp(view.cam.y, 0, Math.max(0, m.H - vh)); }
   function along(seg, t) { const f = PX.clamp(t, 0, 1) * (seg.length - 1), i = Math.min(seg.length - 2, Math.floor(f)), u = f - i; return { x: seg[i].x + (seg[i + 1].x - seg[i].x) * u, y: seg[i].y + (seg[i + 1].y - seg[i].y) * u }; }
+  // Där hjälten står när barnet har gått till ett annat stopp (per värld, bara i minnet): { i } eller { side }. null = vid
+  // stigens nuvarande nod. tour = en promenad längs stigen till stoppet barnet tryckte på; rutan öppnas när hjälten är framme.
+  const stand = {}; let tour = null;
+  function tourPos() {
+    const d = PX.clamp((now() - tour.t0) / tour.dur, 0, 1) * tour.len, P = tour.pts, L = tour.cum;
+    let j = 1; while (j < P.length - 1 && L[j] < d) j++;
+    const u = L[j] > L[j - 1] ? (d - L[j - 1]) / (L[j] - L[j - 1]) : 1;
+    return { x: P[j - 1].x + (P[j].x - P[j - 1].x) * u, y: P[j - 1].y + (P[j].y - P[j - 1].y) * u };
+  }
+  const sidePt = (m, j) => ({ x: m.sides[j].x + 10, y: m.sides[j].y + 2 });
+  function goTo(target, then) {
+    const k = view.world, m = getWorld(k), w = worlds[k], done = state.done[w.id], ci = curNode(w), last = m.pts.length - 1;
+    const node = target.side != null ? w.side[target.side].after : target.i;
+    const ok = target.side != null ? (ci < 0 || node < ci || !!done[node]) : (ci < 0 || target.i <= ci);
+    const st = stand[k] || { i: ci < 0 ? last : ci };
+    if (!ok || walk || (st.i === target.i && st.side === target.side)) return then();      // låst, redan där, eller på väg framåt efter en vinst
+    const pts = [heroPos()], from = st.side != null ? w.side[st.side].after : st.i;
+    if (st.side != null) pts.push(m.pts[from]);
+    if (node > from) for (let j = from; j < node; j++) pts.push(...m.segs[j]);
+    else for (let j = from - 1; j >= node; j--) pts.push(...m.segs[j].slice().reverse());
+    if (target.side != null) pts.push(sidePt(m, target.side)); else pts.push(target.i === ci || (ci < 0 && target.i === last) ? heroHome(m, w) : m.pts[target.i]);
+    const cum = [0]; for (let j = 1; j < pts.length; j++) cum.push(cum[j - 1] + Math.hypot(pts[j].x - pts[j - 1].x, pts[j].y - pts[j - 1].y));
+    const len = cum[cum.length - 1]; if (len < 2) { stand[k] = target; return then(); }
+    closeCard(); view.follow = true;
+    tour = { pts, cum, len, t0: now(), dur: PX.clamp(len / 75, 0.35, 2.6), to: target, k, then };
+  }
+  function heroHome(m, w) { const ci = curNode(w), e = m.pts[m.pts.length - 1]; return ci < 0 ? { x: e.x + 17, y: e.y + 4 } : ci === m.pts.length - 1 ? { x: e.x - 18, y: e.y + 4 } : m.pts[ci]; }
   function heroPos() {
     const m = getWorld(view.world), w = worlds[view.world];
     if (walk) return along(m.segs[walk.from], (now() - walk.t0) / walk.dur);
-    const ci = curNode(w), e = m.pts[m.pts.length - 1]; return ci < 0 ? { x: e.x + 17, y: e.y + 4 } : ci === m.pts.length - 1 ? { x: e.x - 18, y: e.y + 4 } : m.pts[ci];
+    if (tour && tour.k === view.world) return tourPos();
+    const st = stand[view.world], ci = curNode(w);
+    if (st && st.side != null && m.sides[st.side]) return sidePt(m, st.side);
+    if (st && st.i != null && st.i !== ci && m.pts[st.i]) return m.pts[st.i];
+    return heroHome(m, w);
   }
   function centerOn(p, snap) {
     const tx = p.x - vw / 2, ty = p.y - vh / 2 - 6;
@@ -589,6 +620,7 @@
   }
   function drawWorld(t, dt) {
     const k = view.world, w = worlds[k], m = getWorld(k), done = state.done[w.id], ci = curNode(w);
+    if (tour && (tour.k !== k || t - tour.t0 >= tour.dur)) { const tt = tour; tour = null; if (tt.k === k) { stand[k] = tt.to; tt.then(); } }
     if (walk && (t - walk.t0) / walk.dur >= 1) {
       // Framme vid nästa nod. Var den ett minispel är den redan passerad, och hjälten går vidare till noden efter.
       const nx = walk.from + 1;
@@ -631,8 +663,11 @@
         plate(p.x - (tc.width >> 1) - 1, ly, tc.width + 2, 11, st === 'lock'); img(tc, p.x - (tc.width >> 1), ly);
         if (boss && st === 'cur' && wi.gate && !wi.gate.open) {      // bossens ordmätare är stängd: lås och hur långt det är kvar
           img(C.lock, p.x + 11, p.y + 1);
-          const g = wi.gate, gt = PX.text(g.have + '/' + g.need, '#c3d0de', '#1b1630'), bx = p.x - ((gt.width + 9) >> 1);
-          plate(bx - 2, ly + 11, gt.width + 12, 11); wordIcon(bx, ly + 13, false); img(gt, bx + 9, ly + 11);
+          const g = wi.gate, left = (g.reqs || [{ world: 0, color: '#c3d0de', have: g.have, need: g.need, ok: false }]).filter((r) => !r.ok);
+          left.forEach((r, n) => {      // ett krav per rad: rutan i nivåns färg, världen och hur många (W1 4/10)
+            const gt = PX.text((g.reqs && g.reqs.length > 1 ? 'W' + r.world + ' ' : '') + Math.min(r.have, r.need) + '/' + r.need, '#f4efe2', '#1b1630'), bx = p.x - ((gt.width + 9) >> 1), yy = ly + 11 + n * 12;
+            plate(bx - 2, yy, gt.width + 12, 11); ctx.fillStyle = '#1b1630'; rect(bx - 1, yy + 2, 8, 7); ctx.fillStyle = r.color; rect(bx, yy + 3, 6, 5); img(gt, bx + 9, yy);
+          });
         }
         if (st === 'done' && (inf.left > 0 || wi.best === i)) {
           const best = wi.best === i, bob = ((t * 3) | 0) % 2;
@@ -640,9 +675,9 @@
         }
       }
     }
-    const step = walking ? ((t * 9) | 0) % 2 : 0, bob = walking ? step : ((t * 2.5) | 0) % 2;
+    const step = walking || tour ? ((t * 9) | 0) % 2 : 0, bob = walking || tour ? step : ((t * 2.5) | 0) % 2;
     img(heroSprite || C.hero[step], hp.x, hp.y - 3 - bob);
-    if (!walking && ci >= 0) img(C.arrow, hp.x + 2, hp.y - (heroSprite ? 30 : 21) - ((t * 3) | 0) % 2 * 2);
+    if (!walking && !tour && ci >= 0) img(C.arrow, hp.x + 2, hp.y - (heroSprite ? 30 : 21) - ((t * 3) | 0) % 2 * 2);
     drawParts(m, t, dt);
     drawClouds(m, t, dt, w.biome === 'volcano');
     story('sky', t);
@@ -727,7 +762,8 @@
     el.querySelector('.stars').innerHTML = isStar(nd) ? [0, 1, 2].map((s) => icon(s < d ? 'star' : 'starOff')).join('') : 'No stars here';
     const notes = [];
     if (locked) notes.push('Locked. Finish the levels before this one.');
-    else if (shut) notes.push(gate.text, 'Make more words ' + gate.tier + ' to wake the boss.');
+    else if (shut && !(gate.reqs && gate.reqs.length > 1)) notes.push(gate.text, 'Make more words ' + gate.tier + ' to wake the boss.');
+    else if (shut) notes.push('The boss sleeps. To wake it:');
     else {
       if (inf && inf.f < 1) notes.push('Too easy now: small reward.');
       if (d && inf && inf.left > 0) { notes.push((inf.n != null ? (inf.n - inf.left) + ' of ' + inf.n + ' words here are strong.' : inf.left + ' words here are not strong yet.') + (wi && wi.best === i ? ' Best place to practise now!' : ' Play again to make them stronger.'));
@@ -740,7 +776,14 @@
       if (!d) notes.push(nd.type === 'boss' ? (gate ? gate.text + ' ' : '') + 'Beat the boss to open the next world.' : 'You are here.');
     }
     const note = el.querySelector('.note'); note.textContent = ''; notes.forEach((tx) => { const ln = document.createElement('div'); ln.textContent = tx; note.appendChild(ln); });
-    const meter = el.querySelector('.meter'); meter.hidden = !gate || locked;
+    if (gate && !d && !locked && gate.reqs && gate.reqs.length > 1) {      // bossens krav, ett per rad med nivåns färg (v32)
+      const box = document.createElement('div'); box.className = 'reqs';
+      for (const r of gate.reqs) { const ok = r.ok, ln = document.createElement('div'); ln.className = 'req' + (ok ? ' ok' : '');
+        ln.innerHTML = `<i style="background:${r.color}"></i><span>World ${r.world} · ${r.tier} words</span><b>${Math.min(r.have, r.need)} / ${r.need}</b><em>${ok ? '✔' : ''}</em>`; box.appendChild(ln); }
+      if (!gate.open && gate.mainOk && gate.gym >= 0) { const h = document.createElement('div'); h.className = 'dim'; h.textContent = 'Practise in the Word Gym of World ' + (gate.gym + 1) + '.'; box.appendChild(h); }
+      note.appendChild(box);
+    }
+    const meter = el.querySelector('.meter'); meter.hidden = !gate || locked || !!(gate.reqs && gate.reqs.length > 1);
     if (gate) meter.firstElementChild.style.width = Math.min(100, Math.round(100 * gate.have / Math.max(1, gate.need))) + '%';
     const play = el.querySelector('.play'), practice = el.querySelector('.practice');
     play.hidden = shut; practice.hidden = !shut;
@@ -757,6 +800,7 @@
     state.done[w.id][ci] = isStar(nd) ? (stars || 1) : 1;
     passMinis(w);
     view.follow = true;
+    stand[k] = null; tour = null;
     if (ci + 1 < w.nodes.length) { busy = true; walk = { from: ci, t0: now() + 0.35, dur: 1.5 }; }
     else {
       busy = true;
@@ -802,7 +846,8 @@
       let best = -1, side = -1, bd = 1e9;
       m.pts.forEach((p, i) => { const tp = w.nodes[i].type, big = tp === 'boss', mini = tp === 'mini', d = Math.hypot(x - p.x, y - (p.y - (big ? 8 : mini ? 5 : 2))); if (d < (big ? 18 : mini ? 15 : 13) && d < bd) { bd = d; best = i; } });
       m.sides.forEach((p, j) => { const d = Math.hypot(x - p.x, y - (p.y - 5)); if (d < 15 && d < bd) { bd = d; side = j; } });
-      if (side >= 0) openCard(-1, side); else if (best >= 0) openCard(best);
+      if (tour) return;                                                                        // på väg: trycket väntar inte i kö
+      if (side >= 0) goTo({ side }, () => openCard(-1, side)); else if (best >= 0) goTo({ i: best }, () => openCard(best));      // hjälten går dit, sedan öppnas rutan
       else { closeCard(); if (STORY && STORY.tap) try { STORY.tap(x, y); } catch (e) { console.error('story', e); } }      // noderna går alltid först, sedan det som lever på kartan
     }
   }
